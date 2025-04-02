@@ -1,11 +1,13 @@
 package builder
 
 import (
+	"entiqon/dialect"
 	"fmt"
 	"strings"
 )
 
 type SelectBuilder struct {
+	dialect    dialect.Dialect
 	columns    []string
 	from       string
 	conditions []string
@@ -14,8 +16,8 @@ type SelectBuilder struct {
 	limit      int64
 }
 
-func NewSelect() *SelectBuilder {
-	return &SelectBuilder{}
+func NewSelect(d dialect.Dialect) *SelectBuilder {
+	return &SelectBuilder{dialect: d}
 }
 
 func (sb *SelectBuilder) Columns(columns ...string) *SelectBuilder {
@@ -45,7 +47,12 @@ func (sb *SelectBuilder) Limit(limit int64) *SelectBuilder {
 }
 
 func (sb *SelectBuilder) Build() (string, []interface{}) {
-	query := fmt.Sprintf("SELECT %s FROM %s", sb.columns, sb.from)
+	escapedCols := make([]string, len(sb.columns))
+	for i, col := range sb.columns {
+		escapedCols[i] = sb.dialect.EscapeIdentifier(col)
+	}
+
+	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(escapedCols, ", "), sb.dialect.EscapeIdentifier(sb.from))
 	if len(sb.conditions) > 0 {
 		query += fmt.Sprintf(" WHERE %s", strings.Join(sb.conditions, " AND "))
 	}
