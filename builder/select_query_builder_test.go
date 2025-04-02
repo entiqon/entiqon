@@ -10,7 +10,7 @@ func TestSelectBuilder(t *testing.T) {
 		qb := new(builder.SelectQueryBuilder).
 			Select("id", "email").
 			From("users").
-			Where("email = 'john.doe@example.com' AND active = true").
+			Where("email = 'john.doe@example.com'", "active = true").
 			OrderBy("created_at DESC").
 			Take(10)
 

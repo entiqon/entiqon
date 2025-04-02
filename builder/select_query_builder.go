@@ -27,8 +27,17 @@ func (sb *SelectQueryBuilder) From(from string) *SelectQueryBuilder {
 }
 
 // Where initializes the WHERE conditions (resets any existing conditions)
-func (sb *SelectQueryBuilder) Where(condition string) *SelectQueryBuilder {
-	sb.conditions = []string{condition}
+func (sb *SelectQueryBuilder) Where(conditions ...string) *SelectQueryBuilder {
+	if len(conditions) == 0 {
+		sb.conditions = nil
+		return sb
+	}
+
+	// Reset and treat all conditions as AND by default
+	sb.conditions = []string{conditions[0]}
+	for _, condition := range conditions[1:] {
+		sb.conditions = append(sb.conditions, fmt.Sprintf("AND %s", condition))
+	}
 	return sb
 }
 
