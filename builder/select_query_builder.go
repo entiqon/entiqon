@@ -5,10 +5,23 @@ import (
 	"strings"
 )
 
+type ConditionType string
+
+const (
+	ConditionSimple ConditionType = "SIMPLE"
+	ConditionAnd    ConditionType = "AND"
+	ConditionOr     ConditionType = "OR"
+)
+
+type ConditionToken struct {
+	Type      ConditionType
+	Condition string
+}
+
 type SelectQueryBuilder struct {
 	columns    []string
 	from       string
-	conditions []string
+	conditions []ConditionToken
 	sorting    []string
 	take       *int
 	skip       *int
@@ -28,28 +41,20 @@ func (sb *SelectQueryBuilder) From(from string) *SelectQueryBuilder {
 
 // Where initializes the WHERE conditions (resets any existing conditions)
 func (sb *SelectQueryBuilder) Where(conditions ...string) *SelectQueryBuilder {
-	if len(conditions) == 0 {
-		sb.conditions = nil
-		return sb
-	}
-
-	// Reset and treat all conditions as AND by default
-	sb.conditions = []string{conditions[0]}
-	for _, condition := range conditions[1:] {
-		sb.conditions = append(sb.conditions, fmt.Sprintf("AND %s", condition))
-	}
+	sb.conditions = []ConditionToken{}
+	sb.addCondition(ConditionSimple, conditions...)
 	return sb
 }
 
 // AndWhere adds an AND condition
-func (sb *SelectQueryBuilder) AndWhere(condition string) *SelectQueryBuilder {
-	sb.conditions = append(sb.conditions, fmt.Sprintf("AND %s", condition))
+func (sb *SelectQueryBuilder) AndWhere(conditions ...string) *SelectQueryBuilder {
+	sb.addCondition(ConditionAnd, conditions...)
 	return sb
 }
 
 // OrWhere adds an OR condition
-func (sb *SelectQueryBuilder) OrWhere(condition string) *SelectQueryBuilder {
-	sb.conditions = append(sb.conditions, fmt.Sprintf("OR %s", condition))
+func (sb *SelectQueryBuilder) OrWhere(conditions ...string) *SelectQueryBuilder {
+	sb.addCondition(ConditionOr, conditions...)
 	return sb
 }
 
@@ -88,7 +93,18 @@ func (sb *SelectQueryBuilder) Build() (string, error) {
 	}
 
 	if len(sb.conditions) > 0 {
-		tokens = append(tokens, "WHERE "+strings.Join(sb.conditions, " "))
+		var parts []string
+		for _, condition := range sb.conditions {
+			switch condition.Type {
+			case ConditionSimple:
+				parts = append(parts, condition.Condition)
+			case ConditionAnd, ConditionOr:
+				parts = append(parts, fmt.Sprintf("%s %s", condition.Type, condition.Condition))
+			default:
+				return "", fmt.Errorf("invalid condition type: %s", condition.Type)
+			}
+		}
+		tokens = append(tokens, fmt.Sprintf("WHERE %s", strings.Join(parts, " ")))
 	}
 
 	if len(sb.sorting) > 0 {
@@ -103,4 +119,24 @@ func (sb *SelectQueryBuilder) Build() (string, error) {
 	}
 
 	return strings.Join(tokens, " "), nil
+}
+
+func (sb *SelectQueryBuilder) addCondition(conditionType ConditionType, conditions ...string) {
+	if len(conditions) == 0 {
+		return
+	}
+	if len(conditions) == 1 {
+		sb.conditions = append(sb.conditions, ConditionToken{
+			Type:      conditionType,
+			Condition: conditions[0],
+		})
+		return
+	}
+	// Join and wrap in parentheses
+	joiner := string(conditionType)
+	group := "(" + strings.Join(conditions, fmt.Sprintf(" %s ", joiner)) + ")"
+	sb.conditions = append(sb.conditions, ConditionToken{
+		Type:      conditionType,
+		Condition: group,
+	})
 }
