@@ -64,7 +64,7 @@ func (sb *SelectBuilder) Build() (string, []interface{}) {
 			count := strings.Count(condition, "?")
 			bound := condition
 			for j := 0; j < count; j++ {
-				ph := binder.Bind(binder.args[argIndex])
+				ph := binder.Bind(sb.args[j])
 				bound = strings.Replace(bound, "?", ph, 1)
 				argIndex++
 			}
