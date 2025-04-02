@@ -47,6 +47,8 @@ func (sb *SelectBuilder) Limit(limit int64) *SelectBuilder {
 }
 
 func (sb *SelectBuilder) Build() (string, []interface{}) {
+	binder := NewParamBinder(sb.dialect)
+
 	escapedCols := make([]string, len(sb.columns))
 	for i, col := range sb.columns {
 		escapedCols[i] = sb.dialect.EscapeIdentifier(col)
@@ -54,7 +56,21 @@ func (sb *SelectBuilder) Build() (string, []interface{}) {
 
 	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(escapedCols, ", "), sb.dialect.EscapeIdentifier(sb.from))
 	if len(sb.conditions) > 0 {
-		query += fmt.Sprintf(" WHERE %s", strings.Join(sb.conditions, " AND "))
+		// Replace all placeholders with dialect-specific ones
+		processed := make([]string, len(sb.conditions))
+		argIndex := 0
+		for i, condition := range sb.conditions {
+			// Replace `?` placeholders manually with dialect placeholders
+			count := strings.Count(condition, "?")
+			bound := condition
+			for j := 0; j < count; j++ {
+				ph := binder.Bind(binder.args[argIndex])
+				bound = strings.Replace(bound, "?", ph, 1)
+				argIndex++
+			}
+			processed[i] = bound
+		}
+		query += fmt.Sprintf(" WHERE %s", strings.Join(processed, " AND "))
 	}
 	if len(sb.orderBy) > 0 {
 		query += fmt.Sprintf(" ORDER BY %s", strings.Join(sb.orderBy, " "))
@@ -62,5 +78,5 @@ func (sb *SelectBuilder) Build() (string, []interface{}) {
 	if sb.limit > 0 {
 		query += fmt.Sprintf(" LIMIT %d", sb.limit)
 	}
-	return query, sb.args
+	return query, binder.Args()
 }
