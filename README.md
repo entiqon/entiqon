@@ -2,6 +2,8 @@
   <img src="assets/entiqon_logo.png" alt="Entiqon Logo" width="150"/>
 </p>
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
+
 # Entiqon Library
 
 > ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems.
