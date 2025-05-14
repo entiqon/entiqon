@@ -1,9 +1,10 @@
 package builder_test
 
 import (
+	"testing"
+
 	"github.com/ialopezg/entiqon/builder"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type SelectQueryBuilderTestSuite struct {

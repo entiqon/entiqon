@@ -1,6 +1,6 @@
 package builder
 
-import "entiqon/dialect"
+import "github.com/ialopezg/entiqon/dialect"
 
 type ParamBinder struct {
 	dialect  dialect.Dialect
