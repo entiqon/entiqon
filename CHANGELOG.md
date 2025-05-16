@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v0.4.0] - 2025-05-16
+
+### Added
+- `UpdateBuilder` with fluent support for:
+  - `.Table(...)`, `.Set(...)`, `.Where(...)`
+  - `Build()` to generate safe SQL and ordered args
+
+### Changed
+- README updated with runnable `UpdateBuilder` example
+- Usage examples now include full `package main` and imports for clarity
+
+### Tests
+- Unit test for `UpdateBuilder` covering SET and WHERE handling
+- Argument ordering and SQL structure validated
+
+---
+
 ## [v0.3.0] - 2025-05-16
 
 ### Added
