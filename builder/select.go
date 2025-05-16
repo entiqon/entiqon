@@ -24,8 +24,14 @@ type ConditionToken struct {
 	// Type specifies how this condition is logically joined (SIMPLE, AND, OR).
 	Type ConditionType
 
-	// Condition is the SQL condition string (e.g., "id = 1").
-	Condition string
+	// Key is the SQL condition expression, e.g., "id = ?".
+	Key string
+
+	// Params contains the arguments to be bound to the placeholders in Key.
+	Params []any
+
+	// Raw contains the formatted representation, optionally for debug or display.
+	Raw string
 }
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.
@@ -63,21 +69,21 @@ func (sb *SelectBuilder) From(from string) *SelectBuilder {
 
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
-func (sb *SelectBuilder) Where(conditions ...string) *SelectBuilder {
+func (sb *SelectBuilder) Where(condition string, params ...any) *SelectBuilder {
 	sb.conditions = []ConditionToken{}
-	sb.addCondition(ConditionSimple, conditions...)
+	sb.addCondition(ConditionSimple, condition, params...)
 	return sb
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
-func (sb *SelectBuilder) AndWhere(conditions ...string) *SelectBuilder {
-	sb.addCondition(ConditionAnd, conditions...)
+func (sb *SelectBuilder) AndWhere(condition string, params ...any) *SelectBuilder {
+	sb.addCondition(ConditionAnd, condition, params...)
 	return sb
 }
 
 // OrWhere adds an OR condition to the WHERE clause.
-func (sb *SelectBuilder) OrWhere(conditions ...string) *SelectBuilder {
-	sb.addCondition(ConditionOr, conditions...)
+func (sb *SelectBuilder) OrWhere(condition string, params ...any) *SelectBuilder {
+	sb.addCondition(ConditionOr, condition, params...)
 	return sb
 }
 
@@ -101,9 +107,9 @@ func (sb *SelectBuilder) Skip(value int) *SelectBuilder {
 
 // Build compiles the SELECT statement and returns it as a string.
 // It returns an error if essential parts (like the FROM clause) are missing.
-func (sb *SelectBuilder) Build() (string, error) {
+func (sb *SelectBuilder) Build() (string, []any, error) {
 	if sb.from == "" {
-		return "", fmt.Errorf("FROM clause is required")
+		return "", nil, fmt.Errorf("FROM clause is required")
 	}
 
 	columns := "*"
@@ -116,17 +122,19 @@ func (sb *SelectBuilder) Build() (string, error) {
 		fmt.Sprintf("FROM %s", sb.from),
 	}
 
+	var args []any
 	if len(sb.conditions) > 0 {
 		var parts []string
 		for _, condition := range sb.conditions {
 			switch condition.Type {
 			case ConditionSimple:
-				parts = append(parts, condition.Condition)
+				parts = append(parts, condition.Key)
 			case ConditionAnd, ConditionOr:
-				parts = append(parts, fmt.Sprintf("%s %s", condition.Type, condition.Condition))
+				parts = append(parts, fmt.Sprintf("%s %s", condition.Type, condition.Key))
 			default:
-				return "", fmt.Errorf("invalid condition type: %s", condition.Type)
+				return "", nil, fmt.Errorf("invalid condition type: %s", condition.Type)
 			}
+			args = append(args, condition.Params...)
 		}
 		tokens = append(tokens, fmt.Sprintf("WHERE %s", strings.Join(parts, " ")))
 	}
@@ -142,26 +150,24 @@ func (sb *SelectBuilder) Build() (string, error) {
 		tokens = append(tokens, fmt.Sprintf("OFFSET %d", *sb.skip))
 	}
 
-	return strings.Join(tokens, " "), nil
+	return strings.Join(tokens, " "), args, nil
 }
 
 // addCondition adds a logical condition to the WHERE clause.
-func (sb *SelectBuilder) addCondition(conditionType ConditionType, conditions ...string) {
-	if len(conditions) == 0 {
+func (sb *SelectBuilder) addCondition(conditionType ConditionType, condition string, params ...any) {
+	if condition == "" {
 		return
 	}
-	if len(conditions) == 1 {
-		sb.conditions = append(sb.conditions, ConditionToken{
-			Type:      conditionType,
-			Condition: conditions[0],
-		})
-		return
+
+	raw := condition
+	for _, val := range params {
+		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
 	}
-	// Join and wrap in parentheses
-	joiner := string(conditionType)
-	group := "(" + strings.Join(conditions, fmt.Sprintf(" %s ", joiner)) + ")"
+
 	sb.conditions = append(sb.conditions, ConditionToken{
-		Type:      conditionType,
-		Condition: group,
+		Type:   conditionType,
+		Key:    condition,
+		Params: params,
+		Raw:    raw,
 	})
 }

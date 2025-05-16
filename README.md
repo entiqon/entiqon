@@ -45,6 +45,8 @@ go get github.com/ialopezg/entiqon
 
 #### 🚀 Usage Example (SELECT)
 
+A SELECT query that retrieves user emails filtered by status, role, and signup date — with ordering, pagination, and parameter binding.
+
 ```go
 package main
 
@@ -55,14 +57,15 @@ import (
 )
 
 func main() {
-	sql, err := builder.NewSelect().
-		Select("id", "name").
+	sql, args, err := builder.NewSelect().
+		Select("id", "email").
 		From("users").
-		Where("status = 'active'").
-		AndWhere("created_at > '2023-01-01'").
-		OrderBy("created_at DESC").
-		Take(10).
-		Skip(5).
+		Where("status = ?", "active").
+		AndWhere("role = ?", "admin").
+		AndWhere("created_at > ? AND region = ?", "2024-01-01", "NA").
+		OrderBy("last_login DESC").
+		Take(50).
+		Skip(0).
 		Build()
 
 	if err != nil {
@@ -70,14 +73,15 @@ func main() {
 	}
 
 	fmt.Println(sql)
-	// Output:
-	// SELECT id, name FROM users WHERE status = 'active' AND created_at > '2023-01-01' ORDER BY created_at DESC LIMIT 10 OFFSET 5
+	fmt.Println(args)
 }
 ```
 
 ---
 
 #### ✍️ Usage Example (INSERT)
+
+Inserts a new user record and returns the inserted ID using PostgreSQL's RETURNING clause.
 
 ```go
 package main
@@ -102,15 +106,14 @@ func main() {
 
 	fmt.Println(sql)
 	fmt.Println(args)
-	// Output:
-	// INSERT INTO users (id, name) VALUES (?, ?) RETURNING id
-	// [1 Sherlock]
 }
 ```
 
 ---
 
 #### 🔄 Usage Example (UPDATE)
+
+Updates a user's status using parameterized WHERE and SET clauses.
 
 ```go
 package main
@@ -134,15 +137,14 @@ func main() {
 
 	fmt.Println(sql)
 	fmt.Println(args)
-	// Output:
-	// UPDATE users SET status = ? WHERE id = ?
-	// [active 42]
 }
 ```
 
 ---
 
 #### ♻️ Usage Example (UPSERT)
+
+Performs an UPSERT — inserts or updates an existing user if a conflict on ID occurs.
 
 ```go
 package main
@@ -171,15 +173,14 @@ func main() {
 
 	fmt.Println(sql)
 	fmt.Println(args)
-	// Output:
-	// INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id
-	// [1 Watson]
 }
 ```
 
 ---
 
 #### 🗑️ Usage Example (DELETE)
+
+Deletes a user by ID and returns the deleted ID — supports PostgreSQL's RETURNING clause.
 
 ```go
 package main

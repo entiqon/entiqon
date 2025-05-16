@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v1.0.0] - 2025-05-16
+
+### Added
+- `SelectBuilder` upgraded to support argument binding and structured condition handling
+- Consistent `Build() (string, []any, error)` signature across all builders
+- Enhanced `ConditionToken` to store key, params, and raw string for traceability
+- Suite-based test coverage added for all Select use cases
+
+### Changed
+- All builder examples in `README.md` now include clear descriptions
+- `SelectBuilder` now aligns with INSERT, UPDATE, DELETE, and UPSERT builder patterns
+
+### Stable
+- Entiqon is now considered **stable** and tagged as `v1.0.0`
+- CRUD is fully supported and extendable
+- Structure, usage, and public API are locked and safe for production
+
+---
+
 ## [v0.6.0] - 2025-05-16
 
 ### Added
