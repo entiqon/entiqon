@@ -12,7 +12,8 @@
 
 ## 🌱 Overview
 
-Entiqon is a modular query engine designed for extensible data modeling, fluent query building, and structured execution.
+Entiqon is a modular query engine designed for extensible data modeling, fluent query building, and structured
+execution.
 
 ---
 
@@ -22,6 +23,7 @@ Entiqon is a modular query engine designed for extensible data modeling, fluent 
 - `InsertBuilder` with multi-row insert, `RETURNING` support
 - `UpdateBuilder` with SET + WHERE and param binding
 - `UpsertBuilder` with `ON CONFLICT ... DO UPDATE SET ...` support
+- `DeleteBuilder` with WHERE clause and optional RETURNING support
 
 ---
 
@@ -172,6 +174,35 @@ func main() {
 	// Output:
 	// INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id
 	// [1 Watson]
+}
+```
+
+---
+
+#### 🗑️ Usage Example (DELETE)
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+)
+
+func main() {
+	sql, args, err := builder.NewDelete().
+		From("users").
+		Where("id = ?", 42).
+		Returning("id").
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println(args)
 }
 ```
 
