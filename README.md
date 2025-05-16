@@ -25,32 +25,17 @@ Entiqon is a modular query engine designed for extensible data modeling, fluent 
 
 ## 🚀 Quick Start
 
+### ↘️ Installation
+
 ```bash
 go get github.com/ialopezg/entiqon
-
-```go
-package your-package
-
-import (
-  "github.com/ialopezg/entiqon/builder"
-  "github.com/ialopezg/entiqon/dialect"
-)
-
-pg := dialect.PostgresDialect{}
-qb := builder.NewQuery(pg)
-
-qb.Select().
-  Columns("id", "email").
-  From("users").
-  WhereNamed("email = :email", map[string]any{"email": "user@example.com"})
-
-sql, args, err := qb.Build()
-
 ```
 
 ---
 
-## 🚀 Usage Example (SELECT)
+### 📘 Usage
+
+#### 🚀 Usage Example (SELECT)
 
 ```go
 sql, err := builder.NewSelect().
@@ -69,7 +54,7 @@ sql, err := builder.NewSelect().
 
 ---
 
-## ✍️ Usage Example (INSERT)
+#### ✍️ Usage Example (INSERT)
 
 ```go
 sql, args, err := builder.NewInsert().
@@ -81,6 +66,21 @@ sql, args, err := builder.NewInsert().
 
 // Result:
 // INSERT INTO users (id, name) VALUES (?, ?) RETURNING id
+```
+
+---
+
+#### 🔄 Usage Example (UPDATE)
+
+```go
+sql, args, err := builder.NewUpdate().
+  Table("users").
+  Set("status", "active").
+  Where("id = ?", 42).
+  Build()
+
+// Result:
+// UPDATE users SET status = ? WHERE id = ?
 ```
 
 ---
