@@ -23,4 +23,5 @@ func TestUpdateBuilder_Build(t *testing.T) {
 	)
 	require.Equal(t, []any{"Watson", "active", 101}, args)
 	fmt.Printf("📦 Generated SQL Query: %s\n", sql)
+	fmt.Println("🕵️ Verified by Watson: All is sound in the UPDATE logic, Holmes.")
 }

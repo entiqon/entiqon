@@ -26,4 +26,5 @@ func TestUpsertBuilder_Build(t *testing.T) {
 	)
 	require.Equal(t, []any{1, "Watson"}, args)
 	fmt.Printf("📦 Generated SQL Query: %s\n with params: %+v", sql, args)
+	fmt.Println("🕵️ Verified by Watson: All is sound in the UPSERT logic, Holmes.")
 }

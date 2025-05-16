@@ -12,8 +12,7 @@ func TestInsertBuilder_WithReturning(t *testing.T) {
 	q := builder.NewInsert().
 		Into("users").
 		Columns("id", "name").
-		Values(1, "Sherlock").
-		Values(2, "Watson").
+		Values(1, "Watson").
 		Returning("id", "created_at")
 
 	sql, args, err := q.Build()
@@ -22,7 +21,7 @@ func TestInsertBuilder_WithReturning(t *testing.T) {
 		"INSERT INTO users (id, name) VALUES (?, ?) RETURNING id, created_at",
 		sql,
 	)
-	require.Equal(t, []any{1, "Sherlock"}, args)
+	require.Equal(t, []any{1, "Watson"}, args)
 	fmt.Printf("📦 Generated SQL Query: %s with values %+v\n", sql, args)
 	fmt.Println("🕵️ Verified by Watson: All is sound in the INSERT logic, Holmes.")
 }

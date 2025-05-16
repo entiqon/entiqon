@@ -78,4 +78,5 @@ func (s *SelectQueryBuilderTestSuite) TestGroupedAndWhere() {
 
 func TestSelectQueryBuilderTestSuite(t *testing.T) {
 	suite.Run(t, new(SelectQueryBuilderTestSuite))
+	fmt.Println("🕵️ Verified by Watson: All is sound in the SELECT logic, Holmes.")
 }
