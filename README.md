@@ -21,6 +21,7 @@ Entiqon is a modular query engine designed for extensible data modeling, fluent 
 - `SelectBuilder` with condition chaining, pagination
 - `InsertBuilder` with multi-row insert, `RETURNING` support
 - `UpdateBuilder` with SET + WHERE and param binding
+- `UpsertBuilder` with `ON CONFLICT ... DO UPDATE SET ...` support
 
 ---
 
@@ -134,6 +135,43 @@ func main() {
 	// Output:
 	// UPDATE users SET status = ? WHERE id = ?
 	// [active 42]
+}
+```
+
+---
+
+#### ♻️ Usage Example (UPSERT)
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+)
+
+func main() {
+	sql, args, err := builder.NewUpsert().
+		Into("users").
+		Columns("id", "name").
+		Values(1, "Watson").
+		OnConflict("id").
+		DoUpdateSet(map[string]string{
+			"name": "EXCLUDED.name",
+		}).
+		Returning("id").
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println(args)
+	// Output:
+	// INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id
+	// [1 Watson]
 }
 ```
 
