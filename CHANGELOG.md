@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v0.5.0] - 2025-05-16
+
+### Added
+- `UpsertBuilder` with full support for PostgreSQL-style UPSERT:
+  - `.Into()`, `.Columns()`, `.Values()`, `.Returning()`
+  - `.OnConflict(...)` and `.DoUpdateSet(...)`
+- Delegates core insert logic to `InsertBuilder`
+- Safe and expressive: `Build()` renders SQL + args for `ON CONFLICT DO UPDATE SET`
+
+### Changed
+- README updated with `UpsertBuilder` runnable example
+- Supported builders list now includes UPSERT
+
+### Tests
+- Test verifies SQL + arg ordering
+- Covers full clause behavior
+
+---
+
 ## [v0.4.0] - 2025-05-16
 
 ### Added
