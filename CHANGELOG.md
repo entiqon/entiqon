@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v0.3.0] - 2025-05-16
+
+### Added
+- `InsertBuilder` with:
+  - `.Into()`, `.Columns()`, `.Values()`
+  - `.Returning()` for PostgreSQL-style response control
+- `Build()` method for safe SQL generation
+
+### Tests
+- Insert test suite including multi-row and RETURNING clause
+- Debug-friendly output with Watson audit signature
+
+---
+
 ## [v0.2.0] - 2024-05-15
 
 ### Added
