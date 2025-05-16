@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ialopezg/entiqon/builder"
@@ -20,6 +21,7 @@ func (s *SelectQueryBuilderTestSuite) TestBasicSelect() {
 	sql, err := s.qb.Select("id", "name").From("users").Build()
 	s.NoError(err)
 	s.Equal("SELECT id, name FROM users", sql)
+	fmt.Printf("📦 Generated SQL Query: %s\n", sql)
 }
 
 func (s *SelectQueryBuilderTestSuite) TestWhereAndOrConditions() {
@@ -34,6 +36,7 @@ func (s *SelectQueryBuilderTestSuite) TestWhereAndOrConditions() {
 	expected := "SELECT id FROM customers WHERE active = true AND email_verified = true OR (country = 'US' OR country = 'CA')"
 	s.NoError(err)
 	s.Equal(expected, sql)
+	fmt.Printf("📦 Generated SQL Query: %s\n", sql)
 }
 
 func (s *SelectQueryBuilderTestSuite) TestOrderingTakeSkip() {
@@ -48,6 +51,7 @@ func (s *SelectQueryBuilderTestSuite) TestOrderingTakeSkip() {
 	expected := "SELECT name FROM employees ORDER BY created_at DESC LIMIT 10 OFFSET 5"
 	s.NoError(err)
 	s.Equal(expected, sql)
+	fmt.Printf("📦 Generated SQL Query: %s\n", sql)
 }
 
 func (s *SelectQueryBuilderTestSuite) TestMissingFromClause() {
@@ -69,6 +73,7 @@ func (s *SelectQueryBuilderTestSuite) TestGroupedAndWhere() {
 	expected := "SELECT * FROM invoices WHERE paid = false AND (amount > 100 AND overdue = true)"
 	s.NoError(err)
 	s.Equal(expected, sql)
+	fmt.Printf("📦 Generated SQL Query: %s\n", sql)
 }
 
 func TestSelectQueryBuilderTestSuite(t *testing.T) {
