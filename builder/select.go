@@ -18,7 +18,7 @@ type ConditionToken struct {
 	Condition string
 }
 
-type SelectQueryBuilder struct {
+type SelectBuilder struct {
 	columns    []string
 	from       string
 	conditions []ConditionToken
@@ -28,56 +28,56 @@ type SelectQueryBuilder struct {
 }
 
 // Select sets the columns to retrieve
-func (sb *SelectQueryBuilder) Select(columns ...string) *SelectQueryBuilder {
+func (sb *SelectBuilder) Select(columns ...string) *SelectBuilder {
 	sb.columns = columns
 	return sb
 }
 
 // From sets the table to select from
-func (sb *SelectQueryBuilder) From(from string) *SelectQueryBuilder {
+func (sb *SelectBuilder) From(from string) *SelectBuilder {
 	sb.from = from
 	return sb
 }
 
 // Where initializes the WHERE conditions (resets any existing conditions)
-func (sb *SelectQueryBuilder) Where(conditions ...string) *SelectQueryBuilder {
+func (sb *SelectBuilder) Where(conditions ...string) *SelectBuilder {
 	sb.conditions = []ConditionToken{}
 	sb.addCondition(ConditionSimple, conditions...)
 	return sb
 }
 
 // AndWhere adds an AND condition
-func (sb *SelectQueryBuilder) AndWhere(conditions ...string) *SelectQueryBuilder {
+func (sb *SelectBuilder) AndWhere(conditions ...string) *SelectBuilder {
 	sb.addCondition(ConditionAnd, conditions...)
 	return sb
 }
 
 // OrWhere adds an OR condition
-func (sb *SelectQueryBuilder) OrWhere(conditions ...string) *SelectQueryBuilder {
+func (sb *SelectBuilder) OrWhere(conditions ...string) *SelectBuilder {
 	sb.addCondition(ConditionOr, conditions...)
 	return sb
 }
 
 // OrderBy adds an ORDER BY clause
-func (sb *SelectQueryBuilder) OrderBy(column string) *SelectQueryBuilder {
+func (sb *SelectBuilder) OrderBy(column string) *SelectBuilder {
 	sb.sorting = append(sb.sorting, column)
 	return sb
 }
 
 // Take sets the LIMIT (engine-agnostic equivalent)
-func (sb *SelectQueryBuilder) Take(value int) *SelectQueryBuilder {
+func (sb *SelectBuilder) Take(value int) *SelectBuilder {
 	sb.take = &value
 	return sb
 }
 
 // Skip sets the OFFSET (engine-agnostic equivalent)
-func (sb *SelectQueryBuilder) Skip(value int) *SelectQueryBuilder {
+func (sb *SelectBuilder) Skip(value int) *SelectBuilder {
 	sb.skip = &value
 	return sb
 }
 
 // Build builds the SQL string
-func (sb *SelectQueryBuilder) Build() (string, error) {
+func (sb *SelectBuilder) Build() (string, error) {
 	if sb.from == "" {
 		return "", fmt.Errorf("FROM clause is required")
 	}
@@ -121,7 +121,7 @@ func (sb *SelectQueryBuilder) Build() (string, error) {
 	return strings.Join(tokens, " "), nil
 }
 
-func (sb *SelectQueryBuilder) addCondition(conditionType ConditionType, conditions ...string) {
+func (sb *SelectBuilder) addCondition(conditionType ConditionType, conditions ...string) {
 	if len(conditions) == 0 {
 		return
 	}

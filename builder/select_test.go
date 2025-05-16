@@ -9,11 +9,11 @@ import (
 
 type SelectQueryBuilderTestSuite struct {
 	suite.Suite
-	qb *builder.SelectQueryBuilder
+	qb *builder.SelectBuilder
 }
 
 func (s *SelectQueryBuilderTestSuite) SetupTest() {
-	s.qb = new(builder.SelectQueryBuilder)
+	s.qb = new(builder.SelectBuilder)
 }
 
 func (s *SelectQueryBuilderTestSuite) TestBasicSelect() {
