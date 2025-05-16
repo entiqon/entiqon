@@ -48,11 +48,12 @@ pg := dialect.PostgresDialect{}
 qb := builder.NewQuery(pg)
 
 qb.Select().
-   Columns("id", "email").
-   From("users").
-   WhereNamed("email = :email", map[string]any{"email": "user@example.com"})
+Columns("id", "email").
+From("users").
+WhereNamed("email = :email", map[string]any{"email": "user@example.com"})
 
 sql, args, err := qb.Build()
+
 ```
 
 ---
@@ -70,6 +71,32 @@ It models entities, resolves relationships, and evolves with your data.
 
 ```bash
 go test ./...
+```
+
+---
+
+## ✅ Supported Query Builders
+
+- `SelectBuilder` with fluent chaining
+- Logical condition grouping via `Where`, `AndWhere`, `OrWhere`
+- Pagination using `Take` and `Skip`
+- Clause-safe `Build()` output
+
+## 🚀 Usage Example (SELECT)
+
+```go
+sql, err := builder.NewSelect().
+  Select("id", "name").
+  From("users").
+  Where("status = 'active'").
+  AndWhere("created_at > '2023-01-01'").
+  OrderBy("created_at DESC").
+  Take(10).
+  Skip(5).
+  Build()
+
+// Result:
+// SELECT id, name FROM users WHERE status = 'active' AND created_at > '2023-01-01' ORDER BY created_at DESC LIMIT 10 OFFSET 5
 ```
 
 ---
