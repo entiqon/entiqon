@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v0.6.0] - 2025-05-16
+
+### Added
+- `DeleteBuilder` with fluent methods:
+  - `.From()`, `.Where(...)`, `.Returning(...)`
+  - `.Build()` outputs DELETE query with WHERE and RETURNING support
+- PostgreSQL-style RETURNING clause supported
+- Fully test-covered and GoDoc-compliant
+
+### Changed
+- README updated with runnable DELETE example
+- Supported builders list now includes DELETE
+
+---
+
 ## [v0.5.0] - 2025-05-16
 
 ### Added
