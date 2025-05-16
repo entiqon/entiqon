@@ -20,10 +20,13 @@ Entiqon is a modular query engine designed for extensible data modeling, fluent 
 
 - `SelectBuilder` with condition chaining, pagination
 - `InsertBuilder` with multi-row insert, `RETURNING` support
+- `UpdateBuilder` with SET + WHERE and param binding
 
 ---
 
 ## 🚀 Quick Start
+
+---
 
 ### ↘️ Installation
 
@@ -35,21 +38,38 @@ go get github.com/ialopezg/entiqon
 
 ### 📘 Usage
 
+---
+
 #### 🚀 Usage Example (SELECT)
 
 ```go
-sql, err := builder.NewSelect().
-  Select("id", "name").
-  From("users").
-  Where("status = 'active'").
-  AndWhere("created_at > '2023-01-01'").
-  OrderBy("created_at DESC").
-  Take(10).
-  Skip(5).
-  Build()
+package main
 
-// Result:
-// SELECT id, name FROM users WHERE status = 'active' AND created_at > '2023-01-01' ORDER BY created_at DESC LIMIT 10 OFFSET 5
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+)
+
+func main() {
+	sql, err := builder.NewSelect().
+		Select("id", "name").
+		From("users").
+		Where("status = 'active'").
+		AndWhere("created_at > '2023-01-01'").
+		OrderBy("created_at DESC").
+		Take(10).
+		Skip(5).
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	// Output:
+	// SELECT id, name FROM users WHERE status = 'active' AND created_at > '2023-01-01' ORDER BY created_at DESC LIMIT 10 OFFSET 5
+}
 ```
 
 ---
@@ -57,15 +77,32 @@ sql, err := builder.NewSelect().
 #### ✍️ Usage Example (INSERT)
 
 ```go
-sql, args, err := builder.NewInsert().
-  Into("users").
-  Columns("id", "name").
-  Values(1, "Sherlock").
-  Returning("id").
-  Build()
+package main
 
-// Result:
-// INSERT INTO users (id, name) VALUES (?, ?) RETURNING id
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+)
+
+func main() {
+	sql, args, err := builder.NewInsert().
+		Into("users").
+		Columns("id", "name").
+		Values(1, "Sherlock").
+		Returning("id").
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println(args)
+	// Output:
+	// INSERT INTO users (id, name) VALUES (?, ?) RETURNING id
+	// [1 Sherlock]
+}
 ```
 
 ---
@@ -73,14 +110,31 @@ sql, args, err := builder.NewInsert().
 #### 🔄 Usage Example (UPDATE)
 
 ```go
-sql, args, err := builder.NewUpdate().
-  Table("users").
-  Set("status", "active").
-  Where("id = ?", 42).
-  Build()
+package main
 
-// Result:
-// UPDATE users SET status = ? WHERE id = ?
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+)
+
+func main() {
+	sql, args, err := builder.NewUpdate().
+		Table("users").
+		Set("status", "active").
+		Where("id = ?", 42).
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println(args)
+	// Output:
+	// UPDATE users SET status = ? WHERE id = ?
+	// [active 42]
+}
 ```
 
 ---
