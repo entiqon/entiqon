@@ -5,11 +5,14 @@ import (
 	"strings"
 )
 
+// UpdateBuilder builds a SQL UPDATE statement.
+//
+// It supports setting fields and composing WHERE clauses with arguments.
 type UpdateBuilder struct {
-	table string
-	set   map[string]any
-	where []string
-	args  []any
+	table string         // target table
+	set   map[string]any // column-value pairs for SET
+	where []string       // raw SQL conditions
+	args  []any          // arguments for WHERE placeholders
 }
 
 // NewUpdate returns a new UpdateBuilder instance.
@@ -21,7 +24,7 @@ func NewUpdate() *UpdateBuilder {
 	}
 }
 
-// Table sets the table to be updated.
+// Table sets the table name to update.
 func (b *UpdateBuilder) Table(name string) *UpdateBuilder {
 	b.table = name
 	return b
@@ -33,14 +36,20 @@ func (b *UpdateBuilder) Set(field string, value any) *UpdateBuilder {
 	return b
 }
 
-// Where adds a WHERE clause with arguments.
+// Where adds a WHERE clause with placeholders and binds arguments.
+//
+// Example:
+//
+//	.Where("status = ? AND created_at > ?", "active", "2023-01-01")
 func (b *UpdateBuilder) Where(condition string, args ...any) *UpdateBuilder {
 	b.where = append(b.where, condition)
 	b.args = append(b.args, args...)
 	return b
 }
 
-// Build compiles the UPDATE statement and returns the SQL string and arguments.
+// Build compiles the UPDATE statement into a SQL string and a list of arguments.
+//
+// It returns an error if the table is missing or no SET fields are defined.
 func (b *UpdateBuilder) Build() (string, []any, error) {
 	if b.table == "" {
 		return "", nil, fmt.Errorf("no table specified")
