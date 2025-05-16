@@ -35,7 +35,7 @@ Whether you're modeling entities, resolving relationships, or generating dialect
 ## 🚀 Quick Start
 
 ```bash
-go get github.com/yourusername/your-library-name
+go get github.com/ialopezg/entiqon
 ```
 
 ```go

@@ -14,7 +14,7 @@ type SelectQueryBuilderTestSuite struct {
 }
 
 func (s *SelectQueryBuilderTestSuite) SetupTest() {
-	s.qb = new(builder.SelectBuilder)
+	s.qb = builder.NewSelect()
 }
 
 func (s *SelectQueryBuilderTestSuite) TestBasicSelect() {

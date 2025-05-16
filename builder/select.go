@@ -40,6 +40,15 @@ type SelectBuilder struct {
 	skip       *int
 }
 
+// NewSelect creates and returns a new instance of SelectBuilder.
+func NewSelect() *SelectBuilder {
+	return &SelectBuilder{
+		columns:    make([]string, 0),
+		conditions: make([]ConditionToken, 0),
+		sorting:    make([]string, 0),
+	}
+}
+
 // Select specifies the columns to retrieve.
 func (sb *SelectBuilder) Select(columns ...string) *SelectBuilder {
 	sb.columns = columns
