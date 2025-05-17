@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ialopezg/entiqon/internal/core/dialect"
+	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
 // InsertBuilder builds a SQL INSERT statement.
@@ -14,7 +15,7 @@ import (
 type InsertBuilder struct {
 	dialect   dialect.Engine
 	table     string
-	columns   []string
+	columns   []token.FieldToken
 	values    [][]any
 	returning []string
 }
@@ -22,16 +23,10 @@ type InsertBuilder struct {
 // NewInsert returns a new instance of InsertBuilder.
 func NewInsert() *InsertBuilder {
 	return &InsertBuilder{
-		columns:   make([]string, 0),
-		values:    make([][]any, 0),
-		returning: make([]string, 0),
+		columns:   []token.FieldToken{},
+		values:    [][]any{},
+		returning: []string{},
 	}
-}
-
-// WithDialect sets the SQL dialect for identifier escaping.
-func (b *InsertBuilder) WithDialect(d dialect.Engine) *InsertBuilder {
-	b.dialect = d
-	return b
 }
 
 // Into sets the target table for the INSERT operation.
@@ -40,87 +35,85 @@ func (b *InsertBuilder) Into(table string) *InsertBuilder {
 	return b
 }
 
-// Columns defines the column names for the INSERT statement.
-func (b *InsertBuilder) Columns(cols ...string) *InsertBuilder {
-	b.columns = append(b.columns, cols...)
-	return b
-}
-
-// Values appends a single row of values to be inserted.
-func (b *InsertBuilder) Values(values ...any) *InsertBuilder {
-	if len(values) != len(b.columns) {
-		panic("values count must match columns count")
+// Columns sets the column definitions using FieldFrom(...) and resets existing ones.
+func (b *InsertBuilder) Columns(names ...string) *InsertBuilder {
+	b.columns = []token.FieldToken{}
+	for _, name := range names {
+		b.columns = append(b.columns, token.Field(name))
 	}
-	b.values = append(b.values, values)
 	return b
 }
 
-// Returning specifies columns to return after the insert (e.g., PostgreSQL RETURNING clause).
-func (b *InsertBuilder) Returning(columns ...string) *InsertBuilder {
-	b.returning = append(b.returning, columns...)
+// Values appends a row of values using a map of column name to value.
+// Each call adds a new row. The map must contain every column defined in Columns().
+func (b *InsertBuilder) Values(row ...any) *InsertBuilder {
+	b.values = append(b.values, row)
 	return b
 }
 
-// Build generates the final SQL INSERT statement and returns it
-// along with the ordered list of arguments.
+// Returning adds columns for RETURNING clause support (e.g., "id", "created_at").
+func (b *InsertBuilder) Returning(fields ...string) *InsertBuilder {
+	b.returning = append(b.returning, fields...)
+	return b
+}
+
+// Build compiles the full INSERT SQL statement along with arguments.
+// Returns an error if the structure is invalid or values are missing.
 func (b *InsertBuilder) Build() (string, []any, error) {
 	if b.table == "" {
-		return "", nil, fmt.Errorf("INSERT must specify table name")
+		return "", nil, fmt.Errorf("INSERT requires a target table")
 	}
 	if len(b.columns) == 0 {
-		return "", nil, fmt.Errorf("INSERT must specify columns")
+		return "", nil, fmt.Errorf("INSERT must define at least one column")
 	}
 	if len(b.values) == 0 {
-		return "", nil, fmt.Errorf("INSERT must provide at least one row of values")
+		return "", nil, fmt.Errorf("INSERT must contain at least one row of values")
 	}
 
-	var sql strings.Builder
-	args := make([]any, 0)
-
-	table := b.table
-	if b.dialect != nil {
-		table = b.dialect.EscapeIdentifier(table)
-	}
-
-	columns := b.columns
-	if b.dialect != nil {
-		for i, col := range columns {
-			columns[i] = b.dialect.EscapeIdentifier(col)
+	colNames := make([]string, len(b.columns))
+	for i, col := range b.columns {
+		name := col.Name
+		if b.dialect != nil && !col.IsRaw {
+			name = b.dialect.EscapeIdentifier(name)
 		}
+		if col.Alias != "" {
+			name = fmt.Sprintf("%s AS %s", name, col.Alias)
+		}
+		colNames[i] = name
 	}
 
-	sql.WriteString("INSERT INTO ")
-	sql.WriteString(table)
-	sql.WriteString(" (")
-	sql.WriteString(strings.Join(columns, ", "))
-	sql.WriteString(") VALUES ")
+	var placeholders []string
+	var args []any
 
-	placeholders := make([]string, len(b.columns))
-	for i := range placeholders {
-		placeholders[i] = "?"
-	}
-
-	valueBlocks := make([]string, 0, len(b.values))
-	for _, row := range b.values {
+	for i, row := range b.values {
 		if len(row) != len(b.columns) {
-			return "", nil, fmt.Errorf("value count does not match column count")
+			return "", nil, fmt.Errorf("row %d has %d values; expected %d", i+1, len(row), len(b.columns))
 		}
-		valueBlocks = append(valueBlocks, "("+strings.Join(placeholders, ", ")+")")
+
+		marks := make([]string, len(row))
+		for j := range row {
+			marks[j] = "?"
+		}
+
+		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(marks, ", ")))
 		args = append(args, row...)
 	}
 
-	sql.WriteString(strings.Join(valueBlocks, ", "))
+	stmt := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s",
+		b.table,
+		strings.Join(colNames, ", "),
+		strings.Join(placeholders, ", "),
+	)
 
 	if len(b.returning) > 0 {
-		returning := b.returning
-		if b.dialect != nil {
-			for i, col := range returning {
-				returning[i] = b.dialect.EscapeIdentifier(col)
-			}
-		}
-		sql.WriteString(" RETURNING ")
-		sql.WriteString(strings.Join(returning, ", "))
+		stmt += " RETURNING " + strings.Join(b.returning, ", ")
 	}
 
-	return sql.String(), args, nil
+	return stmt, args, nil
+}
+
+// WithDialect sets the SQL dialect engine (e.g., PostgresEngine) for identifier escaping.
+func (b *InsertBuilder) WithDialect(e dialect.Engine) *InsertBuilder {
+	b.dialect = e
+	return b
 }

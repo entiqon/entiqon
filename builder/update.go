@@ -8,59 +8,42 @@ import (
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
-// UpdateBuilder builds a SQL UPDATE statement.
-//
-// It supports setting fields and composing WHERE clauses with arguments.
 type UpdateBuilder struct {
 	dialect     dialect.Engine
-	table       string            // target table
-	assignments map[string]any    // column-value pairs for SET
-	conditions  []token.Condition // raw SQL conditions
-	args        []any             // arguments for WHERE placeholders
+	table       string
+	assignments []token.FieldToken
+	conditions  []token.Condition
 }
 
-// NewUpdate returns a new UpdateBuilder instance.
+// NewUpdate creates a new UpdateBuilder.
 func NewUpdate() *UpdateBuilder {
 	return &UpdateBuilder{
-		assignments: make(map[string]any),
-		conditions:  make([]token.Condition, 0),
-		args:        make([]any, 0),
+		assignments: []token.FieldToken{},
+		conditions:  []token.Condition{},
 	}
 }
 
-// WithDialect sets the SQL dialect for escaping identifiers.
-func (b *UpdateBuilder) WithDialect(d dialect.Engine) *UpdateBuilder {
-	b.dialect = d
+// Table sets the table to update.
+func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
+	b.table = table
 	return b
 }
 
-// Table sets the table name to update.
-func (b *UpdateBuilder) Table(name string) *UpdateBuilder {
-	b.table = name
+// Set adds column=value assignments using ordered Field slice.
+func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
+	b.assignments = append(b.assignments, token.Field(column).As(fmt.Sprintf("%v", value)))
 	return b
 }
 
-// Set defines a field and value to update.
-func (b *UpdateBuilder) Set(field string, value any) *UpdateBuilder {
-	b.assignments[field] = value
-	return b
-}
-
-// Where adds a WHERE clause with placeholders and binds arguments.
-//
-// Example:
-//
-//	.Where("status = ? AND created_at > ?", "active", "2023-01-01")
+// Where sets the initial condition (replaces any existing).
 func (b *UpdateBuilder) Where(condition string, params ...any) *UpdateBuilder {
-	b.conditions = []token.Condition{}
-	b.conditions = token.AppendCondition(
-		b.conditions,
+	b.conditions = []token.Condition{
 		token.NewCondition(token.ConditionSimple, condition, params...),
-	)
+	}
 	return b
 }
 
-// AndWhere adds an AND condition.
+// AndWhere adds AND condition.
 func (b *UpdateBuilder) AndWhere(condition string, params ...any) *UpdateBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -69,7 +52,7 @@ func (b *UpdateBuilder) AndWhere(condition string, params ...any) *UpdateBuilder
 	return b
 }
 
-// OrWhere adds an OR condition.
+// OrWhere adds OR condition.
 func (b *UpdateBuilder) OrWhere(condition string, params ...any) *UpdateBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -78,56 +61,60 @@ func (b *UpdateBuilder) OrWhere(condition string, params ...any) *UpdateBuilder 
 	return b
 }
 
-// Build compiles the UPDATE statement into a SQL string and a list of arguments.
-//
-// It returns an error if the table is missing or no SET fields are defined.
+// WithDialect sets the SQL dialect.
+func (b *UpdateBuilder) WithDialect(d dialect.Engine) *UpdateBuilder {
+	b.dialect = d
+	return b
+}
+
+// Build assembles the SQL UPDATE statement.
 func (b *UpdateBuilder) Build() (string, []any, error) {
 	if b.table == "" {
-		return "", nil, fmt.Errorf("no table specified")
+		return "", nil, fmt.Errorf("UPDATE requires a target table")
 	}
 	if len(b.assignments) == 0 {
-		return "", nil, fmt.Errorf("no assignments provided")
+		return "", nil, fmt.Errorf("UPDATE must include at least one assignment")
 	}
 
-	var sql strings.Builder
+	var sets []string
 	var args []any
-
-	table := b.table
-	if b.dialect != nil {
-		table = b.dialect.EscapeIdentifier(table)
-	}
-
-	sql.WriteString("UPDATE ")
-	sql.WriteString(table)
-	sql.WriteString(" SET ")
-
-	assignments := make([]string, 0, len(b.assignments))
-	for col, val := range b.assignments {
-		colName := col
-		if b.dialect != nil {
-			colName = b.dialect.EscapeIdentifier(col)
+	for _, field := range b.assignments {
+		col := field.Name
+		if b.dialect != nil && !field.IsRaw {
+			col = b.dialect.EscapeIdentifier(col)
 		}
-		assignments = append(assignments, fmt.Sprintf("%s = ?", colName))
-		args = append(args, val)
+		sets = append(sets, fmt.Sprintf("%s = ?", col))
+		args = append(args, field.Alias) // value passed via Alias field (temporary)
 	}
-	sql.WriteString(strings.Join(assignments, ", "))
+
+	tokens := []string{
+		fmt.Sprintf("UPDATE %s", b.table),
+		fmt.Sprintf("SET %s", strings.Join(sets, ", ")),
+	}
 
 	if len(b.conditions) > 0 {
 		var parts []string
-		for _, cond := range b.conditions {
-			switch cond.Type {
+		for _, c := range b.conditions {
+			switch c.Type {
 			case token.ConditionSimple:
-				parts = append(parts, cond.Key)
+				parts = append(parts, c.Key)
 			case token.ConditionAnd, token.ConditionOr:
-				parts = append(parts, fmt.Sprintf("%s %s", cond.Type, cond.Key))
+				parts = append(parts, fmt.Sprintf("%s %s", c.Type, c.Key))
 			default:
-				return "", nil, fmt.Errorf("invalid condition type: %s", cond.Type)
+				return "", nil, fmt.Errorf("invalid condition type: %s", c.Type)
 			}
-			args = append(args, cond.Params...)
 		}
-		sql.WriteString(" WHERE ")
-		sql.WriteString(strings.Join(parts, " "))
+		tokens = append(tokens, "WHERE "+strings.Join(parts, " "))
+		args = append(args, collectConditionArgs(b.conditions)...)
 	}
 
-	return sql.String(), args, nil
+	return strings.Join(tokens, " "), args, nil
+}
+
+func collectConditionArgs(conds []token.Condition) []any {
+	var args []any
+	for _, c := range conds {
+		args = append(args, c.Params...)
+	}
+	return args
 }
