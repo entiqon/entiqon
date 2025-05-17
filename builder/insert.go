@@ -3,6 +3,8 @@ package builder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ialopezg/entiqon/internal/core/dialect"
 )
 
 // InsertBuilder builds a SQL INSERT statement.
@@ -10,9 +12,10 @@ import (
 // It supports inserting data into a table with specified columns and values,
 // and can optionally append a RETURNING clause (PostgreSQL).
 type InsertBuilder struct {
-	intoTable string
+	dialect   dialect.Engine
+	table     string
 	columns   []string
-	rows      [][]any
+	values    [][]any
 	returning []string
 }
 
@@ -20,14 +23,20 @@ type InsertBuilder struct {
 func NewInsert() *InsertBuilder {
 	return &InsertBuilder{
 		columns:   make([]string, 0),
-		rows:      make([][]any, 0),
+		values:    make([][]any, 0),
 		returning: make([]string, 0),
 	}
 }
 
+// WithDialect sets the SQL dialect for identifier escaping.
+func (b *InsertBuilder) WithDialect(d dialect.Engine) *InsertBuilder {
+	b.dialect = d
+	return b
+}
+
 // Into sets the target table for the INSERT operation.
 func (b *InsertBuilder) Into(table string) *InsertBuilder {
-	b.intoTable = table
+	b.table = table
 	return b
 }
 
@@ -42,7 +51,7 @@ func (b *InsertBuilder) Values(values ...any) *InsertBuilder {
 	if len(values) != len(b.columns) {
 		panic("values count must match columns count")
 	}
-	b.rows = append(b.rows, values)
+	b.values = append(b.values, values)
 	return b
 }
 
@@ -55,38 +64,63 @@ func (b *InsertBuilder) Returning(columns ...string) *InsertBuilder {
 // Build generates the final SQL INSERT statement and returns it
 // along with the ordered list of arguments.
 func (b *InsertBuilder) Build() (string, []any, error) {
-	if b.intoTable == "" {
-		return "", nil, fmt.Errorf("no target table specified")
+	if b.table == "" {
+		return "", nil, fmt.Errorf("INSERT must specify table name")
 	}
 	if len(b.columns) == 0 {
-		return "", nil, fmt.Errorf("no columns specified")
+		return "", nil, fmt.Errorf("INSERT must specify columns")
 	}
-	if len(b.rows) == 0 {
-		return "", nil, fmt.Errorf("no values provided")
+	if len(b.values) == 0 {
+		return "", nil, fmt.Errorf("INSERT must provide at least one row of values")
 	}
 
-	var sb strings.Builder
-	sb.WriteString("INSERT INTO ")
-	sb.WriteString(b.intoTable)
-	sb.WriteString(" (")
-	sb.WriteString(strings.Join(b.columns, ", "))
-	sb.WriteString(") VALUES ")
+	var sql strings.Builder
+	args := make([]any, 0)
 
-	placeholderRow := "(" + strings.TrimRight(strings.Repeat("?, ", len(b.columns)), ", ") + ")"
-	valuesPlaceholders := make([]string, len(b.rows))
-	args := make([]any, 0, len(b.rows)*len(b.columns))
+	table := b.table
+	if b.dialect != nil {
+		table = b.dialect.EscapeIdentifier(table)
+	}
 
-	for i, row := range b.rows {
-		valuesPlaceholders[i] = placeholderRow
+	columns := b.columns
+	if b.dialect != nil {
+		for i, col := range columns {
+			columns[i] = b.dialect.EscapeIdentifier(col)
+		}
+	}
+
+	sql.WriteString("INSERT INTO ")
+	sql.WriteString(table)
+	sql.WriteString(" (")
+	sql.WriteString(strings.Join(columns, ", "))
+	sql.WriteString(") VALUES ")
+
+	placeholders := make([]string, len(b.columns))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+
+	valueBlocks := make([]string, 0, len(b.values))
+	for _, row := range b.values {
+		if len(row) != len(b.columns) {
+			return "", nil, fmt.Errorf("value count does not match column count")
+		}
+		valueBlocks = append(valueBlocks, "("+strings.Join(placeholders, ", ")+")")
 		args = append(args, row...)
 	}
 
-	sb.WriteString(strings.Join(valuesPlaceholders, ", "))
+	sql.WriteString(strings.Join(valueBlocks, ", "))
 
 	if len(b.returning) > 0 {
-		sb.WriteString(" RETURNING ")
-		sb.WriteString(strings.Join(b.returning, ", "))
+		returning := b.returning
+		if b.dialect != nil {
+			for i, col := range returning {
+				returning[i] = b.dialect.EscapeIdentifier(col)
+			}
+		}
+		sql.WriteString(" RETURNING ")
+		sql.WriteString(strings.Join(returning, ", "))
 	}
 
-	return sb.String(), args, nil
+	return sql.String(), args, nil
 }
