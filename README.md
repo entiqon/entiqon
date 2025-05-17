@@ -35,6 +35,26 @@ execution.
 
 ---
 
+---
+
+## 🧩 UPSERT – A First-Class Builder
+
+Entiqon treats `UPSERT` as a dedicated builder, not an extension of `INSERT`.
+
+Unlike other libraries that bolt UPSERT behavior onto `.insert(...)`, Entiqon provides:
+
+- ✅ A standalone `NewUpsert()` constructor
+- ✅ Full support for:
+  - `ON CONFLICT` clauses
+  - `DO UPDATE SET` or `DO NOTHING`
+  - Dialect-aware identifier escaping
+  - Fluent syntax via `.Columns(...)`, `.Values(...)`, `.OnConflict(...)`, `.Returning(...)`
+- ✅ Delegation to `InsertBuilder` for shared functionality
+
+This makes Entiqon one of the few query builder libraries (in Go or TypeScript) to expose UPSERT as a **first-class operation**.
+
+This design encourages clearer semantics and composability in UPSERT operations.
+
 ## 🚀 Quick Start
 
 ---
