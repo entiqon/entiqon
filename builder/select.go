@@ -3,36 +3,9 @@ package builder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ialopezg/entiqon/internal/core/token"
 )
-
-// ConditionType defines how a condition is logically connected in a WHERE clause.
-type ConditionType string
-
-const (
-	// ConditionSimple is used for initial WHERE conditions.
-	ConditionSimple ConditionType = "SIMPLE"
-
-	// ConditionAnd adds an AND between conditions.
-	ConditionAnd ConditionType = "AND"
-
-	// ConditionOr adds an OR between conditions.
-	ConditionOr ConditionType = "OR"
-)
-
-// ConditionToken represents a conditional expression used in a WHERE clause.
-type ConditionToken struct {
-	// Type specifies how this condition is logically joined (SIMPLE, AND, OR).
-	Type ConditionType
-
-	// Key is the SQL condition expression, e.g., "id = ?".
-	Key string
-
-	// Params contains the arguments to be bound to the placeholders in Key.
-	Params []any
-
-	// Raw contains the formatted representation, optionally for debug or display.
-	Raw string
-}
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.
 //
@@ -40,7 +13,7 @@ type ConditionToken struct {
 type SelectBuilder struct {
 	columns    []string
 	from       string
-	conditions []ConditionToken
+	conditions []token.ConditionToken
 	sorting    []string
 	take       *int
 	skip       *int
@@ -50,7 +23,7 @@ type SelectBuilder struct {
 func NewSelect() *SelectBuilder {
 	return &SelectBuilder{
 		columns:    make([]string, 0),
-		conditions: make([]ConditionToken, 0),
+		conditions: make([]token.ConditionToken, 0),
 		sorting:    make([]string, 0),
 	}
 }
@@ -70,20 +43,20 @@ func (sb *SelectBuilder) From(from string) *SelectBuilder {
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
 func (sb *SelectBuilder) Where(condition string, params ...any) *SelectBuilder {
-	sb.conditions = []ConditionToken{}
-	sb.addCondition(ConditionSimple, condition, params...)
+	sb.conditions = []token.ConditionToken{}
+	sb.addCondition(token.ConditionSimple, condition, params...)
 	return sb
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
 func (sb *SelectBuilder) AndWhere(condition string, params ...any) *SelectBuilder {
-	sb.addCondition(ConditionAnd, condition, params...)
+	sb.addCondition(token.ConditionAnd, condition, params...)
 	return sb
 }
 
 // OrWhere adds an OR condition to the WHERE clause.
 func (sb *SelectBuilder) OrWhere(condition string, params ...any) *SelectBuilder {
-	sb.addCondition(ConditionOr, condition, params...)
+	sb.addCondition(token.ConditionOr, condition, params...)
 	return sb
 }
 
@@ -127,9 +100,9 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 		var parts []string
 		for _, condition := range sb.conditions {
 			switch condition.Type {
-			case ConditionSimple:
+			case token.ConditionSimple:
 				parts = append(parts, condition.Key)
-			case ConditionAnd, ConditionOr:
+			case token.ConditionAnd, token.ConditionOr:
 				parts = append(parts, fmt.Sprintf("%s %s", condition.Type, condition.Key))
 			default:
 				return "", nil, fmt.Errorf("invalid condition type: %s", condition.Type)
@@ -154,7 +127,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 }
 
 // addCondition adds a logical condition to the WHERE clause.
-func (sb *SelectBuilder) addCondition(conditionType ConditionType, condition string, params ...any) {
+func (sb *SelectBuilder) addCondition(conditionType token.ConditionType, condition string, params ...any) {
 	if condition == "" {
 		return
 	}
@@ -164,7 +137,7 @@ func (sb *SelectBuilder) addCondition(conditionType ConditionType, condition str
 		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
 	}
 
-	sb.conditions = append(sb.conditions, ConditionToken{
+	sb.conditions = append(sb.conditions, token.ConditionToken{
 		Type:   conditionType,
 		Key:    condition,
 		Params: params,
