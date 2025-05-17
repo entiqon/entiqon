@@ -18,12 +18,6 @@ func NewCondition(conditionType ConditionType, condition string, params ...any) 
 	return Condition{}.Set(conditionType, condition, params...)
 }
 
-// As sets an alias for the condition — used in SQL rendering by Condition itself.
-func (c Condition) As(alias string) Condition {
-	c.Alias = alias
-	return c
-}
-
 // Set assigns the condition's internal structure, resolving raw formatting.
 func (c Condition) Set(conditionType ConditionType, condition string, params ...any) Condition {
 	c.Type = conditionType
