@@ -209,6 +209,48 @@ func main() {
 }
 ```
 
+## 🧩 Dialect Support
+
+Entiqon supports dialect-aware SQL rendering via pluggable engines.
+
+Each builder accepts an optional `.WithDialect(...)` method to escape identifiers like table names, column names, and RETURNING fields.
+
+### ✅ Currently Supported
+- PostgreSQL (`dialect.PostgresEngine{}`)
+
+---
+
+### 🔄 Usage Example with Dialect
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/ialopezg/entiqon/builder"
+	"github.com/ialopezg/entiqon/internal/core/dialect"
+)
+
+func main() {
+	sql, args, err := builder.NewSelect().
+		Select("id", "email").
+		From("users").
+		Where("status = ?", "active").
+		WithDialect(&dialect.PostgresEngine{}).
+		Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println(args)
+	// Output:
+	// SELECT "id", "email" FROM "users" WHERE status = ?
+	// [active]
+}
+```
 ---
 
 ## 📄 License
