@@ -14,8 +14,8 @@ const (
 	ConditionOr ConditionType = "OR"
 )
 
-// ConditionToken represents a conditional expression used in a WHERE clause.
-type ConditionToken struct {
+// Condition represents a conditional expression used in a WHERE clause.
+type Condition struct {
 	// Type specifies how this condition is logically joined (SIMPLE, AND, OR).
 	Type ConditionType
 

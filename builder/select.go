@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/internal/core/dialect"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
@@ -11,9 +12,10 @@ import (
 //
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
+	dialect    dialect.Engine
 	columns    []string
 	from       string
-	conditions []token.ConditionToken
+	conditions []token.Condition
 	sorting    []string
 	take       *int
 	skip       *int
@@ -23,9 +25,15 @@ type SelectBuilder struct {
 func NewSelect() *SelectBuilder {
 	return &SelectBuilder{
 		columns:    make([]string, 0),
-		conditions: make([]token.ConditionToken, 0),
+		conditions: make([]token.Condition, 0),
 		sorting:    make([]string, 0),
 	}
+}
+
+// WithDialect sets the dialect engine used for escaping.
+func (sb *SelectBuilder) WithDialect(d dialect.Engine) *SelectBuilder {
+	sb.dialect = d
+	return sb
 }
 
 // Select specifies the columns to retrieve.
@@ -43,7 +51,7 @@ func (sb *SelectBuilder) From(from string) *SelectBuilder {
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
 func (sb *SelectBuilder) Where(condition string, params ...any) *SelectBuilder {
-	sb.conditions = []token.ConditionToken{}
+	sb.conditions = []token.Condition{}
 	sb.addCondition(token.ConditionSimple, condition, params...)
 	return sb
 }
@@ -85,14 +93,24 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 		return "", nil, fmt.Errorf("FROM clause is required")
 	}
 
+	from := sb.from
+	if sb.dialect != nil {
+		from = sb.dialect.EscapeIdentifier(sb.from)
+	}
+
 	columns := "*"
 	if len(sb.columns) > 0 {
+		if sb.dialect != nil {
+			for i, column := range sb.columns {
+				sb.columns[i] = sb.dialect.EscapeIdentifier(column)
+			}
+		}
 		columns = strings.Join(sb.columns, ", ")
 	}
 
 	tokens := []string{
 		fmt.Sprintf("SELECT %s", columns),
-		fmt.Sprintf("FROM %s", sb.from),
+		fmt.Sprintf("FROM %s", from),
 	}
 
 	var args []any
@@ -137,7 +155,7 @@ func (sb *SelectBuilder) addCondition(conditionType token.ConditionType, conditi
 		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
 	}
 
-	sb.conditions = append(sb.conditions, token.ConditionToken{
+	sb.conditions = append(sb.conditions, token.Condition{
 		Type:   conditionType,
 		Key:    condition,
 		Params: params,
