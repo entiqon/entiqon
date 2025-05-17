@@ -1,5 +1,7 @@
 package token
 
+import "strings"
+
 // As sets the alias for the FieldToken.
 func (f FieldToken) As(alias string) FieldToken {
 	f.Alias = alias
@@ -18,4 +20,9 @@ func FieldExpr(expression string, alias string) FieldToken {
 		Alias: alias,
 		IsRaw: true,
 	}
+}
+
+// IsValid returns true if the field has a non-empty Name.
+func (f FieldToken) IsValid() bool {
+	return strings.TrimSpace(f.Name) != ""
 }

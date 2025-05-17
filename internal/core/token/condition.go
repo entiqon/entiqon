@@ -22,6 +22,8 @@ type Condition struct {
 	// Key is the SQL condition expression, e.g., "id = ?".
 	Key string
 
+	Alias string // optional label or usage tag
+
 	// Params contains the arguments to be bound to the placeholders in Key.
 	Params []any
 

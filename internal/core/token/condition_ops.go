@@ -15,13 +15,17 @@ func AppendCondition(existing []Condition, newCond Condition) []Condition {
 
 // NewCondition creates a Condition instance with the given type, key, and parameters.
 func NewCondition(conditionType ConditionType, condition string, params ...any) Condition {
-	var c Condition
-	c.Set(conditionType, condition, params...)
+	return Condition{}.Set(conditionType, condition, params...)
+}
+
+// As sets an alias for the condition — used in SQL rendering by Condition itself.
+func (c Condition) As(alias string) Condition {
+	c.Alias = alias
 	return c
 }
 
 // Set assigns the condition's internal structure, resolving raw formatting.
-func (c *Condition) Set(conditionType ConditionType, condition string, params ...any) {
+func (c Condition) Set(conditionType ConditionType, condition string, params ...any) Condition {
 	c.Type = conditionType
 	c.Key = condition
 	c.Params = params
@@ -30,10 +34,15 @@ func (c *Condition) Set(conditionType ConditionType, condition string, params ..
 	for _, val := range params {
 		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
 	}
-	c.Raw = raw
+	if c.Alias != "" {
+		c.Raw = fmt.Sprintf("(%s) AS %s", raw, c.Alias)
+	} else {
+		c.Raw = raw
+	}
+	return c
 }
 
 // IsValid checks if the condition has a non-empty key.
-func (c *Condition) IsValid() bool {
+func (c Condition) IsValid() bool {
 	return strings.TrimSpace(c.Key) != ""
 }

@@ -31,6 +31,11 @@ func (s *FieldTokenTestSuite) TestField_AsMethod() {
 	s.Equal("created", aliased.Alias)
 }
 
+func (s *FieldTokenTestSuite) TestIsValid() {
+	s.True(token.Field("status").IsValid())
+	s.False(token.Field("").IsValid())
+}
+
 func TestFieldTokenTestSuite(t *testing.T) {
 	suite.Run(t, new(FieldTokenTestSuite))
 }
