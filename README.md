@@ -3,6 +3,8 @@
 </p>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
+[![Version](https://img.shields.io/github/v/tag/ialopezg/entiqon?label=version&sort=semver)](https://github.com/ialopezg/entiqon/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/ialopezg/entiqon?style=social)](https://github.com/ialopezg/entiqon/stargazers)
 
 # Entiqon Library
 
