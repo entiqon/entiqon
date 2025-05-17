@@ -3,6 +3,8 @@ package builder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ialopezg/entiqon/internal/core/dialect"
 )
 
 // UpsertBuilder builds a SQL UPSERT (INSERT ... ON CONFLICT DO UPDATE) statement.
@@ -23,6 +25,12 @@ func NewUpsert() *UpsertBuilder {
 	return &UpsertBuilder{
 		insert: NewInsert(),
 	}
+}
+
+// WithDialect sets the dialect for escaping identifiers and values.
+func (b *UpsertBuilder) WithDialect(d dialect.Engine) *UpsertBuilder {
+	b.insert.WithDialect(d)
+	return b
 }
 
 // Into sets the target table for the UPSERT statement.
@@ -75,25 +83,30 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 		return "", nil, err
 	}
 
-	if len(b.conflictColumns) == 0 {
-		return "", nil, fmt.Errorf("ON CONFLICT requires at least one column")
+	if len(b.conflictColumns) > 0 {
+		cols := b.conflictColumns
+		if b.insert.dialect != nil {
+			for i, col := range cols {
+				cols[i] = b.insert.dialect.EscapeIdentifier(col)
+			}
+		}
+		sql += " ON CONFLICT (" + strings.Join(cols, ", ") + ")"
 	}
-	if len(b.updateSet) == 0 {
-		return "", nil, fmt.Errorf("DO UPDATE SET requires at least one assignment")
+
+	if len(b.updateSet) > 0 {
+		sql += " DO UPDATE SET "
+		assignments := make([]string, 0, len(b.updateSet))
+		for col, expr := range b.updateSet {
+			colName := col
+			if b.insert.dialect != nil {
+				colName = b.insert.dialect.EscapeIdentifier(col)
+			}
+			assignments = append(assignments, fmt.Sprintf("%s = %s", colName, expr))
+		}
+		sql += strings.Join(assignments, ", ")
+	} else {
+		sql += " DO NOTHING"
 	}
 
-	var sb strings.Builder
-	sb.WriteString(sql)
-
-	sb.WriteString(" ON CONFLICT (")
-	sb.WriteString(strings.Join(b.conflictColumns, ", "))
-	sb.WriteString(") DO UPDATE SET ")
-
-	assignments := make([]string, 0, len(b.updateSet))
-	for col, expr := range b.updateSet {
-		assignments = append(assignments, fmt.Sprintf("%s = %s", col, expr))
-	}
-	sb.WriteString(strings.Join(assignments, ", "))
-
-	return sb.String(), args, nil
+	return sql, args, nil
 }
