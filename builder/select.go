@@ -13,7 +13,7 @@ import (
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
 	dialect    dialect.Engine
-	columns    []string
+	columns    []token.FieldToken
 	from       string
 	conditions []token.Condition
 	sorting    []string
@@ -24,21 +24,27 @@ type SelectBuilder struct {
 // NewSelect creates and returns a new instance of SelectBuilder.
 func NewSelect() *SelectBuilder {
 	return &SelectBuilder{
-		columns:    make([]string, 0),
+		columns:    make([]token.FieldToken, 0),
 		conditions: make([]token.Condition, 0),
 		sorting:    make([]string, 0),
 	}
 }
 
-// WithDialect sets the dialect engine used for escaping.
-func (sb *SelectBuilder) WithDialect(d dialect.Engine) *SelectBuilder {
-	sb.dialect = d
+// Select adds raw column strings (can include aliases like "id", "name AS n").
+// Select sets columns using FieldsFromExpr(...) and resets previous entries.
+func (sb *SelectBuilder) Select(columns ...string) *SelectBuilder {
+	sb.columns = []token.FieldToken{}
+	for _, expr := range columns {
+		sb.columns = append(sb.columns, token.FieldsFromExpr(expr)...)
+	}
 	return sb
 }
 
-// Select specifies the columns to retrieve.
-func (sb *SelectBuilder) Select(columns ...string) *SelectBuilder {
-	sb.columns = columns
+// AddSelect appends more columns using FieldsFromExpr(...) without resetting.
+func (sb *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
+	for _, expr := range columns {
+		sb.columns = append(sb.columns, token.FieldsFromExpr(expr)...)
+	}
 	return sb
 }
 
@@ -51,20 +57,22 @@ func (sb *SelectBuilder) From(from string) *SelectBuilder {
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
 func (sb *SelectBuilder) Where(condition string, params ...any) *SelectBuilder {
-	sb.conditions = []token.Condition{}
-	sb.addCondition(token.ConditionSimple, condition, params...)
+	sb.conditions = token.AppendCondition(
+		[]token.Condition{},
+		token.NewCondition(token.ConditionSimple, condition, params...),
+	)
 	return sb
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
 func (sb *SelectBuilder) AndWhere(condition string, params ...any) *SelectBuilder {
-	sb.addCondition(token.ConditionAnd, condition, params...)
+	sb.conditions = token.AppendCondition(sb.conditions, token.NewCondition(token.ConditionAnd, condition, params...))
 	return sb
 }
 
 // OrWhere adds an OR condition to the WHERE clause.
 func (sb *SelectBuilder) OrWhere(condition string, params ...any) *SelectBuilder {
-	sb.addCondition(token.ConditionOr, condition, params...)
+	sb.conditions = token.AppendCondition(sb.conditions, token.NewCondition(token.ConditionOr, condition, params...))
 	return sb
 }
 
@@ -93,27 +101,27 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 		return "", nil, fmt.Errorf("FROM clause is required")
 	}
 
-	from := sb.from
-	if sb.dialect != nil {
-		from = sb.dialect.EscapeIdentifier(sb.from)
-	}
-
 	columns := "*"
 	if len(sb.columns) > 0 {
-		if sb.dialect != nil {
-			for i, column := range sb.columns {
-				sb.columns[i] = sb.dialect.EscapeIdentifier(column)
+		var rendered []string
+		for _, col := range sb.columns {
+			name := col.Name
+			if sb.dialect != nil && !col.IsRaw {
+				name = sb.dialect.EscapeIdentifier(col.Name)
 			}
+			if col.Alias != "" {
+				name = fmt.Sprintf("%s AS %s", name, col.Alias)
+			}
+			rendered = append(rendered, name)
 		}
-		columns = strings.Join(sb.columns, ", ")
+		columns = strings.Join(rendered, ", ")
 	}
 
 	tokens := []string{
 		fmt.Sprintf("SELECT %s", columns),
-		fmt.Sprintf("FROM %s", from),
+		fmt.Sprintf("FROM %s", sb.from),
 	}
 
-	var args []any
 	if len(sb.conditions) > 0 {
 		var parts []string
 		for _, condition := range sb.conditions {
@@ -125,7 +133,6 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 			default:
 				return "", nil, fmt.Errorf("invalid condition type: %s", condition.Type)
 			}
-			args = append(args, condition.Params...)
 		}
 		tokens = append(tokens, fmt.Sprintf("WHERE %s", strings.Join(parts, " ")))
 	}
@@ -141,24 +148,20 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 		tokens = append(tokens, fmt.Sprintf("OFFSET %d", *sb.skip))
 	}
 
-	return strings.Join(tokens, " "), args, nil
+	return strings.Join(tokens, " "), sb.collectArgs(), nil
 }
 
-// addCondition adds a logical condition to the WHERE clause.
-func (sb *SelectBuilder) addCondition(conditionType token.ConditionType, condition string, params ...any) {
-	if condition == "" {
-		return
-	}
+// WithDialect sets the dialect engine used for escaping.
+func (sb *SelectBuilder) WithDialect(d dialect.Engine) *SelectBuilder {
+	sb.dialect = d
+	return sb
+}
 
-	raw := condition
-	for _, val := range params {
-		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
+// collectArgs gathers all condition parameters.
+func (sb *SelectBuilder) collectArgs() []any {
+	var args []any
+	for _, c := range sb.conditions {
+		args = append(args, c.Params...)
 	}
-
-	sb.conditions = append(sb.conditions, token.Condition{
-		Type:   conditionType,
-		Key:    condition,
-		Params: params,
-		Raw:    raw,
-	})
+	return args
 }
