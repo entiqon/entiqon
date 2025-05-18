@@ -1,16 +1,24 @@
-<p align="center">
-  <img src="./assets/entiqon_black.png" alt="Entiqon Logo" width="384"/>
-</p>
+<img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" alt="Entiqon Logo" style="width: 384px; display: block; margin: auto;" />
 
-<p align="center">
-
-[![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
-[![Latest Release](https://img.shields.io/github/v/release/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ialopezg/entiqon)](https://goreportcard.com/report/github.com/ialopezg/entiqon)
-[![Build](https://github.com/ialopezg/entiqon/actions/workflows/ci.yml/badge.svg)](https://github.com/ialopezg/entiqon/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg)](https://codecov.io/gh/ialopezg/entiqon)
-[![License](https://img.shields.io/github/license/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/blob/main/LICENSE)
-
+<p style="text-align: center; width: 384px; display: block; margin: auto;">
+  <a href="https://pkg.go.dev/github.com/ialopezg/entiqon">
+    <img src="https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg" alt="Go Reference" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/ialopezg/entiqon">
+    <img src="https://goreportcard.com/badge/github.com/ialopezg/entiqon" alt="Go Report Card" />
+  </a>
+  <a href="https://github.com/ialopezg/entiqon/actions/workflows/ci.yml">
+    <img src="https://github.com/ialopezg/entiqon/actions/workflows/ci.yml/badge.svg" alt="Build Status" />
+  </a>
+  <a href="https://codecov.io/gh/ialopezg/entiqon">
+    <img src="https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg" alt="Code Coverage" />
+  </a>
+  <a href="https://github.com/ialopezg/entiqon/releases">
+    <img src="https://img.shields.io/github/v/release/ialopezg/entiqon" alt="Latest Release" />
+  </a>
+  <a href="https://github.com/ialopezg/entiqon/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/ialopezg/entiqon" alt="License" />
+  </a>
 </p>
 
 > ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
