@@ -2,7 +2,9 @@
   <img src="../assets/entiqon_black.png" alt="Entiqon Logo" width="384"/>
 </p>
 
+
 <p align="center">
+
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
 [![Latest Release](https://img.shields.io/github/v/release/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/releases)
@@ -10,6 +12,7 @@
 [![Build](https://github.com/ialopezg/entiqon/actions/workflows/ci.yml/badge.svg)](https://github.com/ialopezg/entiqon/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg)](https://codecov.io/gh/ialopezg/entiqon)
 [![License](https://img.shields.io/github/license/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/blob/main/LICENSE)
+
 
 </p>
 

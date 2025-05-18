@@ -1,11 +1,5 @@
-# Entiqon Library
-
-> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
-
----
-
 <p align="center">
-  <img src="./assets/entiqon_logo.png" alt="Entiqon Logo" width="150"/>
+  <img src="./assets/entiqon_black.png" alt="Entiqon Logo" width="384"/>
 </p>
 
 <p align="center">
@@ -18,6 +12,8 @@
 [![License](https://img.shields.io/github/license/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/blob/main/LICENSE)
 
 </p>
+
+> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
 
 ---
 
