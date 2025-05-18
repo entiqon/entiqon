@@ -1,11 +1,5 @@
-# Entiqon Library
-
-> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
-
----
-
 <p align="center">
-  <img src="./assets/entiqon_logo.png" alt="Entiqon Logo" width="150"/>
+  <img src="../assets/entiqon_black.png" alt="Entiqon Logo" width="384"/>
 </p>
 
 <p align="center">
@@ -18,6 +12,8 @@
 [![License](https://img.shields.io/github/license/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/blob/main/LICENSE)
 
 </p>
+
+> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
 
 ---
 
@@ -36,11 +32,11 @@ Entiqon is a modular query engine designed to:
 
 Each builder has full documentation and example usage:
 
-* [`SelectBuilder`](./docs/Select%20Builder.md) — Fluent SELECT with support for aliasing, ordering, and pagination
-* [`InsertBuilder`](./docs/Insert%20Builder.md) — Multi-row inserts and RETURNING support
-* [`UpdateBuilder`](./docs/Update%20Builder.md) — Strict value assignment and no-alias validation
-* [`DeleteBuilder`](./docs/Delete%20Builder.md) — DELETE with optional RETURNING support
-* [`UpsertBuilder`](./docs/Upsert%20Builder%20Test.md) — PostgreSQL-style UPSERT with conflict resolution
+* [`SelectBuilder`](./builder/select.md) — Fluent SELECT with support for aliasing, ordering, and pagination
+* [`InsertBuilder`](./builder/insert.md) — Multi-row inserts and RETURNING support
+* [`UpdateBuilder`](./builder/update.md) — Strict value assignment and no-alias validation
+* [`DeleteBuilder`](./builder/delete.md) — DELETE with optional RETURNING support
+* [`UpsertBuilder`](./builder/upsert.md) — PostgreSQL-style UPSERT with conflict resolution
 
 ---
 
