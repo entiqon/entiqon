@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/entiqon_logo.png" alt="Entiqon Logo" width="150"/>
+  <img src="./assets/entiqon_logo.png" alt="Entiqon Logo" width="150"/>
 </p>
 
 <p align="center">

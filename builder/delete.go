@@ -13,53 +13,34 @@ import (
 // It supports WHERE clauses and optional RETURNING fields (e.g., for PostgreSQL).
 type DeleteBuilder struct {
 	dialect dialect.Engine
-
 	// table defines the target table to delete table.
 	table string
-
 	// conditions holds WHERE clause expressions (joined with AND).
 	conditions []token.Condition
-
-	// args holds placeholder arguments for WHERE conditions.
-	args []any
-
-	// returning lists the columns to return (PostgreSQL only).
-	returning []string
 }
 
-// NewDelete returns a new DeleteBuilder instance.
+// NewDelete creates and returns a new DeleteBuilder.
 func NewDelete() *DeleteBuilder {
 	return &DeleteBuilder{
-		conditions: make([]token.Condition, 0),
-		args:       make([]any, 0),
-		returning:  make([]string, 0),
+		conditions: []token.Condition{},
 	}
 }
 
-// WithDialect sets the SQL dialect for escaping identifiers.
-func (b *DeleteBuilder) WithDialect(d dialect.Engine) *DeleteBuilder {
-	b.dialect = d
-	return b
-}
-
-// From sets the table to delete table.
+// From sets the target table to delete table.
 func (b *DeleteBuilder) From(table string) *DeleteBuilder {
 	b.table = table
 	return b
 }
 
-// Where adds a WHERE clause with optional placeholder arguments.
-//
-// Example: .Where("id = ?", 42)
+// Where starts the WHERE clause.
 func (b *DeleteBuilder) Where(condition string, params ...any) *DeleteBuilder {
-	b.conditions = token.AppendCondition(
-		[]token.Condition{},
+	b.conditions = []token.Condition{
 		token.NewCondition(token.ConditionSimple, condition, params...),
-	)
+	}
 	return b
 }
 
-// AndWhere adds an AND condition.
+// AndWhere appends an AND condition.
 func (b *DeleteBuilder) AndWhere(condition string, params ...any) *DeleteBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -68,7 +49,7 @@ func (b *DeleteBuilder) AndWhere(condition string, params ...any) *DeleteBuilder
 	return b
 }
 
-// OrWhere adds an OR condition.
+// OrWhere appends an OR condition.
 func (b *DeleteBuilder) OrWhere(condition string, params ...any) *DeleteBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -77,56 +58,41 @@ func (b *DeleteBuilder) OrWhere(condition string, params ...any) *DeleteBuilder 
 	return b
 }
 
-// Returning specifies which columns to return after deletion (PostgreSQL only).
-func (b *DeleteBuilder) Returning(columns ...string) *DeleteBuilder {
-	b.returning = append(b.returning, columns...)
+// WithDialect sets the dialect engine for identifier escaping.
+func (b *DeleteBuilder) WithDialect(e dialect.Engine) *DeleteBuilder {
+	b.dialect = e
 	return b
 }
 
-// Build compiles the DELETE SQL query and returns the statement and argument list.
+// Build compiles the DELETE SQL query and returns it with parameter args.
 func (b *DeleteBuilder) Build() (string, []any, error) {
-	if b.table == "" {
-		return "", nil, fmt.Errorf("no FROM table specified")
+	if strings.TrimSpace(b.table) == "" {
+		return "", nil, fmt.Errorf("DELETE requires a target table")
 	}
-
-	var sql strings.Builder
-	var args []any
 
 	table := b.table
 	if b.dialect != nil {
 		table = b.dialect.EscapeIdentifier(table)
 	}
 
-	sql.WriteString("DELETE FROM ")
-	sql.WriteString(table)
+	sql := fmt.Sprintf("DELETE FROM %s", table)
+	var args []any
 
 	if len(b.conditions) > 0 {
 		var parts []string
-		for _, cond := range b.conditions {
-			switch cond.Type {
+		for _, c := range b.conditions {
+			switch c.Type {
 			case token.ConditionSimple:
-				parts = append(parts, cond.Key)
+				parts = append(parts, c.Key)
 			case token.ConditionAnd, token.ConditionOr:
-				parts = append(parts, fmt.Sprintf("%s %s", cond.Type, cond.Key))
+				parts = append(parts, fmt.Sprintf("%s %s", c.Type, c.Key))
 			default:
-				return "", nil, fmt.Errorf("invalid condition type: %s", cond.Type)
-			}
-			args = append(args, cond.Params...)
-		}
-		sql.WriteString(" WHERE ")
-		sql.WriteString(strings.Join(parts, " "))
-	}
-
-	if len(b.returning) > 0 {
-		returning := b.returning
-		if b.dialect != nil {
-			for i, col := range returning {
-				returning[i] = b.dialect.EscapeIdentifier(col)
+				return "", nil, fmt.Errorf("invalid condition type: %s", c.Type)
 			}
 		}
-		sql.WriteString(" RETURNING ")
-		sql.WriteString(strings.Join(returning, ", "))
+		sql += " WHERE " + strings.Join(parts, " ")
+		args = append(args, collectConditionArgs(b.conditions)...)
 	}
 
-	return sql.String(), args, nil
+	return sql, args, nil
 }
