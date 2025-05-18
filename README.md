@@ -4,11 +4,12 @@
 
 <p align="center">
 
-  [![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
-  [![Version](https://img.shields.io/github/v/tag/ialopezg/entiqon?label=version&sort=semver)](https://github.com/ialopezg/entiqon/releases)
-  [![CI](https://github.com/ialopezg/entiqon/actions/workflows/test-and-coverage.yml/badge.svg)](https://github.com/ialopezg/entiqon/actions)
-  [![codecov](https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg)](https://codecov.io/gh/ialopezg/entiqon)
-  [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg)](https://pkg.go.dev/github.com/ialopezg/entiqon)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ialopezg/entiqon)](https://goreportcard.com/report/github.com/ialopezg/entiqon)
+[![License](https://img.shields.io/github/license/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/blob/main/LICENSE)
+[![Build](https://github.com/ialopezg/entiqon/actions/workflows/test-and-coverage.yml/badge.svg)](https://github.com/ialopezg/entiqon/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg)](https://codecov.io/gh/ialopezg/entiqon)
+[![Latest Release](https://img.shields.io/github/v/release/ialopezg/entiqon)](https://github.com/ialopezg/entiqon/releases)
 
 </p>
 
@@ -20,44 +21,19 @@
 
 ## 🌱 Overview
 
-Entiqon is a modular query engine designed for extensible data modeling, fluent query building, and structured
-execution.
+Entiqon is a modular query engine designed for extensible data modeling, fluent query building, and structured execution.
 
 ---
 
 ## ✅ Supported Builders
 
-- `SelectBuilder` with condition chaining, pagination
+- `SelectBuilder` with condition chaining, aliasing, ordering, pagination
 - `InsertBuilder` with multi-row insert, `RETURNING` support
-- `UpdateBuilder` with SET + WHERE and param binding
-- `UpsertBuilder` with `ON CONFLICT ... DO UPDATE SET ...` support
-- `DeleteBuilder` with WHERE clause and optional RETURNING support
+- `UpdateBuilder` with strict value assignment and column validation
 
 ---
-
----
-
-## 🧩 UPSERT – A First-Class Builder
-
-Entiqon treats `UPSERT` as a dedicated builder, not an extension of `INSERT`.
-
-Unlike other libraries that bolt UPSERT behavior onto `.insert(...)`, Entiqon provides:
-
-- ✅ A standalone `NewUpsert()` constructor
-- ✅ Full support for:
-  - `ON CONFLICT` clauses
-  - `DO UPDATE SET` or `DO NOTHING`
-  - Dialect-aware identifier escaping
-  - Fluent syntax via `.Columns(...)`, `.Values(...)`, `.OnConflict(...)`, `.Returning(...)`
-- ✅ Delegation to `InsertBuilder` for shared functionality
-
-This makes Entiqon one of the few query builder libraries (in Go or TypeScript) to expose UPSERT as a **first-class operation**.
-
-This design encourages clearer semantics and composability in UPSERT operations.
 
 ## 🚀 Quick Start
-
----
 
 ### ↘️ Installation
 
@@ -67,56 +43,44 @@ go get github.com/ialopezg/entiqon
 
 ---
 
-### 📘 Usage
-
----
-
-#### 🚀 Usage Example (SELECT)
-
-A SELECT query that retrieves user emails filtered by status, role, and signup date — with ordering, pagination, and parameter binding.
+### 🔍 Select Example
 
 ```go
 package main
 
 import (
 	"fmt"
-
 	"github.com/ialopezg/entiqon/builder"
 )
 
 func main() {
 	sql, args, err := builder.NewSelect().
-		Select("id", "email").
+		Select("id", "name", "email AS contact").
 		From("users").
 		Where("status = ?", "active").
-		AndWhere("role = ?", "admin").
-		AndWhere("created_at > ? AND region = ?", "2024-01-01", "NA").
-		OrderBy("last_login DESC").
-		Take(50).
-		Skip(0).
+		OrderBy("created_at DESC").
+		Take(10).
+		Skip(5).
 		Build()
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(sql)
-	fmt.Println(args)
+	fmt.Println("SQL:", sql)
+	fmt.Println("Args:", args)
 }
 ```
 
 ---
 
-#### ✍️ Usage Example (INSERT)
-
-Inserts a new user record and returns the inserted ID using PostgreSQL's RETURNING clause.
+### 🧾 Insert Example
 
 ```go
 package main
 
 import (
 	"fmt"
-
 	"github.com/ialopezg/entiqon/builder"
 )
 
@@ -124,7 +88,7 @@ func main() {
 	sql, args, err := builder.NewInsert().
 		Into("users").
 		Columns("id", "name").
-		Values(1, "Sherlock").
+		Values(1, "Watson").
 		Returning("id").
 		Build()
 
@@ -132,23 +96,22 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(sql)
-	fmt.Println(args)
+	fmt.Println("SQL:", sql)
+	fmt.Println("Args:", args)
 }
 ```
 
 ---
 
-#### 🔄 Usage Example (UPDATE)
+### 🛠 Update Example
 
-Updates a user's status using parameterized WHERE and SET clauses.
+> ❗️ Column aliasing is **not allowed** in `UPDATE` queries and will be rejected at build time.
 
 ```go
 package main
 
 import (
 	"fmt"
-
 	"github.com/ialopezg/entiqon/builder"
 )
 
@@ -163,120 +126,11 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(sql)
-	fmt.Println(args)
+	fmt.Println("SQL:", sql)
+	fmt.Println("Args:", args)
 }
 ```
 
----
-
-#### ♻️ Usage Example (UPSERT)
-
-Performs an UPSERT — inserts or updates an existing user if a conflict on ID occurs.
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ialopezg/entiqon/builder"
-)
-
-func main() {
-	sql, args, err := builder.NewUpsert().
-		Into("users").
-		Columns("id", "name").
-		Values(1, "Watson").
-		OnConflict("id").
-		DoUpdateSet(map[string]string{
-			"name": "EXCLUDED.name",
-		}).
-		Returning("id").
-		Build()
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(sql)
-	fmt.Println(args)
-}
-```
-
----
-
-#### 🗑️ Usage Example (DELETE)
-
-Deletes a user by ID and returns the deleted ID — supports PostgreSQL's RETURNING clause.
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ialopezg/entiqon/builder"
-)
-
-func main() {
-	sql, args, err := builder.NewDelete().
-		From("users").
-		Where("id = ?", 42).
-		Returning("id").
-		Build()
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(sql)
-	fmt.Println(args)
-}
-```
-
-## 🧩 Dialect Support
-
-Entiqon supports dialect-aware SQL rendering via pluggable engines.
-
-Each builder accepts an optional `.WithDialect(...)` method to escape identifiers like table names, column names, and RETURNING fields.
-
-### ✅ Currently Supported
-- PostgreSQL (`dialect.PostgresEngine{}`)
-
----
-
-### 🔄 Usage Example with Dialect
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ialopezg/entiqon/builder"
-	"github.com/ialopezg/entiqon/internal/core/dialect"
-)
-
-func main() {
-	sql, args, err := builder.NewSelect().
-		Select("id", "email").
-		From("users").
-		Where("status = ?", "active").
-		WithDialect(&dialect.PostgresEngine{}).
-		Build()
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(sql)
-	fmt.Println(args)
-	// Output:
-	// SELECT "id", "email" FROM "users" WHERE status = ?
-	// [active]
-}
-```
 ---
 
 ## 📄 License
