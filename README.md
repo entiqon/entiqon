@@ -1,6 +1,6 @@
-<img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" alt="Entiqon Logo" style="width: 384px; display: block; margin: auto;" />
+<img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" align="center" alt="Entiqon Logo" style="width: 384px; display: block; margin: auto;" />
 
-<p style="text-align: center; width: 384px; display: block; margin: auto;">
+<p align="center" style="text-align: center; width: 384px; display: block; margin: auto;">
   <a href="https://pkg.go.dev/github.com/ialopezg/entiqon">
     <img src="https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg" alt="Go Reference" />
   </a>
