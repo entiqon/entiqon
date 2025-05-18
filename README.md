@@ -1,4 +1,7 @@
-<img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" align="center" alt="Entiqon Logo" style="width: 384px; display: block; margin: auto;" />
+<p align="center" style="text-align: center; width: 384px; display: block; margin: auto;">
+    <img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" align="center" alt="Entiqon Logo" style="width: 384px; display: block; margin: auto;" />
+</p>
+<br/>
 
 <p align="center" style="text-align: center; width: 384px; display: block; margin: auto;">
   <a href="https://pkg.go.dev/github.com/ialopezg/entiqon">
@@ -68,9 +71,9 @@ Every builder supports Go-style method chaining and returns the compiled SQL and
 
 ```go
 sql, args, err := builder.NewSelect().
-	From("users").
-	Where("email = ?", "test@entiqon.dev").
-	Build()
+From("users").
+Where("email = ?", "test@entiqon.dev").
+Build()
 ```
 
 For full examples, visit the documentation linked above.
