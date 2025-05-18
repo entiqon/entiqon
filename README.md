@@ -16,10 +16,14 @@
   <a href="https://github.com/ialopezg/entiqon/releases">
     <img src="https://img.shields.io/github/v/release/ialopezg/entiqon" alt="Latest Release" />
   </a>
+  <a href="https://ialopezg.github.io/entiqon/">
+    <img src="https://img.shields.io/badge/docs-online-blue?logo=github" alt="Documentation" />
+  </a>
   <a href="https://github.com/ialopezg/entiqon/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/ialopezg/entiqon" alt="License" />
   </a>
 </p>
+
 
 > ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
 
