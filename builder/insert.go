@@ -100,7 +100,7 @@ func (b *InsertBuilder) Build() (string, []any, error) {
 	}
 
 	stmt := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s",
-		b.table,
+		b.getEscapedIdentifier(b.table),
 		strings.Join(colNames, ", "),
 		strings.Join(placeholders, ", "),
 	)
@@ -112,8 +112,63 @@ func (b *InsertBuilder) Build() (string, []any, error) {
 	return stmt, args, nil
 }
 
+func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
+	if b.table == "" {
+		return "", nil, fmt.Errorf("table name is required")
+	}
+	if len(b.columns) == 0 {
+		return "", nil, fmt.Errorf("at least one column is required")
+	}
+	if len(b.values) == 0 {
+		return "", nil, fmt.Errorf("at least one set of values is required")
+	}
+	for i, row := range b.values {
+		if len(row) != len(b.columns) {
+			return "", nil, fmt.Errorf("row %d: expected %d values, got %d", i+1, len(b.columns), len(row))
+		}
+	}
+
+	tableName := b.table
+	if b.dialect != nil {
+		tableName = b.dialect.EscapeIdentifier(tableName)
+	}
+
+	escapedCols := make([]string, len(b.columns))
+	for i, col := range b.columns {
+		escapedCols[i] = col.Name
+		if b.dialect != nil {
+			escapedCols[i] = b.dialect.EscapeIdentifier(col.Name)
+		}
+	}
+
+	placeholders := make([]string, len(b.values))
+	args := make([]any, 0, len(b.values)*len(b.columns))
+	for i, row := range b.values {
+		args = append(args, row...)
+		ph := make([]string, len(row))
+		for j := range row {
+			ph[j] = "?"
+		}
+		placeholders[i] = "(" + strings.Join(ph, ", ") + ")"
+	}
+
+	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s",
+		tableName,
+		strings.Join(escapedCols, ", "),
+		strings.Join(placeholders, ", "))
+
+	return sql, args, nil
+}
+
 // WithDialect sets the SQL dialect engine (e.g., PostgresEngine) for identifier escaping.
 func (b *InsertBuilder) WithDialect(e dialect.Engine) *InsertBuilder {
 	b.dialect = e
 	return b
+}
+
+func (b *InsertBuilder) getEscapedIdentifier(identifier string) string {
+	if b.dialect != nil {
+		return b.dialect.EscapeIdentifier(identifier)
+	}
+	return identifier
 }

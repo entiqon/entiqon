@@ -73,7 +73,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_Postgres() {
 		Build()
 
 	s.NoError(err)
-	s.Equal(`INSERT INTO users ("id", "name") VALUES (?, ?)`, sql)
+	s.Equal(`INSERT INTO "users" ("id", "name") VALUES (?, ?)`, sql)
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_MissingFieldError() {
