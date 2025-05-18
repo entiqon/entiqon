@@ -1,7 +1,4 @@
-<p align="center">
-  <img src="../assets/entiqon_black.png" alt="Entiqon Logo" width="384"/>
-</p>
-
+# Entiqon Library
 
 <p align="center">
 
