@@ -12,4 +12,6 @@ type FieldToken struct {
 
 	// IsRaw indicates whether the Name is a raw SQL expression and should not be escaped.
 	IsRaw bool
+
+	Value any
 }

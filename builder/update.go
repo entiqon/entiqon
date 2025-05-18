@@ -8,6 +8,7 @@ import (
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
+// UpdateBuilder builds a SQL UPDATE query with fluent syntax and dialect support.
 type UpdateBuilder struct {
 	dialect     dialect.Engine
 	table       string
@@ -24,18 +25,19 @@ func NewUpdate() *UpdateBuilder {
 }
 
 // Table sets the table to update.
-func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
-	b.table = table
+func (b *UpdateBuilder) Table(name string) *UpdateBuilder {
+	b.table = name
 	return b
 }
 
-// Set adds column=value assignments using ordered Field slice.
+// Set adds a column assignment using ordered Field.
+// The value is stored temporarily in .Alias for consistency.
 func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
-	b.assignments = append(b.assignments, token.Field(column).As(fmt.Sprintf("%v", value)))
+	b.assignments = append(b.assignments, token.Field(column).WithValue(value))
 	return b
 }
 
-// Where sets the initial condition (replaces any existing).
+// Where sets the base WHERE clause.
 func (b *UpdateBuilder) Where(condition string, params ...any) *UpdateBuilder {
 	b.conditions = []token.Condition{
 		token.NewCondition(token.ConditionSimple, condition, params...),
@@ -43,7 +45,7 @@ func (b *UpdateBuilder) Where(condition string, params ...any) *UpdateBuilder {
 	return b
 }
 
-// AndWhere adds AND condition.
+// AndWhere adds an AND clause.
 func (b *UpdateBuilder) AndWhere(condition string, params ...any) *UpdateBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -52,7 +54,7 @@ func (b *UpdateBuilder) AndWhere(condition string, params ...any) *UpdateBuilder
 	return b
 }
 
-// OrWhere adds OR condition.
+// OrWhere adds an OR clause.
 func (b *UpdateBuilder) OrWhere(condition string, params ...any) *UpdateBuilder {
 	b.conditions = token.AppendCondition(
 		b.conditions,
@@ -61,36 +63,33 @@ func (b *UpdateBuilder) OrWhere(condition string, params ...any) *UpdateBuilder 
 	return b
 }
 
-// WithDialect sets the SQL dialect.
-func (b *UpdateBuilder) WithDialect(d dialect.Engine) *UpdateBuilder {
-	b.dialect = d
-	return b
-}
-
-// Build assembles the SQL UPDATE statement.
+// Build renders the UPDATE SQL query and returns the query + args.
 func (b *UpdateBuilder) Build() (string, []any, error) {
 	if b.table == "" {
 		return "", nil, fmt.Errorf("UPDATE requires a target table")
 	}
 	if len(b.assignments) == 0 {
-		return "", nil, fmt.Errorf("UPDATE must include at least one assignment")
+		return "", nil, fmt.Errorf("UPDATE must define at least one column assignment")
 	}
 
 	var sets []string
 	var args []any
-	for _, field := range b.assignments {
-		col := field.Name
-		if b.dialect != nil && !field.IsRaw {
-			col = b.dialect.EscapeIdentifier(col)
+
+	for _, f := range b.assignments {
+		if f.Alias != "" {
+			return "", nil, fmt.Errorf("UPDATE does not support column aliasing: '%s AS %s'", f.Name, f.Alias)
 		}
-		sets = append(sets, fmt.Sprintf("%s = ?", col))
-		args = append(args, field.Alias) // value passed via Alias field (temporary)
+
+		name := f.Name
+		if b.dialect != nil && !f.IsRaw {
+			name = b.dialect.EscapeIdentifier(name)
+		}
+
+		sets = append(sets, fmt.Sprintf("%s = ?", name))
+		args = append(args, f.Value)
 	}
 
-	tokens := []string{
-		fmt.Sprintf("UPDATE %s", b.table),
-		fmt.Sprintf("SET %s", strings.Join(sets, ", ")),
-	}
+	sql := fmt.Sprintf("UPDATE %s SET %s", b.table, strings.Join(sets, ", "))
 
 	if len(b.conditions) > 0 {
 		var parts []string
@@ -104,16 +103,22 @@ func (b *UpdateBuilder) Build() (string, []any, error) {
 				return "", nil, fmt.Errorf("invalid condition type: %s", c.Type)
 			}
 		}
-		tokens = append(tokens, "WHERE "+strings.Join(parts, " "))
+		sql += " WHERE " + strings.Join(parts, " ")
 		args = append(args, collectConditionArgs(b.conditions)...)
 	}
 
-	return strings.Join(tokens, " "), args, nil
+	return sql, args, nil
 }
 
-func collectConditionArgs(conds []token.Condition) []any {
+// WithDialect sets the SQL dialect for escaping.
+func (b *UpdateBuilder) WithDialect(d dialect.Engine) *UpdateBuilder {
+	b.dialect = d
+	return b
+}
+
+func collectConditionArgs(conditions []token.Condition) []any {
 	var args []any
-	for _, c := range conds {
+	for _, c := range conditions {
 		args = append(args, c.Params...)
 	}
 	return args

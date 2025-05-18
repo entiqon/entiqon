@@ -21,3 +21,9 @@ func FieldExpr(expression string, alias string) FieldToken {
 func (f FieldToken) IsValid() bool {
 	return strings.TrimSpace(f.Name) != ""
 }
+
+// WithValue sets the bound value for the field and returns it.
+func (f FieldToken) WithValue(value any) FieldToken {
+	f.Value = value
+	return f
+}
