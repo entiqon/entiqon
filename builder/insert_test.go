@@ -99,6 +99,34 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithAliasedColumn() {
 	s.Equal([]any{"watson@example.com"}, args)
 }
 
+// ─────────────────────────────────────────────
+// 🧪 BuildInsertOnly
+// ─────────────────────────────────────────────
+func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoColumns() {
+	b := builder.NewInsert().Into("users").Values(1, "Watson")
+	sql, args, err := b.BuildInsertOnly()
+	s.ErrorContains(err, "at least one column is required")
+	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
+}
+
+func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoValues() {
+	b := builder.NewInsert().Into("users").Columns("id", "name")
+	sql, args, err := b.BuildInsertOnly()
+	s.ErrorContains(err, "at least one set of values is required")
+	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
+}
+
+func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MismatchedRowLength() {
+	b := builder.NewInsert().
+		Into("users").
+		Columns("id", "name").
+		Values(1) // 👈 Only one value instead of two
+
+	sql, args, err := b.BuildInsertOnly()
+	s.ErrorContains(err, "expected 2 values, got 1")
+	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
+}
+
 func TestInsertBuilderTestSuite(t *testing.T) {
 	suite.Run(t, new(InsertBuilderTestSuite))
 }
