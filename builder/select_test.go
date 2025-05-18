@@ -1,10 +1,8 @@
 package builder
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/dialect"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -21,8 +19,8 @@ func (s *SelectBuilderTestSuite) SetupTest() {
 // ─────────────────────────────────────────────
 // 🧪 Select
 // ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestSelect_BasicColumns() {
-	sql, args, err := s.qb.
+func (s *SelectBuilderTestSuite) TestSelectBasicColumns() {
+	sql, _, err := s.qb.
 		Select("id", "name").
 		From("users").
 		Build()
@@ -31,36 +29,33 @@ func (s *SelectBuilderTestSuite) TestSelect_BasicColumns() {
 
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
-func (s *SelectBuilderTestSuite) TestSelect_CommaSeparated() {
-	sql, args, err := s.qb.
+func (s *SelectBuilderTestSuite) TestSelectCommaSeparated() {
+	sql, _, err := s.qb.
 		Select("id, name").
 		From("users").
 		Build()
 
 	s.NoError(err)
 	s.Equal("SELECT id, name FROM users", sql)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
-func (s *SelectBuilderTestSuite) TestSelect_InlineAlias() {
-	sql, args, err := s.qb.
+func (s *SelectBuilderTestSuite) TestSelectInlineAlias() {
+	sql, _, err := s.qb.
 		Select("email AS contact").
 		From("users").
 		Build()
 
 	s.NoError(err)
 	s.Equal("SELECT email AS contact FROM users", sql)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 AddSelect
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestSelect_AddSelectAppends() {
-	sql, args, err := s.qb.
+	sql, _, err := s.qb.
 		Select("id").
 		AddSelect("name AS full_name").
 		From("users").
@@ -69,14 +64,13 @@ func (s *SelectBuilderTestSuite) TestSelect_AddSelectAppends() {
 	expected := "SELECT id, name AS full_name FROM users"
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 AddSelect → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 From
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestFrom_SingleTable() {
-	sql, args, err := s.qb.
+	sql, _, err := s.qb.
 		Select("id").
 		From("customers").
 		Build()
@@ -85,24 +79,22 @@ func (s *SelectBuilderTestSuite) TestFrom_SingleTable() {
 
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 From → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *SelectBuilderTestSuite) TestMissingFromClause() {
-	sql, params, err := s.qb.
+	sql, _, err := s.qb.
 		Select("id").
 		Build()
 
 	s.Error(err)
 	s.Empty(sql)
-	fmt.Printf("📦 Generated SQL Query: %s with params=%+v\n", sql, params)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 Where, AndWhere, OrWhere
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
-	sql, params, err := s.qb.
+	sql, _, err := s.qb.
 		Select("id").
 		From("customers").
 		Where("active = ?", true).
@@ -114,11 +106,10 @@ func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
 	expected := "SELECT id FROM customers WHERE active = ? AND email_verified = ? OR country = ? OR country = ?"
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 Generated SQL Query: %s with params=%+v\n", sql, params)
 }
 
 func (s *SelectBuilderTestSuite) TestGroupedAndWhere() {
-	sql, params, err := s.qb.
+	sql, _, err := s.qb.
 		From("invoices").
 		Where("paid = ?", false).
 		AndWhere("amount > ?", 100).
@@ -128,10 +119,9 @@ func (s *SelectBuilderTestSuite) TestGroupedAndWhere() {
 	expected := "SELECT * FROM invoices WHERE paid = ? AND amount > ? AND overdue = ?"
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 Generated SQL Query: %s with params=%+v\n", sql, params)
 }
 
-func (s *SelectBuilderTestSuite) TestSelectBuilder_MultiParams() {
+func (s *SelectBuilderTestSuite) TestSelectBuilderMultiParams() {
 	sql, params, err := s.qb.
 		Select("id", "email").
 		From("users").
@@ -148,15 +138,13 @@ func (s *SelectBuilderTestSuite) TestSelectBuilder_MultiParams() {
 	s.NoError(err)
 	s.Equal(expected, sql)
 	s.Equal([]any{"active", "admin", "2024-01-01", "NA"}, params)
-
-	fmt.Printf("📦 Generated SQL Query: %s with params=%+v\n", sql, params)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 OrderBy, Take, Skip
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestOrderingTakeSkip() {
-	sql, params, err := s.qb.
+	sql, _, err := s.qb.
 		Select("name").
 		From("employees").
 		OrderBy("created_at DESC").
@@ -167,7 +155,6 @@ func (s *SelectBuilderTestSuite) TestOrderingTakeSkip() {
 	expected := "SELECT name FROM employees ORDER BY created_at DESC LIMIT 10 OFFSET 5"
 	s.NoError(err)
 	s.Equal(expected, sql)
-	fmt.Printf("📦 Generated SQL Query: %s with params=%+v\n", sql, params)
 }
 
 // ─────────────────────────────────────────────
@@ -195,20 +182,18 @@ func (s *SelectBuilderTestSuite) TestBuild_InvalidConditionType() {
 // ─────────────────────────────────────────────
 // 🧪 WithDialect
 // ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestSelectBuilder_WithDialect_Postgres() {
+func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
 	sql, args, err := s.qb.
 		Select("id", "created_at").
 		From("users").
 		Where("status = ?", "active").
-		WithDialect(&dialect.PostgresEngine{}).
+		UseDialect("postgres").
 		Build()
 
-	expectedSQL := `SELECT "id", "created_at" FROM users WHERE status = ?`
+	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = ?`
 	s.NoError(err)
 	s.Equal(expectedSQL, sql)
 	s.Equal([]any{"active"}, args)
-
-	fmt.Printf("📦 WithDialect → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func TestSelectBuilderTestSuite(t *testing.T) {
