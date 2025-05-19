@@ -36,23 +36,24 @@ Entiqon is a modular query engine designed to:
 
 ---
 
-## ✅ Supported Builders
-
-* [`SelectBuilder`](./developer/builder/select_builder.md) — Fluent SELECT with support for aliasing, ordering, and pagination
-* [`InsertBuilder`](./developer/builder/insert_builder.md) — Multi-row inserts and RETURNING support
-* [`UpdateBuilder`](./developer/builder/update_builder.md) — Strict value assignment and no-alias validation
-* [`DeleteBuilder`](./developer/builder/delete_builder.md) — DELETE with optional RETURNING support
-* [`UpsertBuilder`](./developer/builder/upsert_builder.md) — PostgreSQL-style UPSERT with conflict resolution
-
----
-
 ## 🗂 Navigation
 
 - [🏠 Home](./index.md)
-- [🧱 SelectBuilder](./developer/builder/select_builder.md)
-- [🧱 InsertBuilder](./developer/builder/insert_builder.md)
-- [📐 Dialect Engine](./devoleper/architecture/dialect_engine.md)
 
+## ✅ Builders
+
+- [🧱 InsertBuilder](./developer/builder/insert_builder.md) — Multi-row inserts and RETURNING support
+- [🧱 SelectBuilder](./developer/builder/select_builder.md) — Fluent SELECT with support for aliasing, ordering, and pagination
+- [🧱 UpdateBuilder](./developer/builder/delete_builder.md) — Strict value assignment and no-alias validation
+- [🧱 DeleteBuilder](./developer/builder/delete_builder.md) — DELETE with optional RETURNING support
+- [🧱 UpsertBuilder](./developer/builder/upsert_builder.md) — PostgreSQL-style UPSERT with conflict resolution
+
+---
+
+## 🧠 Architecture & Internals
+
+- [🧩 Condition Tokens](./developer/architecture/condition.md)
+- [📐 Dialect Engine](./developer/architecture/dialect_engine.md)
 ---
 
 ## 🚀 Quick Start
@@ -87,10 +88,3 @@ sql, args, err := builder.NewSelect().
 ## 📄 License
 
 [MIT](LICENSE) — © Isidro Lopez / Entiqon Project
-
----
-
-## 🧠 Architecture & Internals
-
-- [📐 Dialect Engine](./developer/architecture/dialect_engine.md)
-

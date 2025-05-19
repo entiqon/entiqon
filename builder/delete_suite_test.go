@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/dialect"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -22,10 +21,9 @@ func (s *DeleteBuilderTestSuite) SetupTest() {
 // 🧪 From
 // ─────────────────────────────────────────────
 func (s *DeleteBuilderTestSuite) TestFrom_SetsTargetTable() {
-	sql, args, err := s.qb.From("users").Build()
+	sql, _, err := s.qb.From("users").Build()
 	s.NoError(err)
 	s.Contains(sql, "DELETE FROM users")
-	fmt.Printf("📦 From → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -40,7 +38,6 @@ func (s *DeleteBuilderTestSuite) TestWhere_AddsSimpleCondition() {
 	s.NoError(err)
 	s.Contains(sql, "WHERE id = ?")
 	s.Equal([]any{100}, args)
-	fmt.Printf("📦 Where → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -56,7 +53,6 @@ func (s *DeleteBuilderTestSuite) TestAndWhere_AppendsAND() {
 	s.NoError(err)
 	s.Contains(sql, "WHERE active = true AND role = 'admin'")
 	s.Equal(0, len(args)) // No parameterized args
-	fmt.Printf("📦 AndWhere → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -72,46 +68,73 @@ func (s *DeleteBuilderTestSuite) TestOrWhere_AppendsOR() {
 	s.NoError(err)
 	s.Contains(sql, "WHERE email_verified = false OR email_verified = true")
 	s.Equal(0, len(args))
-	fmt.Printf("📦 OrWhere → SQL: %s | Args: %+v\n", sql, args)
+}
+
+// ─────────────────────────────────────────────
+// 🧪 UseDialect
+// ─────────────────────────────────────────────
+func (s *SelectBuilderTestSuite) TestDeleteBuilderUseDialectPostgres() {
+	sql, args, err := s.qb.
+		Select("id", "created_at").
+		From("users").
+		Where("status = ?", "active").
+		UseDialect("postgres").
+		Build()
+
+	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = ?`
+	s.NoError(err)
+	s.Equal(expectedSQL, sql)
+	s.Equal([]any{"active"}, args)
+}
+
+// ─────────────────────────────────────────────
+// 🧪 WithDialect
+// ─────────────────────────────────────────────
+func (s *DeleteBuilderTestSuite) TestWithDialect_Deprecated_Works() {
+	b := NewDelete().
+		From("users").
+		WithDialect("postgres")
+	sql, args, err := b.Build()
+
+	s.Require().NoError(err)
+	s.Contains(sql, `DELETE FROM "users"`)
+	s.Empty(args)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 Build
 // ─────────────────────────────────────────────
 func (s *DeleteBuilderTestSuite) TestBuild_WithDialect() {
-	sql, args, err := NewDelete().
+	sql, _, err := NewDelete().
 		From("users").
-		WithDialect(&dialect.PostgresEngine{}).
+		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
 	s.Contains(sql, `DELETE FROM "users"`)
-	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *DeleteBuilderTestSuite) TestBuild_MissingFrom_ReturnsError() {
-	sql, args, err := NewDelete().
+	_, _, err := NewDelete().
 		Where("id = ?", 5).
 		Build()
 
 	s.Error(err)
 	s.Contains(err.Error(), "DELETE requires a target table")
-	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *DeleteBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
 	qb := NewDelete().
 		From("users")
 
-	qb.WithDialect(nil)
+	qb.UseDialect("")
 	qb.conditions = append(qb.conditions, token.Condition{
 		Type: "💥", Key: "status = 'active'",
 	})
 
-	sql, args, err := qb.Build()
+	_, _, err := qb.Build()
 	s.Error(err)
 	s.Contains(err.Error(), "invalid condition type")
-	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func TestDeleteBuilderTestSuite(t *testing.T) {
