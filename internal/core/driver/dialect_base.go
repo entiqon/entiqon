@@ -6,13 +6,13 @@ import (
 )
 
 // BaseDialect provides a foundational implementation of the Dialect interface.
-// It can be embedded and selectively overridden by specific dialect.md structs.
+// It can be embedded and selectively overridden by specific dialect structs.
 type BaseDialect struct {
-	// DialectName holds the unique identifier of the dialect.md (e.g., "postgres").
+	// DialectName holds the unique identifier of the dialect (e.g., "postgres").
 	DialectName string
 }
 
-// Name returns the identifier of the dialect.md (e.g., "postgres", "mysql").
+// Name returns the identifier of the dialect (e.g., "postgres", "mysql").
 func (b *BaseDialect) Name() string {
 	return b.DialectName
 }
@@ -41,6 +41,13 @@ func (b *BaseDialect) Escape(value any) string {
 // SupportsUpsert returns false by default.
 // Override in dialects that support upsert syntax (e.g., Postgres).
 func (b *BaseDialect) SupportsUpsert() bool {
+	return false
+}
+
+// SupportsReturning returns false by default.
+// Dialects that support RETURNING clauses (like PostgreSQL)
+// must override this method to return true.
+func (b *BaseDialect) SupportsReturning() bool {
 	return false
 }
 

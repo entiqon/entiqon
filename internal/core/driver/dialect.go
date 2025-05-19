@@ -1,24 +1,29 @@
 package driver
 
-// Dialect defines the behavior required to generate SQL syntax
-// that conforms to a specific database engine (e.g., Postgres, MySQL).
+// Dialect represents SQL dialect-specific behaviors for quoting,
+// escaping, pagination, and advanced SQL features like UPSERT and RETURNING.
 type Dialect interface {
-	// Name returns the name of the dialect.md (e.g., "postgres", "mysql").
+	// Name returns the name of the dialect (e.g., "postgres", "mysql").
 	Name() string
 
-	// Quote wraps an SQL identifier (e.g., column or table name)
-	// using the appropriate quotation syntax for the target database.
+	// Quote wraps a column or table name using dialect-specific syntax.
+	// Example: postgres uses double quotes → "users"
 	Quote(identifier string) string
 
-	// Escape formats a value for safe inclusion in SQL strings.
-	// This is intended for debugging and diagnostics only — NOT for query injection.
+	// Escape returns a safely escaped string version of a value,
+	// for debugging/logging purposes only. Not used in actual queries.
 	Escape(value any) string
 
-	// SupportsUpsert indicates whether the target dialect.md supports
-	// native upsert syntax (e.g., INSERT ... ON CONFLICT).
+	// SupportsUpsert indicates whether the dialect supports native
+	// upsert operations such as "INSERT ... ON CONFLICT".
 	SupportsUpsert() bool
 
-	// BuildLimitOffset constructs the SQL clause for pagination,
-	// using LIMIT and OFFSET keywords as appropriate for the dialect.md.
+	// SupportsReturning indicates whether the dialect supports RETURNING
+	// clauses, e.g., "INSERT ... RETURNING id". Only PostgreSQL and similar
+	// engines support this. Used in InsertBuilder and future builders.
+	SupportsReturning() bool
+
+	// BuildLimitOffset generates the correct LIMIT/OFFSET clause for pagination.
+	// This varies across dialects.
 	BuildLimitOffset(limit, offset int) string
 }

@@ -10,21 +10,37 @@ Dialect resolution allows builders to remain engine-agnostic (e.g., Postgres, My
 
 * Quoting of table and column names
 * Escape logic for diagnostic output
-* Dialect-specific syntax (e.g., `ON CONFLICT`, `LIMIT`, `OFFSET`)
+* Dialect-specific syntax (e.g., `ON CONFLICT`, `LIMIT`, `OFFSET`, `RETURNING`)
 
 ---
 
 ## 🧩 Dialect Interface
 
-Each dialect must implement the following interface:
+The `Dialect` interface defines how SQL builders interact with engine-specific behaviors. Each method provides a specific capability that a dialect may override.
 
 ```go
+// Dialect represents SQL dialect-specific behaviors for quoting,
+// escaping, pagination, and feature support.
 type Dialect interface {
-  Name() string
-  Quote(identifier string) string
-  Escape(value any) string
-  SupportsUpsert() bool
-  BuildLimitOffset(limit, offset int) string
+// Name returns the name of the dialect (e.g., "postgres").
+Name() string
+
+// Quote returns a quoted SQL identifier (e.g., column/table name)
+// according to the dialect rules.
+Quote(identifier string) string
+
+// Escape returns a debug-safe string representation of a value.
+// This is not meant for actual query building — use placeholders instead.
+Escape(value any) string
+
+// SupportsUpsert returns true if the dialect supports native UPSERT syntax.
+SupportsUpsert() bool
+
+// SupportsReturning returns true if the dialect supports RETURNING clauses.
+SupportsReturning() bool
+
+// BuildLimitOffset returns the dialect-specific LIMIT/OFFSET clause.
+BuildLimitOffset(limit, offset int) string
 }
 ```
 
@@ -36,7 +52,7 @@ To simplify extension, Entiqon provides a `BaseDialect` struct that can be embed
 
 ```go
 type BaseDialect struct {
-  DialectName string
+DialectName string
 }
 ```
 
@@ -51,11 +67,11 @@ Use the global `ResolveDialect(name string)` function to obtain the proper diale
 ```go
 switch name {
 case "postgres":
-  return NewPostgresDialect()
+return NewPostgresDialect()
 case "mysql":
-  return NewMySQLDialect()
+return NewMySQLDialect()
 default:
-  return &BaseDialect{DialectName: "generic"}
+return &BaseDialect{DialectName: "generic"}
 }
 ```
 
@@ -96,11 +112,11 @@ Example:
 
 ```go
 type MySQLDialect struct {
-  BaseDialect
+BaseDialect
 }
 
 func (d *MySQLDialect) BuildLimitOffset(limit, offset int) string {
-  return fmt.Sprintf("LIMIT %d OFFSET %d", limit, offset)
+return fmt.Sprintf("LIMIT %d OFFSET %d", limit, offset)
 }
 ```
 
@@ -108,12 +124,21 @@ func (d *MySQLDialect) BuildLimitOffset(limit, offset int) string {
 
 ## 🔁 Dialect Usage in Builders
 
-Each builder (e.g., `SelectBuilder`) should:
+### ✅ Supported RETURNING Behavior by Dialect
+
+| Dialect           | Method                | Returns |
+|-------------------|-----------------------|---------|
+| `BaseDialect`     | `SupportsReturning()` | `false` |
+| `PostgresDialect` | `SupportsReturning()` | `true`  |
+| Others (future)   | override as needed    |         |
+
+Each builder (e.g., `SelectBuilder`, `InsertBuilder`) should:
 
 * Support `UseDialect(name)` to apply dialect behavior
 * Quote identifiers using `dialect.Quote(...)`
 * Format pagination using `dialect.BuildLimitOffset(...)`
-* Detect upsert support with `dialect.SupportsUpsert()` if applicable
+* Detect upsert support with `dialect.SupportsUpsert()`
+* Detect `RETURNING` clause support via `dialect.SupportsReturning()`
 
 > Legacy `WithDialect(driver.Dialect)` is deprecated in favor of `UseDialect(string)`
 
@@ -125,5 +150,6 @@ Each builder (e.g., `SelectBuilder`) should:
 * `BaseDialect` offers safe defaults
 * `ResolveDialect(...)` centralizes instantiation
 * Builders are responsible for invoking dialect methods during query generation
+* Dialect capabilities like `RETURNING` are now validated per engine
 
 For more information on how builders apply dialect behavior, see the individual builder guides such as `SelectBuilder Developer Guide`.

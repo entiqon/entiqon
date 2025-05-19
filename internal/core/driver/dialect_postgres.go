@@ -17,3 +17,9 @@ func NewPostgresDialect() *PostgresDialect {
 func (d *PostgresDialect) SupportsUpsert() bool {
 	return true
 }
+
+// SupportsReturning returns true because PostgreSQL supports
+// RETURNING clauses on INSERT, UPDATE, and DELETE statements.
+func (d *PostgresDialect) SupportsReturning() bool {
+	return true
+}

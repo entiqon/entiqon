@@ -2,7 +2,7 @@ package driver
 
 import "strings"
 
-// ResolveDialect maps a dialect.md name to a Dialect implementation.
+// ResolveDialect maps a dialect name to a Dialect implementation.
 //
 // Valid names:
 //   - "postgres": returns PostgresDialect
