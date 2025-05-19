@@ -94,17 +94,16 @@ func (sb *SelectBuilder) Skip(value int) *SelectBuilder {
 	return sb
 }
 
-// UseDialect resolves and applies the dialect.md by name (e.g., "postgres").
-// It replaces any previously set dialect.md on the builder.
+// UseDialect resolves and applies the dialect by name (e.g., "postgres").
+// It replaces any previously set dialect on the builder.
 func (sb *SelectBuilder) UseDialect(name string) *SelectBuilder {
 	sb.dialect = driver.ResolveDialect(name)
 	return sb
 }
 
-// WithDialect sets the dialect.md engine used for escaping and quoting.
+// WithDialect sets the dialect engine used for escaping and quoting.
 //
-// Deprecated: use UseDialect(name string) instead for improved clarity
-// and consistency with the fluent builder style.
+// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
 func (sb *SelectBuilder) WithDialect(name string) *SelectBuilder {
 	sb.dialect = driver.ResolveDialect(name)
 	return sb
@@ -138,7 +137,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 	}
 
 	// ─────────────────────────────────────────────────────────────
-	// Render FROM clause (quoted if dialect.md provided)
+	// Render FROM clause (quoted if dialect provided)
 	// ─────────────────────────────────────────────────────────────
 	from := sb.from
 	if sb.dialect != nil {
@@ -186,7 +185,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 	}
 
 	// ─────────────────────────────────────────────────────────────
-	// LIMIT/OFFSET via dialect.md
+	// LIMIT/OFFSET via dialect
 	// ─────────────────────────────────────────────────────────────
 	limit, offset := -1, -1
 	if sb.take != nil {

@@ -30,52 +30,52 @@ func NewInsert() *InsertBuilder {
 }
 
 // Into sets the target table for the INSERT operation.
-func (b *InsertBuilder) Into(table string) *InsertBuilder {
-	b.table = table
-	return b
+func (ib *InsertBuilder) Into(table string) *InsertBuilder {
+	ib.table = table
+	return ib
 }
 
 // Columns sets the column definitions using FieldFrom(...) and resets existing ones.
-func (b *InsertBuilder) Columns(names ...string) *InsertBuilder {
-	b.columns = []token.FieldToken{}
+func (ib *InsertBuilder) Columns(names ...string) *InsertBuilder {
+	ib.columns = []token.FieldToken{}
 	for _, name := range names {
-		b.columns = append(b.columns, token.Field(name))
+		ib.columns = append(ib.columns, token.Field(name))
 	}
-	return b
+	return ib
 }
 
 // Values appends a row of values using a map of column name to value.
 // Each call adds a new row. The map must contain every column defined in Columns().
-func (b *InsertBuilder) Values(row ...any) *InsertBuilder {
-	b.values = append(b.values, row)
-	return b
+func (ib *InsertBuilder) Values(row ...any) *InsertBuilder {
+	ib.values = append(ib.values, row)
+	return ib
 }
 
 // Returning adds one or more column names to the RETURNING clause.
 // It parses string expressions into FieldTokens.
 // If called multiple times, it appends to the existing list.
-func (b *InsertBuilder) Returning(fields ...string) *InsertBuilder {
+func (ib *InsertBuilder) Returning(fields ...string) *InsertBuilder {
 	for _, f := range fields {
-		b.returning = append(b.returning, token.FieldsFromExpr(f)...)
+		ib.returning = append(ib.returning, token.FieldsFromExpr(f)...)
 	}
-	return b
+	return ib
 }
 
 // UseDialect resolves and applies the SQL dialect by name (e.g., "postgres").
 // This method configures how identifiers (tables, columns) are quoted
 // and how engine-specific syntax is emitted.
-func (b *InsertBuilder) UseDialect(name string) *InsertBuilder {
-	b.dialect = driver.ResolveDialect(name)
-	return b
+func (ib *InsertBuilder) UseDialect(name string) *InsertBuilder {
+	ib.dialect = driver.ResolveDialect(name)
+	return ib
 }
 
 // WithDialect sets the SQL dialect engine used for quoting identifiers.
 // It may be removed in a future version in favor of the string-based resolver.
 //
-// Deprecated: Use UseDialect(name string) instead.
-func (b *InsertBuilder) WithDialect(name string) *InsertBuilder {
-	b.dialect = driver.ResolveDialect(name)
-	return b
+// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
+func (ib *InsertBuilder) WithDialect(name string) *InsertBuilder {
+	ib.dialect = driver.ResolveDialect(name)
+	return ib
 }
 
 // Build compiles the full INSERT SQL statement along with arguments.
@@ -172,38 +172,38 @@ func (ib *InsertBuilder) Build() (string, []any, error) {
 	return strings.Join(tokens, " "), args, nil
 }
 
-func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
-	if b.table == "" {
+func (ib *InsertBuilder) BuildInsertOnly() (string, []any, error) {
+	if ib.table == "" {
 		return "", nil, fmt.Errorf("table name is required")
 	}
-	if len(b.columns) == 0 {
+	if len(ib.columns) == 0 {
 		return "", nil, fmt.Errorf("at least one column is required")
 	}
-	if len(b.values) == 0 {
+	if len(ib.values) == 0 {
 		return "", nil, fmt.Errorf("at least one set of values is required")
 	}
-	for i, row := range b.values {
-		if len(row) != len(b.columns) {
-			return "", nil, fmt.Errorf("row %d: expected %d values, got %d", i+1, len(b.columns), len(row))
+	for i, row := range ib.values {
+		if len(row) != len(ib.columns) {
+			return "", nil, fmt.Errorf("row %d: expected %d values, got %d", i+1, len(ib.columns), len(row))
 		}
 	}
 
-	tableName := b.table
-	if b.dialect != nil {
-		tableName = b.dialect.Quote(tableName)
+	tableName := ib.table
+	if ib.dialect != nil {
+		tableName = ib.dialect.Quote(tableName)
 	}
 
-	quotedCols := make([]string, len(b.columns))
-	for i, col := range b.columns {
+	quotedCols := make([]string, len(ib.columns))
+	for i, col := range ib.columns {
 		quotedCols[i] = col.Name
-		if b.dialect != nil {
-			quotedCols[i] = b.dialect.Quote(col.Name)
+		if ib.dialect != nil {
+			quotedCols[i] = ib.dialect.Quote(col.Name)
 		}
 	}
 
-	placeholders := make([]string, len(b.values))
-	args := make([]any, 0, len(b.values)*len(b.columns))
-	for i, row := range b.values {
+	placeholders := make([]string, len(ib.values))
+	args := make([]any, 0, len(ib.values)*len(ib.columns))
+	for i, row := range ib.values {
 		args = append(args, row...)
 		ph := make([]string, len(row))
 		for j := range row {

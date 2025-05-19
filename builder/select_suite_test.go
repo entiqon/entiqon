@@ -179,8 +179,38 @@ func (s *SelectBuilderTestSuite) TestBuild_InvalidConditionType() {
 	s.Contains(err.Error(), "invalid condition type")
 }
 
+func (s *SelectBuilderTestSuite) TestBuild_WithoutDialect_UsesRawLimitOffset() {
+	sb := s.qb.
+		Select("id").
+		From("users").
+		Take(20).
+		Skip(10) // deliberately no .WithDialect()
+
+	sql, args, err := sb.Build()
+
+	s.Require().NoError(err)
+	s.Contains(sql, "LIMIT 20")
+	s.Contains(sql, "OFFSET 10")
+	s.Empty(args)
+}
+
+func (s *SelectBuilderTestSuite) TestBuild_WithDialect_UsesDialectLimitOffset() {
+	sb := s.qb.
+		Select("id").
+		From("users").
+		Take(10).
+		Skip(5).
+		UseDialect("postgres")
+
+	sql, args, err := sb.Build()
+
+	s.Require().NoError(err)
+	s.Contains(sql, "LIMIT 10 OFFSET 5")
+	s.Empty(args)
+}
+
 // ─────────────────────────────────────────────
-// 🧪 WithDialect
+// 🧪 UseDialect
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
 	sql, args, err := s.qb.
@@ -195,6 +225,24 @@ func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
 	s.Equal(expectedSQL, sql)
 	s.Equal([]any{"active"}, args)
 }
+
+// ─────────────────────────────────────────────
+// 🧪 WithDialect
+// ─────────────────────────────────────────────
+func (s *SelectBuilderTestSuite) TestSelectBuilderWithDialect() {
+	b := NewSelect().
+		From("users").
+		WithDialect("postgres")
+	sql, args, err := b.Build()
+
+	s.Require().NoError(err)
+	s.Contains(sql, `SELECT * FROM`)
+	s.Empty(args)
+}
+
+// ─────────────────────────────────────────────
+// 🧪 UseDialect
+// ─────────────────────────────────────────────
 
 func TestSelectBuilderTestSuite(t *testing.T) {
 	suite.Run(t, new(SelectBuilderTestSuite))
