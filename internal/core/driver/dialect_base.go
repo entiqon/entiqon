@@ -70,3 +70,9 @@ func (b *BaseDialect) BuildLimitOffset(limit, offset int) string {
 		return ""
 	}
 }
+
+// Placeholder returns a generic "?" placeholder, ignoring the index.
+// This is compatible with most SQL engines that support unnamed placeholders.
+func (b *BaseDialect) Placeholder(index int) string {
+	return "?"
+}

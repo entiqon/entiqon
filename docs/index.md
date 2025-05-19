@@ -53,7 +53,7 @@ Entiqon is a modular query engine designed to:
 ## 🧠 Architecture & Internals
 
 - [🧩 Condition Tokens](./developer/architecture/condition.md)
-- [📐 Dialect Engine](./developer/architecture/dialect_engine.md)
+- [📐 Dialect Engine](developer/core/driver/dialect.md)
 
 ---
 
@@ -88,4 +88,4 @@ sql, args, err := builder.NewSelect().
 
 ## 📄 License
 
-[MIT](LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../LICENSE) — © Isidro Lopez / Entiqon Project

@@ -6,11 +6,21 @@ type Dialect interface {
 	// Name returns the name of the dialect (e.g., "postgres", "mysql").
 	Name() string
 
-	// QuoteIdent wraps a column or table name using dialect-specific syntax.
+	// Placeholder returns the dialect-specific placeholder for the given argument index.
+	//
+	// For example:
+	//   - PostgreSQL: Placeholder(1) → "$1"
+	//   - MySQL:      Placeholder(1) → "?"
+	//
+	// This method is used by query builders to generate parameterized SQL statements
+	// in a dialect-safe way.
+	Placeholder(index int) string
+
+	// QuoteIdentifier wraps a column or table name using dialect-specific syntax.
 	// Example: postgres uses double quotes → "users"
 	QuoteIdentifier(identifier string) string
 
-	// QuoteValue returns a safely escaped string version of a value,
+	// QuoteLiteral returns a safely escaped string version of a value,
 	// for debugging/logging purposes only. Not used in actual queries.
 	QuoteLiteral(value any) string
 
