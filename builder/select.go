@@ -104,6 +104,7 @@ func (sb *SelectBuilder) UseDialect(name string) *SelectBuilder {
 // WithDialect sets the dialect engine used for escaping and quoting.
 //
 // Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
+// This method will be removed in v1.4.0.
 func (sb *SelectBuilder) WithDialect(name string) *SelectBuilder {
 	sb.dialect = driver.ResolveDialect(name)
 	return sb
@@ -126,7 +127,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 		for _, col := range sb.columns {
 			name := col.Name
 			if sb.dialect != nil && !col.IsRaw {
-				name = sb.dialect.Quote(col.Name)
+				name = sb.dialect.QuoteIdentifier(col.Name)
 			}
 			if col.Alias != "" {
 				name = fmt.Sprintf("%s AS %s", name, col.Alias)
@@ -141,7 +142,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 	// ─────────────────────────────────────────────────────────────
 	from := sb.from
 	if sb.dialect != nil {
-		from = sb.dialect.Quote(from)
+		from = sb.dialect.QuoteIdentifier(from)
 	}
 
 	tokens := []string{
@@ -161,7 +162,7 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 				if parsed := strings.SplitN(condition.Key, "=", 2); len(parsed) == 2 {
 					field := strings.TrimSpace(parsed[0])
 					right := strings.TrimSpace(parsed[1])
-					rendered = fmt.Sprintf("%s = %s", sb.dialect.Quote(field), right)
+					rendered = fmt.Sprintf("%s = %s", sb.dialect.QuoteIdentifier(field), right)
 				}
 			}
 

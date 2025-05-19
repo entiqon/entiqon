@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/internal/core/dialect"
+	"github.com/ialopezg/entiqon/internal/core/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.
@@ -19,6 +19,8 @@ type Assignment struct {
 //
 // It composes an internal InsertBuilder and extends it with conflict resolution clauses.
 type UpsertBuilder struct {
+	// dialect is the SQL dialect used for escaping identifiers.
+	dialect driver.Dialect
 	// insert handles the INSERT INTO portion of the query.
 	insert *InsertBuilder
 	// conflictColumns are the columns used to detect conflicts.
@@ -32,12 +34,6 @@ func NewUpsert() *UpsertBuilder {
 	return &UpsertBuilder{
 		insert: NewInsert(),
 	}
-}
-
-// WithDialect sets the SQL dialect to use for escaping identifiers.
-func (b *UpsertBuilder) WithDialect(d dialect.Engine) *UpsertBuilder {
-	b.insert.WithDialect(d)
-	return b
 }
 
 // Into sets the target table for the UPSERT operation.
@@ -76,6 +72,24 @@ func (b *UpsertBuilder) DoUpdateSet(assignments ...Assignment) *UpsertBuilder {
 	return b
 }
 
+// UseDialect resolves and applies the dialect_engine.md by name (e.g., "postgres").
+// It replaces any previously set dialect on the builder.
+func (b *UpsertBuilder) UseDialect(name string) *UpsertBuilder {
+	b.insert.dialect = driver.ResolveDialect(name)
+	b.dialect = b.insert.dialect
+	return b
+}
+
+// WithDialect sets the SQL dialect to use for escaping identifiers.
+//
+// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
+// This method will be removed in v1.4.0.
+func (b *UpsertBuilder) WithDialect(name string) *UpsertBuilder {
+	b.insert.dialect = driver.ResolveDialect(name)
+	b.dialect = b.insert.dialect
+	return b
+}
+
 // Build compiles the UPSERT SQL statement and returns the query and arguments.
 func (b *UpsertBuilder) Build() (string, []any, error) {
 	sql, args, err := b.insert.BuildInsertOnly()
@@ -94,17 +108,26 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 	}
 
 	if len(b.insert.returning) > 0 {
-		sql += " RETURNING " + strings.Join(b.getEscapedIdentifiers(b.insert.returning), ", ")
+		var returning []string
+		for _, field := range b.insert.returning {
+			if b.insert.dialect != nil {
+				returning = append(returning, b.insert.dialect.QuoteIdentifier(field.Name))
+			} else {
+				returning = append(returning, field.Name)
+			}
+		}
+		sql += " RETURNING " + strings.Join(returning, ", ")
 	}
 
 	return sql, args, nil
 }
 
+// buildConflictClause constructs the ON CONFLICT clause by escaping the conflict columns.
 func (b *UpsertBuilder) buildConflictClause() string {
 	escaped := make([]string, len(b.conflictColumns))
 	for i, col := range b.conflictColumns {
 		if b.insert.dialect != nil {
-			escaped[i] = b.insert.dialect.EscapeIdentifier(col)
+			escaped[i] = b.insert.dialect.QuoteIdentifier(col)
 		} else {
 			escaped[i] = col
 		}
@@ -112,25 +135,15 @@ func (b *UpsertBuilder) buildConflictClause() string {
 	return "ON CONFLICT (" + strings.Join(escaped, ", ") + ")"
 }
 
+// buildUpdateSetClause constructs the DO UPDATE SET clause from the assignment list.
 func (b *UpsertBuilder) buildUpdateSetClause() string {
 	parts := make([]string, len(b.updateSet))
 	for i, assign := range b.updateSet {
 		col := assign.Column
 		if b.insert.dialect != nil {
-			col = b.insert.dialect.EscapeIdentifier(assign.Column)
+			col = b.insert.dialect.QuoteIdentifier(assign.Column)
 		}
 		parts[i] = fmt.Sprintf("%s = %s", col, assign.Expr)
 	}
 	return "DO UPDATE SET " + strings.Join(parts, ", ")
-}
-
-func (b *UpsertBuilder) getEscapedIdentifiers(cols []string) []string {
-	if b.insert.dialect == nil {
-		return cols
-	}
-	escaped := make([]string, len(cols))
-	for i, col := range cols {
-		escaped[i] = b.insert.dialect.EscapeIdentifier(col)
-	}
-	return escaped
 }

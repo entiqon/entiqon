@@ -1,155 +1,98 @@
-# 🧱 Developer Guide: SQL Dialect Engine
 
-This document explains the core infrastructure behind SQL dialects in Entiqon. It describes how dialects are defined, extended, resolved, and used across SQL builders like `SelectBuilder`, `InsertBuilder`, and others.
+# 🧭 Dialect Interface Guide
 
----
-
-## ✅ Purpose
-
-Dialect resolution allows builders to remain engine-agnostic (e.g., Postgres, MySQL, SQLite) while supporting:
-
-* Quoting of table and column names
-* Escape logic for diagnostic output
-* Dialect-specific syntax (e.g., `ON CONFLICT`, `LIMIT`, `OFFSET`, `RETURNING`)
+This guide explains how to implement and extend SQL dialects in Entiqon.
 
 ---
 
-## 🧩 Dialect Interface
+## 🔁 Interface Overview
 
-The `Dialect` interface defines how SQL builders interact with engine-specific behaviors. Each method provides a specific capability that a dialect may override.
+Every dialect must implement the following methods:
 
 ```go
-// Dialect represents SQL dialect-specific behaviors for quoting,
-// escaping, pagination, and feature support.
 type Dialect interface {
-// Name returns the name of the dialect (e.g., "postgres").
-Name() string
-
-// Quote returns a quoted SQL identifier (e.g., column/table name)
-// according to the dialect rules.
-Quote(identifier string) string
-
-// Escape returns a debug-safe string representation of a value.
-// This is not meant for actual query building — use placeholders instead.
-Escape(value any) string
-
-// SupportsUpsert returns true if the dialect supports native UPSERT syntax.
-SupportsUpsert() bool
-
-// SupportsReturning returns true if the dialect supports RETURNING clauses.
-SupportsReturning() bool
-
-// BuildLimitOffset returns the dialect-specific LIMIT/OFFSET clause.
-BuildLimitOffset(limit, offset int) string
+    Name() string
+    QuoteIdentifier(identifier string) string
+    QuoteLiteral(value any) string
+    BuildLimitOffset(limit, offset int) string
+    SupportsUpsert() bool
+    SupportsReturning() bool
 }
 ```
 
 ---
 
-## 🪜 BaseDialect Implementation
+## 🆕 Quoting Policy (since v1.2.0)
 
-To simplify extension, Entiqon provides a `BaseDialect` struct that can be embedded:
+To improve clarity and safety, the old ambiguous method:
 
 ```go
-type BaseDialect struct {
-DialectName string
-}
+Escape(value any)
 ```
 
-This provides default behaviors for ANSI-style quoting and fallback escape/limit behavior.
+has been replaced with two explicit alternatives:
+
+| Method             | Purpose                      | Example Usage                     |
+|--------------------|------------------------------|-----------------------------------|
+| `QuoteIdentifier`  | Escapes table/column names   | `"user_id"`                       |
+| `QuoteLiteral`     | Escapes literal values       | `'abc'`, `42`, `true`             |
+
+### ⚠️ Warning
+- `QuoteLiteral` is **not SQL-injection safe** and is meant only for logging/debugging.
+- Do **not** use it in actual query strings.
 
 ---
 
-## 🛠️ Resolving Dialects
+## 🔧 Dialect Usage by Builder
 
-Use the global `ResolveDialect(name string)` function to obtain the proper dialect implementation:
+| Builder         | Uses `QuoteIdentifier` | Uses `QuoteLiteral` | Requires Dialect? |
+|------------------|------------------------|----------------------|--------------------|
+| `SelectBuilder`  | ✅ Yes                 | ⚠️ Only for debug    | Optional           |
+| `InsertBuilder`  | ✅ Yes                 | ⚠️ For logs only     | Optional           |
+| `UpdateBuilder`  | ✅ Yes                 | ⚠️ For logs only     | Optional           |
+| `DeleteBuilder`  | ✅ Yes                 | ❌ Not used           | Optional           |
+| `UpsertBuilder`  | ✅ Yes                 | ⚠️ For logs only     | Optional           |
+
+---
+
+## 🗑️ Deprecated Methods
+
+| Method         | Status        | Notes                          |
+|----------------|---------------|--------------------------------|
+| `Escape(...)`  | ❌ Removed     | Replaced by `QuoteIdentifier` and `QuoteLiteral` |
+| `WithDialect`  | ⚠️ Deprecated | Use `UseDialect(...)` instead. Will be removed in v1.4.0.
+
+---
+
+## ✅ Example: PostgresDialect
 
 ```go
-switch name {
-case "postgres":
-return NewPostgresDialect()
-case "mysql":
-return NewMySQLDialect()
-default:
-return &BaseDialect{DialectName: "generic"}
+type PostgresDialect struct {
+    BaseDialect
+}
+
+func (d *PostgresDialect) QuoteIdentifier(identifier string) string {
+    return `"` + identifier + `"`
 }
 ```
 
 ---
 
-## 📐 Quoting Behavior
+## 🔄 Migrating a Custom Dialect
 
-### Rules:
+If you've implemented your own dialect, follow these steps:
+1. ✅ Rename `Escape(...)` → `QuoteLiteral(...)` (if for values)
+2. ✅ Add `QuoteIdentifier(...)` for proper SQL quoting
+3. 🔁 Update any usages of `Escape(...)` in builders
 
-* Uses **double quotes** for identifiers (ANSI standard, Postgres default)
-* Applies quoting to: column names, table names, and optional expressions
-* **Aliases are not quoted** by default
-
-### Example:
-
-```sql
-SELECT "id", "created_at" FROM "users"
-```
+> All core builders now rely exclusively on `QuoteIdentifier`.
 
 ---
 
-## ⛔ Escaping
+## 📚 Related
 
-* The `Escape(value any)` method is used only for diagnostics/debugging.
-* Real query construction must use parameter placeholders (`?`, `$1`, etc.).
-
----
-
-## 🧱 Dialect Extensions
-
-To define a new dialect:
-
-1. Create a struct embedding `BaseDialect`
-2. Override only what differs
-3. Register in `ResolveDialect()`
-
-Example:
-
-```go
-type MySQLDialect struct {
-BaseDialect
-}
-
-func (d *MySQLDialect) BuildLimitOffset(limit, offset int) string {
-return fmt.Sprintf("LIMIT %d OFFSET %d", limit, offset)
-}
-```
-
----
-
-## 🔁 Dialect Usage in Builders
-
-### ✅ Supported RETURNING Behavior by Dialect
-
-| Dialect           | Method                | Returns |
-|-------------------|-----------------------|---------|
-| `BaseDialect`     | `SupportsReturning()` | `false` |
-| `PostgresDialect` | `SupportsReturning()` | `true`  |
-| Others (future)   | override as needed    |         |
-
-Each builder (e.g., `SelectBuilder`, `InsertBuilder`) should:
-
-* Support `UseDialect(name)` to apply dialect behavior
-* Quote identifiers using `dialect.Quote(...)`
-* Format pagination using `dialect.BuildLimitOffset(...)`
-* Detect upsert support with `dialect.SupportsUpsert()`
-* Detect `RETURNING` clause support via `dialect.SupportsReturning()`
-
-> Legacy `WithDialect(driver.Dialect)` is deprecated in favor of `UseDialect(string)`
-
----
-
-## 📌 Summary
-
-* The dialect engine allows Entiqon to abstract over SQL syntax differences
-* `BaseDialect` offers safe defaults
-* `ResolveDialect(...)` centralizes instantiation
-* Builders are responsible for invoking dialect methods during query generation
-* Dialect capabilities like `RETURNING` are now validated per engine
-
-For more information on how builders apply dialect behavior, see the individual builder guides such as `SelectBuilder Developer Guide`.
+* [InsertBuilder Guide](./insert_builder.md)
+* [UpdateBuilder Guide](./update_builder.md)
+* [DeleteBuilder Guide](./delete_builder.md)
+* [SelectBuilder Guide](./select_builder.md)
+* [UpsertBuilder Guide](./upsert_builder_full_guide.md)

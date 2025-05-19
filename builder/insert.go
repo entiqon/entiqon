@@ -73,6 +73,7 @@ func (ib *InsertBuilder) UseDialect(name string) *InsertBuilder {
 // It may be removed in a future version in favor of the string-based resolver.
 //
 // Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
+// This method will be removed in v1.4.0.
 func (ib *InsertBuilder) WithDialect(name string) *InsertBuilder {
 	ib.dialect = driver.ResolveDialect(name)
 	return ib
@@ -98,7 +99,7 @@ func (ib *InsertBuilder) Build() (string, []any, error) {
 	// ─────────────────────────────────────
 	table := ib.table
 	if ib.dialect != nil {
-		table = ib.dialect.Quote(ib.table)
+		table = ib.dialect.QuoteIdentifier(ib.table)
 	}
 
 	// ─────────────────────────────────────
@@ -112,7 +113,7 @@ func (ib *InsertBuilder) Build() (string, []any, error) {
 
 		name := column.Name
 		if ib.dialect != nil && !column.IsRaw {
-			name = ib.dialect.Quote(name)
+			name = ib.dialect.QuoteIdentifier(name)
 		}
 		quotedCols = append(quotedCols, name)
 	}
@@ -162,7 +163,7 @@ func (ib *InsertBuilder) Build() (string, []any, error) {
 		for _, field := range ib.returning {
 			name := field.Name
 			if !field.IsRaw && ib.dialect != nil {
-				name = ib.dialect.Quote(name)
+				name = ib.dialect.QuoteIdentifier(name)
 			}
 			quotedRet = append(quotedRet, name)
 		}
@@ -190,14 +191,14 @@ func (ib *InsertBuilder) BuildInsertOnly() (string, []any, error) {
 
 	tableName := ib.table
 	if ib.dialect != nil {
-		tableName = ib.dialect.Quote(tableName)
+		tableName = ib.dialect.QuoteIdentifier(tableName)
 	}
 
 	quotedCols := make([]string, len(ib.columns))
 	for i, col := range ib.columns {
 		quotedCols[i] = col.Name
 		if ib.dialect != nil {
-			quotedCols[i] = ib.dialect.Quote(col.Name)
+			quotedCols[i] = ib.dialect.QuoteIdentifier(col.Name)
 		}
 	}
 

@@ -1,10 +1,8 @@
 package builder
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/dialect"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -22,14 +20,13 @@ func (s *UpdateBuilderTestSuite) SetupTest() {
 // 🧪 Table
 // ─────────────────────────────────────────────
 func (s *UpdateBuilderTestSuite) TestTable_SetsTableName() {
-	sql, args, err := s.qb.
+	sql, _, err := s.qb.
 		Table("users").
 		Set("status", "active").
 		Build()
 
 	s.NoError(err)
 	s.Contains(sql, "UPDATE users")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -44,7 +41,20 @@ func (s *UpdateBuilderTestSuite) TestSet_AppendsAssignment() {
 	s.NoError(err)
 	s.Contains(sql, "SET status = ?")
 	s.Equal([]any{"active"}, args)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
+}
+
+// 🧪 Set (Multiple)
+func (s *UpdateBuilderTestSuite) TestSet_MultipleAssignments() {
+	sql, args, err := s.qb.
+		Table("users").
+		Set("name", "Alice").
+		Set("status", "verified").
+		Build()
+
+	s.NoError(err)
+	s.Contains(sql, "SET name = ?")
+	s.Contains(sql, "status = ?")
+	s.Equal([]any{"Alice", "verified"}, args)
 }
 
 // ─────────────────────────────────────────────
@@ -60,14 +70,13 @@ func (s *UpdateBuilderTestSuite) TestWhere_SetsInitialCondition() {
 	s.NoError(err)
 	s.Contains(sql, "WHERE id = ?")
 	s.Equal([]any{"Watson", 42}, args)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 AndWhere
 // ─────────────────────────────────────────────
 func (s *UpdateBuilderTestSuite) TestAndWhere_AppendsAndCondition() {
-	sql, args, err := s.qb.
+	sql, _, err := s.qb.
 		Table("users").
 		Set("status", "inactive").
 		Where("deleted = false").
@@ -76,14 +85,13 @@ func (s *UpdateBuilderTestSuite) TestAndWhere_AppendsAndCondition() {
 
 	s.NoError(err)
 	s.Contains(sql, "WHERE deleted = false AND role = ?")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 OrWhere
 // ─────────────────────────────────────────────
 func (s *UpdateBuilderTestSuite) TestOrWhere_AppendsOrCondition() {
-	sql, args, err := s.qb.
+	sql, _, err := s.qb.
 		Table("users").
 		Set("active", true).
 		Where("email_verified = true").
@@ -92,7 +100,6 @@ func (s *UpdateBuilderTestSuite) TestOrWhere_AppendsOrCondition() {
 
 	s.NoError(err)
 	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -108,27 +115,24 @@ func (s *UpdateBuilderTestSuite) TestBuild_WithAliasedColumn() {
 	s.Error(err)
 	s.Equal(sql, "")
 	s.Nil(args)
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_MissingTableReturnsError() {
-	sql, args, err := s.qb.
+	_, _, err := s.qb.
 		Set("name", "Watson").
 		Build()
 
 	s.Error(err)
 	s.Contains(err.Error(), "UPDATE requires a target table")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
-	sql, args, err := s.qb.
+	_, _, err := s.qb.
 		Table("users").
 		Build()
 
 	s.Error(err)
 	s.Contains(err.Error(), "UPDATE must define at least one column assignment")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
@@ -143,28 +147,43 @@ func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
 		Type: "💣", Key: "broken = true",
 	})
 
-	sql, args, err := q.Build()
+	_, _, err := q.Build()
 	s.Error(err)
 	s.Contains(err.Error(), "invalid condition type")
-	fmt.Printf("📦 Select → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
-// 🧪 WithDialect
+// 🧪 UseDialect
 // ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestSelectBuilder_WithDialect_Postgres() {
+func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
 	sql, args, err := s.qb.
 		Set("active", true).
 		Table("users").
 		Where("email_verified = true").
 		OrWhere("email_verified = false").
-		WithDialect(&dialect.PostgresEngine{}).
+		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
 	s.Equal([]any{true}, args)
 	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
-	fmt.Printf("📦 WithDialect → SQL: %s | Args: %+v\n", sql, args)
+}
+
+// ─────────────────────────────────────────────
+// 🧪 WithDialect
+// ─────────────────────────────────────────────
+func (s *UpdateBuilderTestSuite) TestUpdateBuilder_WithDialect_Postgres() {
+	sql, args, err := s.qb.
+		Set("active", true).
+		Table("users").
+		Where("email_verified = true").
+		OrWhere("email_verified = false").
+		WithDialect("postgres").
+		Build()
+
+	s.NoError(err)
+	s.Equal([]any{true}, args)
+	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
 }
 
 func TestUpdateBuilderTestSuite(t *testing.T) {

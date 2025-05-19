@@ -74,6 +74,7 @@ func (b *DeleteBuilder) UseDialect(name string) *DeleteBuilder {
 // WithDialect sets the SQL dialect engine directly.
 //
 // Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
+// This method will be removed in v1.4.0.
 func (b *DeleteBuilder) WithDialect(name string) *DeleteBuilder {
 	b.dialect = driver.ResolveDialect(name)
 	return b
@@ -90,7 +91,7 @@ func (b *DeleteBuilder) Build() (string, []any, error) {
 
 	table := b.table
 	if b.dialect != nil {
-		table = b.dialect.Quote(table)
+		table = b.dialect.QuoteIdentifier(table)
 	}
 
 	sql := fmt.Sprintf("DELETE FROM %s", table)

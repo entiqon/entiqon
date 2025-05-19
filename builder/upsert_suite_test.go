@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/dialect"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,7 +20,7 @@ func TestUpsertBuilderTestSuite(t *testing.T) {
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
 	q := NewUpsert().
-		WithDialect(&dialect.PostgresEngine{}).
+		WithDialect("postgres").
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
@@ -83,7 +82,7 @@ func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestReturning_AppendsReturningClause() {
 	q := NewUpsert().
-		WithDialect(&dialect.PostgresEngine{}).
+		UseDialect("postgres").
 		Into("users").
 		Columns("id", "email").
 		Values(1, "dev@entiqon.dev").
@@ -128,7 +127,7 @@ func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
 	q := NewUpsert().
-		WithDialect(&dialect.PostgresEngine{}).
+		UseDialect("postgres").
 		Into("people").
 		Columns("id", "email").
 		Values(1, "someone@dev.com").
@@ -137,11 +136,10 @@ func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
 	sql, args, err := q.Build()
 	s.Require().NoError(err)
 	s.Equal(
-		"INSERT INTO \"people\" (\"id\", \"email\") VALUES (?, ?) ON CONFLICT (\"id\", \"email\") DO NOTHING",
+		`INSERT INTO "people" ("id", "email") VALUES (?, ?) ON CONFLICT ("id", "email") DO NOTHING`,
 		sql,
 	)
 	s.Equal([]any{1, "someone@dev.com"}, args)
-	fmt.Printf("📦 OnConflict → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────

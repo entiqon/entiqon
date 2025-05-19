@@ -54,6 +54,7 @@ Entiqon is a modular query engine designed to:
 
 - [🧩 Condition Tokens](./developer/architecture/condition.md)
 - [📐 Dialect Engine](./developer/architecture/dialect_engine.md)
+
 ---
 
 ## 🚀 Quick Start

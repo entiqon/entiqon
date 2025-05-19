@@ -17,18 +17,14 @@ func (b *BaseDialect) Name() string {
 	return b.DialectName
 }
 
-// Quote returns the given identifier wrapped in double quotes.
-// This default behavior matches ANSI SQL and is compatible with Postgres.
-func (b *BaseDialect) Quote(identifier string) string {
-	return `"` + identifier + `"`
-}
-
-// Escape returns a string representation of a value formatted for SQL output.
-// This method is NOT SQL-injection safe and should only be used for debugging or logging.
-func (b *BaseDialect) Escape(value any) string {
+// QuoteLiteral returns the given value wrapped appropriately for SQL output.
+//
+// ⚠️ This method is NOT SQL-injection safe and MUST NOT be used in production query construction.
+// It is intended only for debugging, logging, or test output purposes.
+func (b *BaseDialect) QuoteLiteral(value any) string {
 	switch v := value.(type) {
 	case string:
-		return `'` + v + `'`
+		return "'" + v + "'"
 	case int, int64, float64:
 		return fmt.Sprintf("%v", v)
 	case bool:
@@ -36,6 +32,13 @@ func (b *BaseDialect) Escape(value any) string {
 	default:
 		return fmt.Sprintf("'%v'", v)
 	}
+}
+
+// QuoteIdentifier returns the given identifier quoted for PostgreSQL.
+//
+// This default behavior matches ANSI SQL and is compatible with Postgres.
+func (b *BaseDialect) QuoteIdentifier(identifier string) string {
+	return `"` + identifier + `"`
 }
 
 // SupportsUpsert returns false by default.

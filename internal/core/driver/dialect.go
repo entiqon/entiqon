@@ -6,13 +6,13 @@ type Dialect interface {
 	// Name returns the name of the dialect (e.g., "postgres", "mysql").
 	Name() string
 
-	// Quote wraps a column or table name using dialect-specific syntax.
+	// QuoteIdent wraps a column or table name using dialect-specific syntax.
 	// Example: postgres uses double quotes → "users"
-	Quote(identifier string) string
+	QuoteIdentifier(identifier string) string
 
-	// Escape returns a safely escaped string version of a value,
+	// QuoteValue returns a safely escaped string version of a value,
 	// for debugging/logging purposes only. Not used in actual queries.
-	Escape(value any) string
+	QuoteLiteral(value any) string
 
 	// SupportsUpsert indicates whether the dialect supports native
 	// upsert operations such as "INSERT ... ON CONFLICT".

@@ -23,3 +23,8 @@ func (d *PostgresDialect) SupportsUpsert() bool {
 func (d *PostgresDialect) SupportsReturning() bool {
 	return true
 }
+
+// QuoteIdent returns the given identifier quoted for PostgreSQL.
+func (d *PostgresDialect) QuoteIdentifier(identifier string) string {
+	return `"` + identifier + `"`
+}
