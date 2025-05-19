@@ -21,7 +21,7 @@
   </a>
 </p>
 
-> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems in Go.
+> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems.
 
 ---
 
@@ -38,19 +38,24 @@ Entiqon is a modular query engine designed to:
 
 ## ✅ Supported Builders
 
-Each builder has full documentation and example usage:
+* [`SelectBuilder`](./developer/builder/select_builder.md) — Fluent SELECT with support for aliasing, ordering, and pagination
+* [`InsertBuilder`](./developer/builder/insert_builder.md) — Multi-row inserts and RETURNING support
+* [`UpdateBuilder`](./developer/builder/update_builder.md) — Strict value assignment and no-alias validation
+* [`DeleteBuilder`](./developer/builder/delete_builder.md) — DELETE with optional RETURNING support
+* [`UpsertBuilder`](./developer/builder/upsert_builder.md) — PostgreSQL-style UPSERT with conflict resolution
 
-* [`SelectBuilder`](./builder/select.md) — Fluent SELECT with support for aliasing, ordering, and pagination
-* [`InsertBuilder`](./builder/insert.md) — Multi-row inserts and RETURNING support
-* [`UpdateBuilder`](./builder/update.md) — Strict value assignment and no-alias validation
-* [`DeleteBuilder`](./builder/delete.md) — DELETE with optional RETURNING support
-* [`UpsertBuilder`](./builder/upsert.md) — PostgreSQL-style UPSERT with conflict resolution
+---
+
+## 🗂 Navigation
+
+- [🏠 Home](./index.md)
+- [🧱 SelectBuilder](./developer/builder/select_builder.md)
+- [🧱 InsertBuilder](./developer/builder/insert_builder.md)
+- [📐 Dialect Engine](./developer/architecture/dialect_engine.md)
 
 ---
 
 ## 🚀 Quick Start
-
-### ↘️ Installation
 
 ```bash
 go get github.com/ialopezg/entiqon
@@ -60,8 +65,6 @@ go get github.com/ialopezg/entiqon
 
 ## 🧪 Examples by Builder
 
-Every builder supports Go-style method chaining and returns the compiled SQL and argument slice:
-
 ```go
 sql, args, err := builder.NewSelect().
 	From("users").
@@ -69,17 +72,15 @@ sql, args, err := builder.NewSelect().
 	Build()
 ```
 
-For full examples, visit the documentation linked above.
-
 ---
 
-## 🧩 Design Principles
+## 📂 Design Principles
 
-* 📐 **Predictable structure**: every builder follows the same pattern: chain, validate, compile
-* 🔐 **Strict validation**: no silent fallbacks, every mistake is caught early
-* ⚙️ **Composable**: fields, clauses, and assignments are reusable and abstractable
-* 🔄 **Dialects**: support for PostgreSQL (others pluggable)
-* 📂 **Method grouping**: test files use visually grouped sections for clarity
+* 📐 **Predictable structure**: every builder follows the same pattern
+* 🔐 **Strict validation**: no silent fallbacks
+* ⚙️ **Composable**: reusable fields, clauses, and assignments
+* 🔄 **Dialects**: PostgreSQL supported out of the box
+* 🧪 **Test clarity**: grouped method-based test structure
 
 ---
 
