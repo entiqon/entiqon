@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## \[v1.3.0] - 2025-05-19
+
+### ✨ Added
+
+- `update_builder.md`: merged and normalized UpdateBuilder documentation
+- Introduced `Dialect Guide` with version-tagged interfaces and test philosophy
+- Added `Principles & Best Practices` section to README.md
+- Linked all finalized builder docs under `docs/developer/builder/`
+- Version tags added to all builder docs (`Since v1.2.0`)
+- Explicit `Method Reference` and `Clause Ordering` sections added to guides
+
+### 🧪 Coverage
+
+- Achieved **100.0%** test coverage across all:
+  - Builder methods
+  - Token resolvers
+  - Dialect interfaces (base, postgres, resolver)
+- Deprecated methods (e.g., `WithDialect(...)`) remain tested until removal
+- All helper methods, even unused, are now covered and documented
+
+### 🧠 Philosophy
+
+- Injected sarcastic validation quote into dialect guide:
+  > “Even if necessary, tests will be tested.”
+- All docs and builders adhere to strict validation, quoting, and fluent chaining principles
+
+---
+
 ## \[v1.2.0] - 2025-05-18
 
 ### 📚 Documentation
