@@ -1,6 +1,6 @@
 
 <p align="center" style="text-align: center; width: 256px; display: block; margin: auto;">
-    <img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" align="center" alt="Entiqon Logo" style="width: 256px; display: block; margin: auto;" />
+    <img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" align="center" alt="Entiqon Logo" style="width: 200px; display: block; margin: auto;" />
 </p>
 <br/>
 
@@ -52,7 +52,7 @@ Each builder is fully documented and independently tested:
 
 * [SelectBuilder](./docs/developer/builder/select_builder.md) — Fluent SELECT with WHERE, AND, OR, LIMIT, and ordering
 * [InsertBuilder](./docs/developer/builder/insert_builder.md) — Multi-row inserts and dialect-aware RETURNING
-* [UpdateBuilder](./docs/developer/builder/update_builder.md) — No-alias column assignment and safe clause enforcement
+* [UpdateBuilder](./docs/developer/builder/update_builder_full_guide.md) — No-alias column assignment and safe clause enforcement
 * [DeleteBuilder](./docs/developer/builder/delete_builder.md) — DELETE with WHERE and optional RETURNING
 * [UpsertBuilder](./docs/developer/builder/upsert_builder_full_guide.md) — Full INSERT ... ON CONFLICT DO UPDATE/NOTHING support
 * [Dialect Guide](./docs/developer/architecture/dialect_guide.md) — How to implement dialects and understand quoting policies

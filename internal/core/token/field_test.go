@@ -69,6 +69,14 @@ func (s *FieldTokenTestSuite) TestField_CommaSeparatedPanics() {
 	)
 }
 
+func (s *FieldTokenTestSuite) TestFieldToken_WithValue() {
+	f := token.Field("email")
+	fv := f.WithValue("x@entiqon.dev")
+
+	s.Equal("email", fv.Name)
+	s.Equal("x@entiqon.dev", fv.Value)
+}
+
 func TestFieldTokenTestSuite(t *testing.T) {
 	suite.Run(t, new(FieldTokenTestSuite))
 }

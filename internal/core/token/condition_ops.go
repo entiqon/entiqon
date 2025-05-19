@@ -30,11 +30,8 @@ func (c Condition) Set(conditionType ConditionType, condition string, params ...
 	for _, val := range params {
 		raw = fmt.Sprintf("(%s)", strings.Replace(raw, "?", fmt.Sprintf("'%v'", val), 1))
 	}
-	if c.Alias != "" {
-		c.Raw = fmt.Sprintf("(%s) AS %s", raw, c.Alias)
-	} else {
-		c.Raw = raw
-	}
+	c.Raw = raw
+
 	return c
 }
 
