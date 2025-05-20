@@ -1,165 +1,113 @@
-# 🧭 Dialect Engine Guide
+# 🌐 Developer Guide: SQL Dialects
 
-This guide explains how to implement and extend SQL dialects in Entiqon.
+This guide documents how Entiqon handles database-specific dialect behavior using a modular `Dialect` interface.
 
 ---
 
-## 🔁 Dialect Interface
+## 🧩 Interface
 
-Every dialect must implement the following methods:
+All dialects implement the following:
 
 ```go
 type Dialect interface {
-    Name() string
-    QuoteIdentifier(identifier string)
-    QuoteLiteral(value any)
-    BuildLimitOffset(limit, offset int)
-    SupportsUpsert() bool
-    SupportsReturning() bool
-    Placeholder(index int) string  // Since: v1.4.0
+	Name() string
+	Placeholder(position int) string
+	QuoteTable(name string) string
 }
 ```
 
 ---
 
-## 🔢 Placeholder Support (Since: v1.4.0)
+## 🧱 Implementations
 
-Each dialect must provide a formatting strategy for placeholders:
+### ✅ BaseDialect (embedded)
 
-| Dialect     | Example Output |
-|-------------|----------------|
-| PostgreSQL  | `$1`, `$2`, ... |
-| MySQL       | `?`, `?`, ...   |
-| Generic     | `?`, `?`, ...   |
+Provides default behaviors:
 
-This enables query builders to emit correct SQL syntax per engine.
-
----
-
-## 🔧 Dialect Usage by Builder
-
-| Builder         | QuoteIdentifier | QuoteLiteral | Placeholder | Requires Dialect? |
-|----------------|------------------|----------------|--------------|--------------------|
-| SelectBuilder  | ✅               | ⚠️ Debug only  | ✅            | Optional           |
-| InsertBuilder  | ✅               | ⚠️ Debug only  | ✅            | Optional           |
-| UpdateBuilder  | ✅               | ⚠️ Debug only  | ✅            | Optional           |
-| DeleteBuilder  | ✅               | ❌ Not used    | ✅            | Optional           |
-| UpsertBuilder  | ✅               | ⚠️ Debug only  | ✅            | Optional           |
+- `Name()` → dialect name
+- `Placeholder()` → returns `"?"`
+- `QuoteIdentifier()` → returns identifier without quoting
+- `QuoteLiteral(value)` → handles:
+  - Strings → `'value'`
+  - Numbers → `42`, `3.14`
+  - Booleans → `true`, `false`
+  - Other types → `fmt.Sprintf("'%v'", v)`
+- `SupportsUpsert()` → `false`
+- `SupportsReturning()` → `false`
+- `BuildLimitOffset(limit, offset int)` → SQL LIMIT/OFFSET string
 
 ---
 
-## 🆕 Quoting Policy (Since: v1.2.0)
-
-| Method             | Purpose                      | Example        |
-|--------------------|------------------------------|----------------|
-| `QuoteIdentifier`  | Escapes table/column names   | `"user_id"`    |
-| `QuoteLiteral`     | Escapes literal values       | `'abc'`, `42`  |
-
-⚠️ `QuoteLiteral` is not SQL-safe and used only for logging/debugging.
-
----
-
-## 🔄 Migrating a Custom Dialect
-
-Update your dialects to support:
-
-- ✅ `QuoteIdentifier(...)` (since v1.2.0)
-- ✅ `QuoteLiteral(...)` (since v1.2.0)
-- ✅ `Placeholder(index int)` (since v1.4.0)
-
----
-
-## ✅ Example: PostgresDialect
+## 🚦 Limit/Offset Behavior
 
 ```go
-type PostgresDialect struct {
-	BaseDialect
-}
-
-func (d *PostgresDialect) QuoteIdentifier(identifier string) string {
-	return `"` + identifier + `"`
-}
-
-func (d *PostgresDialect) Placeholder(index int) string {
-	return fmt.Sprintf("$%d", index)
-}
-
-func (d *PostgresDialect) SupportsUpsert() bool {
-	return true
-}
-
-func (d *PostgresDialect) SupportsReturning() bool {
-	return true
-}
+BuildLimitOffset(limit, offset int)
 ```
+
+Returns:
+
+| Input                  | Output               |
+|------------------------|----------------------|
+| `limit=10, offset=20`  | `LIMIT 10 OFFSET 20` |
+| `limit=5, offset=-1`   | `LIMIT 5`            |
+| `limit=-1, offset=50`  | `OFFSET 50`          |
+| `limit=-1, offset=-1`  | `""` (empty string)  |
+
+✅ All conditions are fully tested.
 
 ---
 
-## 🧰 Helper: GeneratePlaceholders
+## 🛠️ Provided Dialects
+
+| Dialect   | Placeholder | Quotes      | Supports RETURNING/UPSERT |
+|-----------|-------------|-------------|----------------------------|
+| `generic` | `?`         | none        | ❌                         |
+| `postgres`| `$1`, `$2`  | `"column"`  | ✅                         |
+
+Use:
 
 ```go
-func GeneratePlaceholders(values [][]any, dialect driver.Dialect) ([]string, []any)
+ResolveDialect("postgres") // returns PostgresDialect
+ResolveDialect("unknown")  // returns BaseDialect named "generic"
 ```
-
-✅ Since: v1.4.0
-
-Generates placeholder strings and flattens arguments for multi-row operations.
 
 ---
 
-## 🔨 Adding a New Dialect
+## 🔗 Integration with ParamBinder
 
-To extend Entiqon with a custom SQL dialect:
-
-1. Create a new file in `internal/core/driver`, e.g. `dialect_sqlite.go`
-
-2. Define a struct embedding `BaseDialect`:
+The `ParamBinder` uses `dialect.Placeholder(n)` to assign placeholders during query construction.
 
 ```go
-type SQLiteDialect struct {
-	BaseDialect
-}
-
-func NewSQLiteDialect() *SQLiteDialect {
-	return &SQLiteDialect{
-		BaseDialect: BaseDialect{DialectName: "sqlite"},
-	}
-}
+pb := NewParamBinder(dialect)
+pb.Bind("id")  // → $1 or ?
 ```
-
-3. Override any required methods:
-
-```go
-func (d *SQLiteDialect) Placeholder(index int) string {
-	return "?"
-}
-
-func (d *SQLiteDialect) SupportsUpsert() bool {
-	return true
-}
-
-func (d *SQLiteDialect) QuoteIdentifier(identifier string) string {
-	return "`" + identifier + "`" // MySQL/SQLite-style quoting
-}
-```
-
-4. Use it directly in builders or expose it through `ResolveDialect(...)`.
 
 ---
 
-## 🗑️ Deprecated
+## ✅ Test Strategy
 
-| Method         | Status        | Notes                                    |
-|----------------|---------------|------------------------------------------|
-| `Escape(...)`  | ❌ Removed     | Use `QuoteLiteral(...)` instead          |
-| `WithDialect`  | ⚠️ Deprecated | Use `UseDialect(...)`. Removed in v1.4.0 |
+All dialects are tested via `TestDialectSuite` using shared assertions for:
+
+- Placeholder generation
+- Literal and identifier quoting
+- Dialect fallback resolution
+- Limit/Offset formatting
 
 ---
 
-## 🧭 Version History
+## 🚧 Notes
 
-| Feature                      | Version   |
-|------------------------------|-----------|
-| Dialect interface            | v1.3.0    |
-| PostgresDialect              | v1.4.0    |
-| GeneratePlaceholders helper  | v1.4.0    |
+- Dialects are **non-configurable at runtime**
+- If needed, create a `NewMySQLDialect()` or similar
+- Do **not** hardcode placeholders inside builders — use dialect
+
+---
+
+## 📁 Files
+
+- `engine.go` — interface
+- `dialect_base.go` — base logic
+- `dialect_generic.go` — `NewGenericDialect`
+- `dialect_postgres.go` — PostgreSQL behavior
+- `dialect_resolver.go` — dialect lookup map
+- `dialect_test.go` — shared test coverage

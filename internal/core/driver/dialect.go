@@ -14,10 +14,14 @@ type Dialect interface {
 	//
 	// This method is used by query builders to generate parameterized SQL statements
 	// in a dialect-safe way.
+	//
+	// Since: v0.0.1
 	Placeholder(index int) string
 
 	// QuoteIdentifier wraps a column or table name using dialect-specific syntax.
 	// Example: postgres uses double quotes → "users"
+	//
+	// Since: v0.0.1
 	QuoteIdentifier(identifier string) string
 
 	// QuoteLiteral returns a safely escaped string version of a value,

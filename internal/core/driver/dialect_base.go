@@ -34,11 +34,10 @@ func (b *BaseDialect) QuoteLiteral(value any) string {
 	}
 }
 
-// QuoteIdentifier returns the given identifier quoted for PostgreSQL.
-//
-// This default behavior matches ANSI SQL and is compatible with Postgres.
+// QuoteIdentifier returns the input identifier without quoting.
+// Dialects may override this to use quoting rules like backticks or double-quotes.
 func (b *BaseDialect) QuoteIdentifier(identifier string) string {
-	return `"` + identifier + `"`
+	return identifier // generic behavior: no quoting
 }
 
 // SupportsUpsert returns false by default.
@@ -48,8 +47,8 @@ func (b *BaseDialect) SupportsUpsert() bool {
 }
 
 // SupportsReturning returns false by default.
-// Dialects that support RETURNING clauses (like PostgreSQL)
-// must override this method to return true.
+// Dialects that support RETURNING clauses.
+// Must override this method to return true.
 func (b *BaseDialect) SupportsReturning() bool {
 	return false
 }
@@ -73,6 +72,6 @@ func (b *BaseDialect) BuildLimitOffset(limit, offset int) string {
 
 // Placeholder returns a generic "?" placeholder, ignoring the index.
 // This is compatible with most SQL engines that support unnamed placeholders.
-func (b *BaseDialect) Placeholder(index int) string {
+func (b *BaseDialect) Placeholder(_ int) string {
 	return "?"
 }
