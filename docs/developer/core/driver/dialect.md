@@ -57,6 +57,29 @@ Returns:
 
 ---
 
+## 🧠 Condition Resolution (Builder Integration)
+
+- `Where("status = active")` is parsed inline and supported
+- `Where("status", "active")` is structured key-value form
+- Anything with more than 1 parameter is rejected for now
+- Future support will allow:
+  ```go
+  Where("status = $1 AND age > $2", []any{true, 45})
+  Where("status = :status AND age = :age", map[string]any{...})
+  ```
+
+### 🔒 Current Limitation
+Expressions containing multiple logical parts (e.g. `AND`, `OR`) are not yet parsed or grouped.
+
+### 🧠 TODO
+- Grouped conditions will eventually be **wrapped in parentheses** to preserve precedence
+- Example:
+  ```sql
+  WHERE (status = $1 AND age > $2) OR (country = $3)
+  ```
+
+---
+
 ## 🛠️ Provided Dialects
 
 | Dialect   | Placeholder | Quotes      | Supports RETURNING/UPSERT |
