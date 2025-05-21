@@ -33,11 +33,31 @@ func (bb *BaseBuilder) AddStageError(stage string, err error) {
 	})
 }
 
+// GetDialect returns the resolved dialect for the builder.
+//
+// If no dialect was explicitly set, it defaults to the generic dialect.
+// This method guarantees that all builders can safely access a usable dialect at Build() time.
+//
+// Since: v1.4.0
+func (bb *BaseBuilder) GetDialect() driver.Dialect {
+	if bb.dialect == nil {
+		bb.dialect = driver.NewGenericDialect()
+	}
+	return bb.dialect
+}
+
 // GetErrors returns the full list of stage-tagged errors collected during the build process.
 //
 // Updated: v1.4.0
 func (bb *BaseBuilder) GetErrors() []builder.Error {
 	return bb.errors
+}
+
+// HasDialect returns true if a dialect has been explicitly set.
+//
+// Since: v1.4.0
+func (bb *BaseBuilder) HasDialect() bool {
+	return bb.dialect != nil
 }
 
 // HasErrors returns true if any error has been recorded in the builder.
@@ -53,23 +73,12 @@ func (bb *BaseBuilder) HasErrors() bool {
 // This method allows fluent overrides for specific SQL engines (e.g., PostgreSQL, ClickHouse).
 //
 // Updated: v1.4.0
-func (bb *BaseBuilder) UseDialect(d driver.Dialect) *BaseBuilder {
-	if d == nil || d.Name() == "generic" {
-		return bb // maintain chain even if no change
+func (bb *BaseBuilder) UseDialect(name string) *BaseBuilder {
+	if name == "" || (bb.dialect != nil && bb.dialect.Name() == name) {
+		return bb
 	}
-	bb.dialect = d
+	if d := driver.ResolveDialect(name); d != nil {
+		bb.dialect = d
+	}
 	return bb
-}
-
-// resolveDialect returns the resolved dialect for the builder.
-//
-// If no dialect was explicitly set, it defaults to the generic dialect.
-// This method guarantees that all builders can safely access a usable dialect at Build() time.
-//
-// Since: v1.4.0
-func (bb *BaseBuilder) resolveDialect() driver.Dialect {
-	if bb.dialect == nil {
-		bb.dialect = driver.NewGenericDialect()
-	}
-	return bb.dialect
 }
