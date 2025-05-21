@@ -2,9 +2,7 @@
 
 package token
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // NewCondition creates a condition from either a raw string expression like
 // "status != active" or structured field/value input.
@@ -15,33 +13,33 @@ import (
 //
 // Since: v0.0.1
 // Updated: v1.4.0
-func NewCondition(conditionType ConditionType, params ...any) Condition {
-	if len(params) > 2 {
-		return Condition{Error: fmt.Errorf("invalid number of parameters")}
+func NewCondition(conditionType ConditionType, condition string, params ...any) Condition {
+	if len(params) > 1 {
+		return Condition{Error: fmt.Errorf("%s: invalid number of parameters on condition", condition)}
 	}
 
 	var field string
 	var operator string
 	var value any
 
-	if len(params) == 1 {
-		raw, ok := params[0].(string)
+	switch len(params) {
+	case 0:
+		// Inline syntax like: "status = active"
+		f, o, v, ok := extractConditionParts(condition)
 		if !ok {
-			return Condition{Error: fmt.Errorf("inline condition must be a string")}
+			return Condition{Error: fmt.Errorf("%s: unable to parse condition: %q", conditionType, condition)}
 		}
+		if v == "" {
+			return Condition{Error: fmt.Errorf("%s: empty value on condition: %q", conditionType, condition)}
+		}
+		field, operator, value = f, o, v
 
-		field, operator, value, ok = extractConditionParts(raw)
-		if !ok {
-			return Condition{Error: fmt.Errorf("unable to parse inline condition: %q", raw)}
-		}
-	} else {
-		var ok bool
-		field, ok = params[0].(string)
-		if !ok {
-			return Condition{Error: fmt.Errorf("field must be a string")}
-		}
+	case 1:
+		// Explicit syntax like: NewCondition(type, "status", "active")
+		field = condition
 		operator = "="
-		value = params[1]
+		value = params[0]
+
 	}
 
 	return NewConditionWithOperator(conditionType, field, operator, value)
@@ -52,16 +50,16 @@ func NewCondition(conditionType ConditionType, params ...any) Condition {
 // Since: v1.4.0
 func NewConditionBetween(conditionType ConditionType, field string, start any, end any) Condition {
 	if field == "" || start == nil || end == nil {
-		return Condition{Error: fmt.Errorf("BETWEEN requires a field and two non-nil values")}
+		return Condition{Error: fmt.Errorf("%s: BETWEEN requires a field and two non-nil values", conditionType)}
 	}
 	if s, ok := start.(string); ok && s == "" {
-		return Condition{Error: fmt.Errorf("BETWEEN start value cannot be empty string")}
+		return Condition{Error: fmt.Errorf("%s: BETWEEN start value cannot be empty string", conditionType)}
 	}
 	if e, ok := end.(string); ok && e == "" {
-		return Condition{Error: fmt.Errorf("BETWEEN end value cannot be empty string")}
+		return Condition{Error: fmt.Errorf("%s: BETWEEN end value cannot be empty string", conditionType)}
 	}
 	if !AreCompatibleTypes(start, end) {
-		return Condition{Error: fmt.Errorf("BETWEEN values must be of compatible types: got %T and %T", start, end)}
+		return Condition{Error: fmt.Errorf("%s: BETWEEN values must be of compatible types: got %T and %T", conditionType, start, end)}
 	}
 	return NewConditionWithOperator(conditionType, field, "BETWEEN", start, end)
 }
@@ -71,7 +69,7 @@ func NewConditionBetween(conditionType ConditionType, field string, start any, e
 // Since: v1.4.0
 func NewConditionIn(conditionType ConditionType, field string, values ...any) Condition {
 	if !AreCompatibleTypes(values...) {
-		return Condition{Error: fmt.Errorf("IN values must be of compatible types")}
+		return Condition{Error: fmt.Errorf("%s: IN values must be of compatible types on: %q", conditionType, field)}
 	}
 	return NewConditionWithOperator(conditionType, field, "IN", values...)
 }
@@ -81,7 +79,7 @@ func NewConditionIn(conditionType ConditionType, field string, values ...any) Co
 // Since: v1.4.0
 func NewConditionNotIn(conditionType ConditionType, field string, values ...any) Condition {
 	if !AreCompatibleTypes(values...) {
-		return Condition{Error: fmt.Errorf("NOT IN values must be of compatible types")}
+		return Condition{Error: fmt.Errorf("%s: NOT IN values must be of compatible types", conditionType)}
 	}
 	return NewConditionWithOperator(conditionType, field, "NOT IN", values...)
 }
@@ -140,7 +138,7 @@ func NewConditionWithOperator(conditionType ConditionType, field, operator strin
 	}
 
 	if field == "" || operator == "" || len(values) == 0 {
-		c.Error = fmt.Errorf("invalid condition parameters: field='%s', operator='%s', values=%d", field, operator, len(values))
+		c.Error = fmt.Errorf("%s: invalid condition parameters: field='%s', operator='%s', values=%d", conditionType, field, operator, len(values))
 		return c
 	}
 

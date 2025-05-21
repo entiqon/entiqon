@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -49,14 +50,39 @@ func (s *ConditionTestSuite) TestAppendCondition() {
 
 func (s *ConditionTestSuite) TestAllConstructors() {
 	now := time.Now()
+	s.Run("NewCondition_WithThreeParams", func() {
+		c := token.NewCondition(token.ConditionSimple, "value", 1, 2, 3)
+		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "invalid number of parameters on condition")
+	})
+	s.Run("EmptyInlineValue", func() {
+		c := token.NewCondition(token.ConditionSimple, "status = ")
+		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "empty value")
+	})
 	s.Run("Between", func() {
 		c := token.NewConditionBetween(token.ConditionSimple, "created_at", now.Add(-time.Hour), now)
 		s.True(c.IsValid())
 		s.Equal("BETWEEN", c.Operator)
 	})
 	s.Run("BetweenEmptyString", func() {
+		c := token.NewConditionBetween(token.ConditionSimple, "created_at", nil, nil)
+		s.False(c.IsValid())
+	})
+	s.Run("Between_EmptyStart", func() {
 		c := token.NewConditionBetween(token.ConditionSimple, "created_at", "", "2024-01-01")
 		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "start value cannot be empty")
+	})
+	s.Run("Between_EmptyEnd", func() {
+		c := token.NewConditionBetween(token.ConditionSimple, "created_at", "2024-01-01", "")
+		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "end value cannot be empty")
+	})
+	s.Run("Between_IncompatibleTypes", func() {
+		c := token.NewConditionBetween(token.ConditionSimple, "created_at", "2024-01-01", 42)
+		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "compatible types")
 	})
 	s.Run("Equal", func() {
 		c := token.NewCondition(token.ConditionSimple, "id", 123)
@@ -78,16 +104,8 @@ func (s *ConditionTestSuite) TestAllConstructors() {
 		s.True(c.IsValid())
 		s.Equal("IN", c.Operator)
 	})
-	s.Run("InvalidBetweenTypes", func() {
-		c := token.NewConditionBetween(token.ConditionSimple, "created_at", now, "2024-01-01")
-		s.False(c.IsValid())
-	})
-	s.Run("InvalidInMixTypes", func() {
+	s.Run("In_IncompatibleTypes", func() {
 		c := token.NewConditionIn(token.ConditionSimple, "amount", 10, "twenty")
-		s.False(c.IsValid())
-	})
-	s.Run("InvalidRawFormat", func() {
-		c := token.NewCondition(token.ConditionSimple, 123)
 		s.False(c.IsValid())
 	})
 	s.Run("InvalidWithOperator_MissingField", func() {
@@ -123,6 +141,11 @@ func (s *ConditionTestSuite) TestAllConstructors() {
 		s.True(c.IsValid())
 		s.Equal("NOT IN", c.Operator)
 	})
+	s.Run("NotIn_IncompatibleTypes", func() {
+		c := token.NewConditionNotIn(token.ConditionSimple, "id", "x", 1, true)
+		s.False(c.IsValid())
+		s.Contains(c.Error.Error(), "compatible types")
+	})
 }
 
 func (s *ConditionTestSuite) TestAppendCondition_Mixed() {
@@ -134,12 +157,12 @@ func (s *ConditionTestSuite) TestAppendCondition_Mixed() {
 	invalid := token.NewCondition(token.ConditionOr, "") // invalid: missing field
 
 	// Append valid → should grow
-	result := token.AppendCondition(initial, valid)
+	result := builder.AppendCondition(initial, valid)
 	s.Len(result, 2)
 	s.Equal("status", result[1].Key)
 
 	// Append invalid → should not grow
-	result = token.AppendCondition(result, invalid)
+	result = builder.AppendCondition(result, invalid)
 	s.Len(result, 2) // unchanged
 
 	// Check validity flags

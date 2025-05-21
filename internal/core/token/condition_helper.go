@@ -1,59 +1,9 @@
 package token
 
 import (
-	"fmt"
 	"strings"
 	"time"
-
-	"github.com/ialopezg/entiqon/internal/core/driver"
 )
-
-// AppendCondition appends a valid condition to a slice and returns the result.
-//
-// Update: v1.4.0
-func AppendCondition(existing []Condition, newCond Condition) []Condition {
-	if newCond.IsValid() {
-		return append(existing, newCond)
-	}
-	return existing
-}
-
-// FormatConditions builds SQL condition fragments from a list of conditions and returns the SQL string and bound args.
-//
-// It uses ParamBinder to safely generate dialect-aware placeholders.
-//
-// Updated: v1.4.0
-func FormatConditions(dialect driver.Dialect, conditions []Condition) (string, []any, error) {
-	if len(conditions) == 0 {
-		return "", nil, nil
-	}
-
-	var parts []string
-	binder := driver.NewParamBinder(dialect)
-
-	for _, c := range conditions {
-		if !c.IsValid() {
-			return "", nil, fmt.Errorf("invalid condition: %v", c.Error)
-		}
-
-		placeholders := binder.BindMany(c.Values...)
-		placeholderExpr := strings.Join(placeholders, ", ")
-
-		expr := fmt.Sprintf("%s %s %s", c.Key, c.Operator, placeholderExpr)
-		switch c.Type {
-		case ConditionSimple:
-			parts = append(parts, expr)
-		case ConditionAnd:
-			parts = append(parts, "AND "+expr)
-		case ConditionOr:
-			parts = append(parts, "OR "+expr)
-		default:
-			return "", nil, fmt.Errorf("unsupported condition type: %v", c.Type)
-		}
-	}
-
-	return strings.Join(parts, " "), binder.Args(), nil
-}
 
 // AreCompatibleTypes checks whether all provided values belong to the same compatible type group.
 //
