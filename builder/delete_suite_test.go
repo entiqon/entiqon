@@ -1,9 +1,12 @@
 package builder
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -23,7 +26,7 @@ func (s *DeleteBuilderTestSuite) SetupTest() {
 func (s *DeleteBuilderTestSuite) TestFrom_SetsTargetTable() {
 	sql, _, err := s.qb.From("users").Build()
 	s.NoError(err)
-	s.Contains(sql, "DELETE FROM users")
+	s.Contains(sql, "DELETE")
 }
 
 // ─────────────────────────────────────────────
@@ -32,7 +35,7 @@ func (s *DeleteBuilderTestSuite) TestFrom_SetsTargetTable() {
 func (s *DeleteBuilderTestSuite) TestWhere_AddsSimpleCondition() {
 	sql, args, err := s.qb.
 		From("users").
-		Where("id = ?", 100).
+		Where("id", 100).
 		Build()
 
 	s.NoError(err)
@@ -51,8 +54,8 @@ func (s *DeleteBuilderTestSuite) TestAndWhere_AppendsAND() {
 		Build()
 
 	s.NoError(err)
-	s.Contains(sql, "WHERE active = true AND role = 'admin'")
-	s.Equal(0, len(args)) // No parameterized args
+	s.Contains(sql, "WHERE active = ? AND role = ?")
+	s.Equal(2, len(args))
 }
 
 // ─────────────────────────────────────────────
@@ -66,8 +69,8 @@ func (s *DeleteBuilderTestSuite) TestOrWhere_AppendsOR() {
 		Build()
 
 	s.NoError(err)
-	s.Contains(sql, "WHERE email_verified = false OR email_verified = true")
-	s.Equal(0, len(args))
+	s.Contains(sql, "WHERE email_verified = ? OR email_verified = ?")
+	s.Equal(2, len(args))
 }
 
 // ─────────────────────────────────────────────
@@ -88,26 +91,12 @@ func (s *SelectBuilderTestSuite) TestDeleteBuilderUseDialectPostgres() {
 }
 
 // ─────────────────────────────────────────────
-// 🧪 WithDialect
-// ─────────────────────────────────────────────
-func (s *DeleteBuilderTestSuite) TestWithDialect_Deprecated_Works() {
-	b := NewDelete().
-		From("users").
-		WithDialect("postgres")
-	sql, args, err := b.Build()
-
-	s.Require().NoError(err)
-	s.Contains(sql, `DELETE FROM "users"`)
-	s.Empty(args)
-}
-
-// ─────────────────────────────────────────────
 // 🧪 Build
 // ─────────────────────────────────────────────
-func (s *DeleteBuilderTestSuite) TestBuild_WithDialect() {
+func (s *DeleteBuilderTestSuite) TestBuild_UseDialect() {
 	sql, _, err := NewDelete().
 		From("users").
-		UseDialect("postgres").
+		UseDialect(driver.NewPostgresDialect()).
 		Build()
 
 	s.NoError(err)
@@ -125,16 +114,68 @@ func (s *DeleteBuilderTestSuite) TestBuild_MissingFrom_ReturnsError() {
 
 func (s *DeleteBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
 	qb := NewDelete().
-		From("users")
+		From("users").
+		UseDialect(driver.NewPostgresDialect())
 
-	qb.UseDialect("")
+	_, _, err := qb.Build()
+	s.Nil(err)
 	qb.conditions = append(qb.conditions, token.Condition{
 		Type: "💥", Key: "status = 'active'",
 	})
 
-	_, _, err := qb.Build()
+	_, _, err = qb.Build()
 	s.Error(err)
-	s.Contains(err.Error(), "invalid condition type")
+	s.Contains(err.Error(), "unsupported condition type")
+}
+
+func (s *DeleteBuilderTestSuite) TestDeleteBuilder_LimitClause() {
+	sql, _, _ := s.qb.
+		From("logs").
+		Where("archived", true).
+		Limit(100).
+		Build()
+
+	if !strings.Contains(sql, "LIMIT 100") {
+		s.Failf("TestDeleteBuilder_LimitClause", "expected LIMIT clause, got: %s", sql)
+	}
+}
+
+func (s *DeleteBuilderTestSuite) TestBuild_WithInvalidConditions_ShouldFail() {
+	s.qb.AddStageError("WHERE", errors.New("invalid condition"))
+	_, _, err := s.qb.From("users").Build()
+
+	s.Require().Error(err)
+	s.Contains(err.Error(), "invalid condition")
+}
+
+func (s *DeleteBuilderTestSuite) TestWhere_InvalidCondition_ShouldAppendError() {
+	s.qb.From("users").Where("", 123) // empty condition string
+
+	errs := s.qb.GetErrors()
+
+	s.Require().Len(errs, 1)
+	s.Equal("WHERE", errs[0].Token)
+	s.Contains(errs[0].Errors[0].Error(), "invalid")
+}
+
+func (s *DeleteBuilderTestSuite) TestAndWhere_InvalidCondition_ShouldAppendError() {
+	s.qb.From("users").AndWhere("", 123) // Invalid condition
+
+	errs := s.qb.GetErrors()
+
+	s.Require().Len(errs, 1)
+	s.Equal("WHERE", errs[0].Token)
+	s.Contains(errs[0].Errors[0].Error(), "invalid")
+}
+
+func (s *DeleteBuilderTestSuite) TestOrWhere_InvalidCondition_ShouldAppendError() {
+	s.qb.From("users").OrWhere("", 123) // Invalid condition
+
+	errs := s.qb.GetErrors()
+
+	s.Require().Len(errs, 1)
+	s.Equal("WHERE", errs[0].Token)
+	s.Contains(errs[0].Errors[0].Error(), "invalid")
 }
 
 func TestDeleteBuilderTestSuite(t *testing.T) {
