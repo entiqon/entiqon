@@ -18,7 +18,7 @@ func NewParamBinder(dialect driver.Dialect) *ParamBinder {
 	return &ParamBinder{
 		dialect:  dialect,
 		args:     make([]interface{}, 0),
-		position: 0,
+		position: 1,
 	}
 }
 
