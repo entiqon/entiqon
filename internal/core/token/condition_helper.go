@@ -1,9 +1,16 @@
 package token
 
 import (
+	"regexp"
 	"strings"
 	"time"
 )
+
+var supportedOps = []string{
+	"NOT IN", "IN", "BETWEEN", "<>", "!=", ">=", "<=", "LIKE", "=", ">", "<",
+}
+
+var conditionRegex = regexp.MustCompile(`(?i)^(.+?)\s+(NOT IN|IN|BETWEEN|<>|!=|>=|<=|LIKE|=|>|<)\s+(.+)$`)
 
 // AreCompatibleTypes checks whether all provided values belong to the same compatible type group.
 //
@@ -42,18 +49,9 @@ func AreCompatibleTypes(values ...any) bool {
 }
 
 func extractConditionParts(input string) (field string, operator string, value string, ok bool) {
-	supportedOps := []string{
-		"NOT IN", "IN", "BETWEEN", "<>", "!=", ">=", "<=", "LIKE", "=", ">", "<",
-	}
-	input = strings.TrimSpace(input)
-	upper := strings.ToUpper(input)
-
-	for _, op := range supportedOps {
-		if idx := strings.Index(upper, op); idx > 0 {
-			field = strings.TrimSpace(input[:idx])
-			value = strings.TrimSpace(input[idx+len(op):])
-			return field, op, value, true
-		}
+	matches := conditionRegex.FindStringSubmatch(input)
+	if len(matches) == 4 {
+		return strings.TrimSpace(matches[1]), strings.ToUpper(matches[2]), strings.TrimSpace(matches[3]), true
 	}
 	return "", "", "", false
 }
