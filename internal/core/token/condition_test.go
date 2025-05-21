@@ -58,7 +58,7 @@ func (s *ConditionTestSuite) TestAllConstructors() {
 	s.Run("EmptyInlineValue", func() {
 		c := token.NewCondition(token.ConditionSimple, "status = ")
 		s.False(c.IsValid())
-		s.Contains(c.Error.Error(), " unable to parse condition")
+		s.Contains(c.Error.Error(), "unable to parse condition")
 	})
 	s.Run("Between", func() {
 		c := token.NewConditionBetween(token.ConditionSimple, "created_at", now.Add(-time.Hour), now)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
@@ -31,12 +32,29 @@ func AppendCondition(existing []token.Condition, newCond token.Condition) []toke
 //
 // Updated: v1.4.0
 func RenderConditions(dialect driver.Dialect, conditions []token.Condition) (string, []any, error) {
+	binder := bind.NewParamBinder(dialect)
+	return RenderConditionsWithBinder(dialect, conditions, binder)
+}
+
+// RenderConditionsWithBinder builds a SQL WHERE clause using the given conditions
+// and a provided ParamBinder, which allows control over placeholder indexing.
+//
+// This is useful in builders like UPDATE or UPSERT where the argument list
+// already contains values for SET assignments, and WHERE placeholders must
+// continue indexing without collisions.
+//
+// Example:
+//
+//	binder := bind.NewParamBinderWithPosition(dialect, len(args))
+//	clause, args, err := RenderConditionsWithBinder(dialect, conditions, binder)
+//
+// Since: v1.4.0
+func RenderConditionsWithBinder(dialect driver.Dialect, conditions []token.Condition, binder *bind.ParamBinder) (string, []any, error) {
 	if len(conditions) == 0 {
 		return "", nil, nil
 	}
 
 	var parts []string
-	binder := driver.NewParamBinder(dialect)
 
 	for _, c := range conditions {
 		if !c.IsValid() {
@@ -46,7 +64,7 @@ func RenderConditions(dialect driver.Dialect, conditions []token.Condition) (str
 		placeholders := binder.BindMany(c.Values...)
 		placeholderExpr := strings.Join(placeholders, ", ")
 
-		expr := fmt.Sprintf("%s %s %s", c.Key, c.Operator, placeholderExpr)
+		expr := fmt.Sprintf("%s %s %s", dialect.QuoteIdentifier(c.Key), c.Operator, placeholderExpr)
 		switch c.Type {
 		case token.ConditionSimple:
 			parts = append(parts, expr)

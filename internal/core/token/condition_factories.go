@@ -14,14 +14,6 @@ import "fmt"
 // Since: v0.0.1
 // Updated: v1.4.0
 func NewCondition(conditionType ConditionType, condition string, params ...any) Condition {
-	if len(params) > 1 {
-		return Condition{Error: fmt.Errorf("%s: invalid number of parameters on condition", condition)}
-	}
-
-	var field string
-	var operator string
-	var value any
-
 	switch len(params) {
 	case 0:
 		// Inline syntax like: "status = active"
@@ -32,17 +24,15 @@ func NewCondition(conditionType ConditionType, condition string, params ...any) 
 		if v == "" {
 			return Condition{Error: fmt.Errorf("%s: empty value on condition: %q", conditionType, condition)}
 		}
-		field, operator, value = f, o, v
+		return NewConditionWithOperator(conditionType, f, o, v)
 
 	case 1:
 		// Explicit syntax like: NewCondition(type, "status", "active")
-		field = condition
-		operator = "="
-		value = params[0]
+		return NewConditionWithOperator(conditionType, condition, "=", params...)
 
+	default:
+		return Condition{Error: fmt.Errorf("%s: invalid number of parameters on condition", conditionType)}
 	}
-
-	return NewConditionWithOperator(conditionType, field, operator, value)
 }
 
 // NewConditionBetween creates a BETWEEN condition with exactly two values.
@@ -130,6 +120,12 @@ func NewConditionNotEqual(conditionType ConditionType, field string, value any) 
 //
 // Since: v1.4.0
 func NewConditionWithOperator(conditionType ConditionType, field, operator string, values ...any) Condition {
+	if len(values) == 1 {
+		if inner, ok := values[0].([]any); ok && (operator == "IN" || operator == "NOT IN") {
+			values = inner
+		}
+	}
+
 	c := Condition{
 		Type:     conditionType,
 		Key:      field,
