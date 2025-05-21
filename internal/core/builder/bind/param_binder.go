@@ -22,6 +22,25 @@ func NewParamBinder(dialect driver.Dialect) *ParamBinder {
 	}
 }
 
+// NewParamBinderWithPosition creates a ParamBinder with a custom starting
+// position for placeholder indexing.
+//
+// This is useful when previous bindings (e.g., in SET clauses) have already
+// consumed placeholder slots, and subsequent bindings (e.g., in WHERE clauses)
+// must continue numbering without collisions.
+//
+// Example:
+//
+//	binder := NewParamBinderWithPosition(dialect, 2)
+//	binder.Bind("active") // returns $3 (if dialect is Postgres)
+//
+// Since: v1.4.0
+func NewParamBinderWithPosition(dialect driver.Dialect, position int) *ParamBinder {
+	binder := NewParamBinder(dialect)
+	binder.position = position
+	return binder
+}
+
 // Bind registers a single value and returns its dialect-specific placeholder.
 // For example, in Postgres dialect, the first call returns "$1", second "$2", etc.
 func (pb *ParamBinder) Bind(value interface{}) string {
