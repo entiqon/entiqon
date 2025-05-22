@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -20,7 +19,7 @@ func TestUpsertBuilderTestSuite(t *testing.T) {
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
 	q := NewUpsert().
-		WithDialect("postgres").
+		UseDialect("postgres").
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
@@ -32,11 +31,10 @@ func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
 	sql, args, err := q.Build()
 	s.Require().NoError(err)
 	s.Equal(
-		`INSERT INTO "user profile" ("user id", "email") VALUES (?, ?) ON CONFLICT ("user id") DO UPDATE SET "email" = EXCLUDED.email`,
+		`INSERT INTO "user profile" ("user id", "email") VALUES ($1, $2) ON CONFLICT ("user id") DO UPDATE SET "email" = EXCLUDED.email`,
 		sql,
 	)
 	s.Equal([]any{99, "hello@test.dev"}, args)
-	fmt.Printf("📦 WithDialect → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpsertBuilderTestSuite) TestWithoutDialect() {
@@ -56,7 +54,6 @@ func (s *UpsertBuilderTestSuite) TestWithoutDialect() {
 		sql,
 	)
 	s.Equal([]any{99, "hello@test.dev"}, args)
-	fmt.Printf("📦 WithDialect → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
@@ -68,13 +65,9 @@ func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
 		Returning("id", "value")
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		"INSERT INTO emails (id, value) VALUES (?, ?) ON CONFLICT (id) DO NOTHING RETURNING id, value",
-		sql,
-	)
-	s.Equal([]any{101, "none@entiqon.dev"}, args)
-	fmt.Printf("📦 WithDialect → SQL: %s | Args: %+v\n", sql, args)
+	s.Require().Error(err)
+	s.Empty(sql)
+	s.Nil(args)
 }
 
 // ─────────────────────────────────────────────
@@ -95,11 +88,10 @@ func (s *UpsertBuilderTestSuite) TestReturning_AppendsReturningClause() {
 	sql, args, err := q.Build()
 	s.Require().NoError(err)
 	s.Equal(
-		"INSERT INTO \"users\" (\"id\", \"email\") VALUES (?, ?) ON CONFLICT (\"id\") DO UPDATE SET \"email\" = EXCLUDED.email RETURNING \"id\", \"email\"",
+		"INSERT INTO \"users\" (\"id\", \"email\") VALUES ($1, $2) ON CONFLICT (\"id\") DO UPDATE SET \"email\" = EXCLUDED.email RETURNING \"id\", \"email\"",
 		sql,
 	)
 	s.Equal([]any{1, "dev@entiqon.dev"}, args)
-	fmt.Printf("📦 Returning → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -119,7 +111,6 @@ func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
 		{Column: "name", Expr: "EXCLUDED.name"},
 		{Column: "email", Expr: "EXCLUDED.email"},
 	}, q.DoUpdateSet().updateSet)
-	fmt.Printf("📦 DoUpdateSet → SQL: %s | Args: %+v\n", sql, args)
 }
 
 // ─────────────────────────────────────────────
@@ -136,7 +127,7 @@ func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
 	sql, args, err := q.Build()
 	s.Require().NoError(err)
 	s.Equal(
-		`INSERT INTO "people" ("id", "email") VALUES (?, ?) ON CONFLICT ("id", "email") DO NOTHING`,
+		`INSERT INTO "people" ("id", "email") VALUES ($1, $2) ON CONFLICT ("id", "email") DO NOTHING`,
 		sql,
 	)
 	s.Equal([]any{1, "someone@dev.com"}, args)
@@ -162,7 +153,6 @@ func (s *UpsertBuilderTestSuite) TestBuild_DoUpdate() {
 		sql,
 	)
 	s.Equal([]any{1, "Watson"}, args)
-	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
 }
 
 func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
@@ -179,7 +169,38 @@ func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
 		sql,
 	)
 	s.Equal([]any{1, "Watson"}, args)
-	fmt.Printf("📦 Build → SQL: %s | Args: %+v\n", sql, args)
+}
+
+func (s *UpsertBuilderTestSuite) TestBuild_BuildValidations() {
+	b := UpsertBuilder{}
+	s.Run("EmptyTable", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Contains(err.Error(), "requires a target table")
+	})
+	s.Run("HasDialect", func() {
+		_, _, err := NewUpsert().Into("users").Columns("id").Build()
+		s.Error(err)
+		s.Equal("generic", b.GetDialect().Name())
+	})
+	s.Run("HasErrors", func() {
+		_, _, err := NewUpsert().Into("users").Columns("").Build()
+		s.Error(err)
+		s.Contains(err.Error(), "at least one set of values is required")
+	})
+	s.Run("Returning", func() {
+		_, _, err := NewUpsert().Into("users").Columns("id").Values(1).Returning("id").Build()
+		s.Error(err)
+		s.Contains(err.Error(), "RETURNING not supported in dialect")
+	})
+	s.Run("ColumnWithAlias", func() {
+		_, _, err := NewUpsert().Into("users").
+			Columns("id AS IDENTIFIER").
+			Values(1).
+			Build()
+		s.Error(err)
+		s.Contains(err.Error(), "1 invalid condition(s)")
+	})
 }
 
 // helper to normalize sql from incomplete statements for inspection
