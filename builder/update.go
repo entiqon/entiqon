@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/internal/core/builder"
+	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
 // UpdateBuilder builds a SQL UPDATE query with fluent syntax and dialect_engine.md support.
 type UpdateBuilder struct {
-	dialect     driver.Dialect
+	BaseBuilder
 	table       string
 	assignments []token.FieldToken
 	conditions  []token.Condition
@@ -21,6 +23,7 @@ type UpdateBuilder struct {
 // This is the entry point for building a SQL UPDATE query fluently.
 func NewUpdate() *UpdateBuilder {
 	return &UpdateBuilder{
+		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
 		assignments: []token.FieldToken{},
 		conditions:  []token.Condition{},
 	}
@@ -47,102 +50,99 @@ func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
 // Where sets the base WHERE clause.
 // Where sets the base WHERE clause as a simple condition.
 // This replaces any existing conditions.
-func (b *UpdateBuilder) Where(condition string, params ...any) *UpdateBuilder {
-	b.conditions = []token.Condition{
-		token.NewCondition(token.ConditionSimple, condition, params...),
+func (b *UpdateBuilder) Where(condition string, values ...any) *UpdateBuilder {
+	c := token.NewCondition(token.ConditionSimple, condition, values)
+	if !c.IsValid() {
+		b.errors = append(b.errors, builder.Error{
+			Token:  "WHERE",
+			Errors: []error{c.Error},
+		})
 	}
+	b.conditions = append([]token.Condition{}, c)
 	return b
 }
 
 // AndWhere adds an AND clause.
 // AndWhere appends a condition with an AND operator to the current WHERE clause.
-func (b *UpdateBuilder) AndWhere(condition string, params ...any) *UpdateBuilder {
-	b.conditions = token.AppendCondition(
-		b.conditions,
-		token.NewCondition(token.ConditionAnd, condition, params...),
-	)
+func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder {
+	c := token.NewCondition(token.ConditionSimple, condition, values)
+	if !c.IsValid() {
+		b.errors = append(b.errors, builder.Error{
+			Token:  "WHERE",
+			Errors: []error{c.Error},
+		})
+	}
 	return b
 }
 
 // OrWhere adds an OR clause.
 // OrWhere appends a condition with an OR operator to the current WHERE clause.
-func (b *UpdateBuilder) OrWhere(condition string, params ...any) *UpdateBuilder {
-	b.conditions = token.AppendCondition(
-		b.conditions,
-		token.NewCondition(token.ConditionOr, condition, params...),
-	)
+func (b *UpdateBuilder) OrWhere(condition string, values ...any) *UpdateBuilder {
+	c := token.NewCondition(token.ConditionSimple, condition, values)
+	if !c.IsValid() {
+		b.errors = append(b.errors, builder.Error{
+			Token:  "WHERE",
+			Errors: []error{c.Error},
+		})
+	}
 	return b
 }
 
 // UseDialect resolves and applies the dialect_engine.md by name (e.g., "postgres").
 // It replaces any previously set dialect_engine.md on the builder.
 func (b *UpdateBuilder) UseDialect(name string) *UpdateBuilder {
-	b.dialect = driver.ResolveDialect(name)
-	return b
-}
-
-// WithDialect sets the SQL dialect_engine.md for escaping.
-//
-// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
-// This method will be removed in v1.4.0.
-func (b *UpdateBuilder) WithDialect(name string) *UpdateBuilder {
-	b.dialect = driver.ResolveDialect(name)
+	b.BaseBuilder.UseDialect(name)
 	return b
 }
 
 // Build renders the UPDATE SQL query and returns the query + args.
 func (b *UpdateBuilder) Build() (string, []any, error) {
-	if b.table == "" {
-		return "", nil, fmt.Errorf("UPDATE requires a target table")
-	}
-	if len(b.assignments) == 0 {
-		return "", nil, fmt.Errorf("UPDATE must define at least one column assignment")
+	if !b.HasDialect() {
+		_ = b.GetDialect()
 	}
 
+	if b.HasErrors() {
+		return "", nil, fmt.Errorf("UPDATE: %d invalid condition(s)", len(b.GetErrors()))
+	}
+
+	if b.table == "" {
+		return "", nil, fmt.Errorf("UPDATE: requires a target table")
+	}
+	if len(b.assignments) == 0 {
+		return "", nil, fmt.Errorf("UPDATE: must define at least one column assignment")
+	}
+
+	dialect := b.GetDialect()
+	var tokens []string
 	var sets []string
 	var args []any
 
 	for _, f := range b.assignments {
 		if f.Alias != "" {
-			return "", nil, fmt.Errorf("UPDATE does not support column aliasing: '%s AS %s'", f.Name, f.Alias)
+			return "", nil, fmt.Errorf("UPDATE: column aliasing is not supported: '%s AS %s'", f.Name, f.Alias)
 		}
 
 		name := f.Name
-		if b.dialect != nil && !f.IsRaw {
-			name = b.dialect.QuoteIdentifier(name)
+		if !f.IsRaw {
+			name = dialect.QuoteIdentifier(name)
 		}
 
-		sets = append(sets, fmt.Sprintf("%s = ?", name))
+		placeholder := dialect.Placeholder(len(args) + 1)
+		sets = append(sets, fmt.Sprintf("%s = %s", name, placeholder))
 		args = append(args, f.Value)
 	}
 
-	sql := fmt.Sprintf("UPDATE %s SET %s", b.table, strings.Join(sets, ", "))
+	tokens = append(tokens, "UPDATE", dialect.QuoteIdentifier(b.table), "SET", strings.Join(sets, ", "))
 
 	if len(b.conditions) > 0 {
-		var parts []string
-		for _, c := range b.conditions {
-			switch c.Type {
-			case token.ConditionSimple:
-				parts = append(parts, c.Key)
-			case token.ConditionAnd, token.ConditionOr:
-				parts = append(parts, fmt.Sprintf("%s %s", c.Type, c.Key))
-			default:
-				return "", nil, fmt.Errorf("invalid condition type: %s", c.Type)
-			}
+		binder := bind.NewParamBinderWithPosition(dialect, len(args)+1)
+		whereClause, condArgs, err := builder.RenderConditionsWithBinder(dialect, b.conditions, binder)
+		if err != nil {
+			return "", nil, fmt.Errorf("UPDATE: %w", err)
 		}
-		sql += " WHERE " + strings.Join(parts, " ")
-		args = append(args, collectConditionArgs(b.conditions)...)
+		tokens = append(tokens, "WHERE", whereClause)
+		args = append(args, condArgs...)
 	}
 
-	return sql, args, nil
-}
-
-// collectConditionArgs is an internal helper that extracts all parameters
-// from the tokenized WHERE clause conditions, used during SQL argument resolution.
-func collectConditionArgs(conditions []token.Condition) []any {
-	var args []any
-	for _, c := range conditions {
-		args = append(args, c.Params...)
-	}
-	return args
+	return strings.Join(tokens, " "), args, nil
 }

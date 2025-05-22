@@ -1,8 +1,10 @@
 package builder
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -64,7 +66,7 @@ func (s *UpdateBuilderTestSuite) TestWhere_SetsInitialCondition() {
 	sql, args, err := s.qb.
 		Table("users").
 		Set("name", "Watson").
-		Where("id = ?", 42).
+		Where("id = 42").
 		Build()
 
 	s.NoError(err)
@@ -79,12 +81,12 @@ func (s *UpdateBuilderTestSuite) TestAndWhere_AppendsAndCondition() {
 	sql, _, err := s.qb.
 		Table("users").
 		Set("status", "inactive").
-		Where("deleted = false").
-		AndWhere("role = ?", "admin").
+		Where("deleted", false).
+		AndWhere("role", "admin").
 		Build()
 
 	s.NoError(err)
-	s.Contains(sql, "WHERE deleted = false AND role = ?")
+	s.Contains(sql, "WHERE deleted = ? AND role = ?")
 }
 
 // ─────────────────────────────────────────────
@@ -95,11 +97,11 @@ func (s *UpdateBuilderTestSuite) TestOrWhere_AppendsOrCondition() {
 		Table("users").
 		Set("active", true).
 		Where("email_verified = true").
-		OrWhere("email_verified = false").
+		OrWhere("status = ?", false).
 		Build()
 
 	s.NoError(err)
-	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
+	s.Contains(sql, "WHERE email_verified = ? OR status = ?")
 }
 
 // ─────────────────────────────────────────────
@@ -109,7 +111,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_WithAliasedColumn() {
 	sql, args, err := s.qb.
 		Table("users").
 		Set("email AS contact", "watson@example.com").
-		Where("id = ?", 1).
+		Where("id", 1).
 		Build()
 
 	s.Error(err)
@@ -123,7 +125,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_MissingTableReturnsError() {
 		Build()
 
 	s.Error(err)
-	s.Contains(err.Error(), "UPDATE requires a target table")
+	s.Contains(err.Error(), "UPDATE: requires a target table")
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
@@ -132,7 +134,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
 		Build()
 
 	s.Error(err)
-	s.Contains(err.Error(), "UPDATE must define at least one column assignment")
+	s.Contains(err.Error(), "UPDATE: must define at least one column assignment")
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
@@ -149,7 +151,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
 
 	_, _, err := q.Build()
 	s.Error(err)
-	s.Contains(err.Error(), "invalid condition type")
+	s.Contains(err.Error(), "UPDATE: unsupported condition type")
 }
 
 // ─────────────────────────────────────────────
@@ -159,31 +161,93 @@ func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
 	sql, args, err := s.qb.
 		Set("active", true).
 		Table("users").
-		Where("email_verified = true").
-		OrWhere("email_verified = false").
+		Where("email_verified", true).
+		OrWhere("email_verified", false).
 		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
-	s.Equal([]any{true}, args)
-	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
+	s.Equal([]any{true, true, false}, args)
+	s.Contains(sql, "WHERE \"email_verified\" = $2 OR \"email_verified\" = $3")
 }
 
-// ─────────────────────────────────────────────
-// 🧪 WithDialect
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestUpdateBuilder_WithDialect_Postgres() {
-	sql, args, err := s.qb.
-		Set("active", true).
-		Table("users").
-		Where("email_verified = true").
-		OrWhere("email_verified = false").
-		WithDialect("postgres").
-		Build()
+func (s *UpdateBuilderTestSuite) TestAddStageError_AppendsToExistingToken() {
+	s.qb.errors = []builder.Error{
+		{Token: "WHERE", Errors: []error{fmt.Errorf("first")}},
+	}
 
-	s.NoError(err)
-	s.Equal([]any{true}, args)
-	s.Contains(sql, "WHERE email_verified = true OR email_verified = false")
+	s.qb.AddStageError("WHERE", fmt.Errorf("second"))
+
+	s.Len(s.qb.errors, 1)
+	s.Len(s.qb.errors[0].Errors, 2)
+	s.Contains(s.qb.errors[0].Errors[1].Error(), "second")
+}
+
+func (s *UpdateBuilderTestSuite) TestAddStageError_CreatesNewTokenGroup() {
+	initialLen := len(s.qb.errors)
+
+	s.qb.AddStageError("OR", fmt.Errorf("or error"))
+
+	s.Len(s.qb.errors, initialLen+1)
+	s.Equal("OR", s.qb.errors[len(s.qb.errors)-1].Token)
+	s.Contains(s.qb.errors[len(s.qb.errors)-1].Errors[0].Error(), "or error")
+}
+
+func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
+	s.qb.BaseBuilder = BaseBuilder{}
+
+	d := s.qb.GetDialect()
+
+	s.NotNil(d)
+	s.Equal("generic", d.Name())
+}
+
+func (s *UpdateBuilderTestSuite) TestGetErrors_ReturnsCollectedErrors() {
+	s.qb.AddStageError("WHERE", fmt.Errorf("invalid field"))
+	errs := s.qb.GetErrors()
+
+	s.Len(errs, 1)
+	s.Equal("WHERE", errs[0].Token)
+	s.Contains(errs[0].Errors[0].Error(), "invalid field")
+}
+
+func (s *UpdateBuilderTestSuite) TestUseDialect_ShortCircuitsOnEmptyOrSameName() {
+	s.qb.UseDialect("generic")
+
+	ptr1 := s.qb.UseDialect("generic")
+	s.Equal(ptr1.dialect.Name(), s.qb.dialect.Name())
+
+	ptr2 := s.qb.UseDialect("")
+	s.Equal(ptr2.dialect.Name(), s.qb.dialect.Name())
+}
+
+func (s *UpdateBuilderTestSuite) TestUseDialect_ResolvesNamedDialect() {
+	s.qb.UseDialect("postgres")
+
+	d := s.qb.GetDialect()
+	s.Equal("postgres", d.Name())
+}
+
+func (s *UpdateBuilderTestSuite) TestBuild_BuildValidations() {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
+
+	b := UpdateBuilder{}
+	if !c.IsValid() {
+		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
+	}
+	b.Table("users").Set("name", "Watson")
+	s.Run("HasDialect", func() {
+		b.conditions = []token.Condition{c}
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Equal("generic", b.dialect.Name())
+	})
+	s.Run("HasErrors", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Contains(err.Error(), "invalid condition(s)")
+	})
+
 }
 
 func TestUpdateBuilderTestSuite(t *testing.T) {
