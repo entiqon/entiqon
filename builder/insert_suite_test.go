@@ -1,9 +1,11 @@
 package builder_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ialopezg/entiqon/builder"
+	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -47,7 +49,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithReturning() {
 
 	sql, args, err := q.Build()
 	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id", "name") VALUES (?, ?) RETURNING "id", "created_at"`, sql)
+	s.Equal(`INSERT INTO "users" ("id", "name") VALUES ($1, $2) RETURNING "id", "created_at"`, sql)
 	s.Equal([]any{1, "Watson"}, args)
 }
 
@@ -63,21 +65,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_Postgres() {
 		Build()
 
 	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id", "name") VALUES (?, ?)`, sql)
-}
-
-// WithDialect is deprecated; this test ensures backward compatibility.
-func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_LegacySupport() {
-	sql, args, err := builder.NewInsert().
-		Into("users").
-		Columns("id", "name").
-		Values(1, "Watson").
-		WithDialect("postgres"). // direct injection
-		Build()
-
-	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id", "name") VALUES (?, ?)`, sql)
-	s.Equal([]any{1, "Watson"}, args)
+	s.Equal(`INSERT INTO "users" ("id", "name") VALUES ($1, $2)`, sql)
 }
 
 // ─────────────────────────────────────────────
@@ -87,10 +75,10 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MismatchedRowLength() {
 	b := builder.NewInsert().
 		Into("users").
 		Columns("id", "name").
-		Values(1) // 👈 Only one value instead of two
+		Values(1)
 
 	_, _, err := b.BuildInsertOnly()
-	s.ErrorContains(err, "expected 2 values, got 1")
+	s.ErrorContains(err, "row 1 has 1 values, expected 2")
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_BuildErrors() {
@@ -120,7 +108,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_MismatchedValueCount() {
 	_, _, err := builder.NewInsert().
 		Into("users").
 		Columns("id", "name").
-		Values(1). // only one value for two columns
+		Values(1).
 		Build()
 	s.Error(err)
 }
@@ -148,7 +136,6 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithAliasedColumn() {
 	s.Nil(args)
 }
 
-// Build with RETURNING but no dialect — should return a safe error
 func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithoutDialectFails() {
 	_, _, err := builder.NewInsert().
 		Into("users").
@@ -157,7 +144,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithoutDialect
 		Returning("id").
 		Build()
 
-	s.ErrorContains(err, "RETURNING is not supported by the active dialect")
+	s.ErrorContains(err, "returning columns not allowed")
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_WithDialectNoReturning() {
@@ -169,7 +156,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_WithDialectNoReturning(
 		Build()
 
 	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id") VALUES (?)`, sql)
+	s.Equal(`INSERT INTO "users" ("id") VALUES ($1)`, sql)
 	s.Equal([]any{1}, args)
 }
 
@@ -179,10 +166,9 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithGenericDia
 		Columns("id").
 		Values(1).
 		Returning("id").
-		UseDialect("generic"). // simulate a dialect that doesn't support RETURNING
 		Build()
 
-	s.ErrorContains(err, `RETURNING is not supported by the active dialect: "generic"`)
+	s.ErrorContains(err, "returning columns not allowed")
 	s.Empty(sql)
 	s.Nil(args)
 }
@@ -222,7 +208,7 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MissingTableFails() {
 		Values(1).
 		BuildInsertOnly()
 
-	s.ErrorContains(err, "table name is required")
+	s.ErrorContains(err, "requires a target table")
 }
 
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_TableWithDialect() {
@@ -234,7 +220,7 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_TableWithDialect() {
 		BuildInsertOnly()
 
 	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id") VALUES (?)`, sql)
+	s.Equal(`INSERT INTO "users" ("id") VALUES ($1)`, sql)
 	s.Equal([]any{1}, args)
 }
 
@@ -249,6 +235,32 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ColumnEscapingWithDialect()
 	s.NoError(err)
 	s.Contains(sql, `"user_id"`)
 	s.Contains(sql, `"email"`)
+}
+
+func (s *InsertBuilderTestSuite) TestBuild_BuildValidations() {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
+
+	b := builder.InsertBuilder{}
+	s.Run("EmptyTable", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Contains(err.Error(), "requires a target table")
+	})
+	if !c.IsValid() {
+		b.AddStageError("WHERE", fmt.Errorf("invalid clause"))
+	}
+	b.Into("users")
+	s.Run("HasDialect", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Equal("generic", b.GetDialect().Name())
+	})
+	s.Run("HasErrors", func() {
+		_, _, err := b.Into("").Build()
+		s.Error(err)
+		s.Contains(err.Error(), "invalid condition(s)")
+	})
+
 }
 
 func TestInsertBuilderTestSuite(t *testing.T) {

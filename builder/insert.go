@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
@@ -13,7 +14,7 @@ import (
 // It supports inserting data into a table with specified columns and values,
 // and can optionally append a RETURNING clause (PostgreSQL).
 type InsertBuilder struct {
-	dialect   driver.Dialect
+	BaseBuilder
 	table     string
 	columns   []token.FieldToken
 	values    [][]any
@@ -23,200 +24,165 @@ type InsertBuilder struct {
 // NewInsert returns a new instance of InsertBuilder.
 func NewInsert() *InsertBuilder {
 	return &InsertBuilder{
-		columns:   []token.FieldToken{},
-		values:    [][]any{},
-		returning: []token.FieldToken{},
+		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
+		columns:     []token.FieldToken{},
+		values:      [][]any{},
+		returning:   []token.FieldToken{},
 	}
 }
 
 // Into sets the target table for the INSERT operation.
-func (ib *InsertBuilder) Into(table string) *InsertBuilder {
-	ib.table = table
-	return ib
+func (b *InsertBuilder) Into(table string) *InsertBuilder {
+	if table == "" {
+		b.AddStageError("FROM", fmt.Errorf("table is empty"))
+	} else {
+		b.table = table
+	}
+	return b
 }
 
-// Columns sets the column definitions using FieldFrom(...) and resets existing ones.
-func (ib *InsertBuilder) Columns(names ...string) *InsertBuilder {
-	ib.columns = []token.FieldToken{}
+// Columns sets the column names for the INSERT statement.
+//
+// All provided column names must be plain identifiers (e.g., "id", "name").
+// Column aliasing is not allowed in INSERT statements. Any column passed in the
+// form "name AS alias" will be rejected, logged as an error under the "COLUMNS"
+// stage, and skipped.
+//
+// Example:
+//     Columns("id", "name")             // ✅ valid
+//     Columns("id", "name AS n")        // ❌ invalid, will be rejected
+//
+// If any alias is detected, the builder will collect an error and the aliased column
+// will not be added to the insert operation.
+//
+// Since: v1.4.0
+
+func (b *InsertBuilder) Columns(names ...string) *InsertBuilder {
+	b.columns = []token.FieldToken{}
 	for _, name := range names {
-		ib.columns = append(ib.columns, token.Field(name))
+		f := token.Field(name)
+		if f.Alias != "" {
+			b.AddStageError("COLUMNS", fmt.Errorf("INSERT: column aliasing is not allowed: '%s AS %s'", f.Name, f.Alias))
+			continue
+		}
+		b.columns = append(b.columns, f)
 	}
-	return ib
+	return b
 }
 
 // Values appends a row of values using a map of column name to value.
 // Each call adds a new row. The map must contain every column defined in Columns().
-func (ib *InsertBuilder) Values(row ...any) *InsertBuilder {
-	ib.values = append(ib.values, row)
-	return ib
+func (b *InsertBuilder) Values(row ...any) *InsertBuilder {
+	b.values = append(b.values, row)
+	return b
 }
 
 // Returning adds one or more column names to the RETURNING clause.
 // It parses string expressions into FieldTokens.
 // If called multiple times, it appends to the existing list.
-func (ib *InsertBuilder) Returning(fields ...string) *InsertBuilder {
+func (b *InsertBuilder) Returning(fields ...string) *InsertBuilder {
 	for _, f := range fields {
-		ib.returning = append(ib.returning, token.FieldsFromExpr(f)...)
+		b.returning = append(b.returning, token.FieldsFromExpr(f)...)
 	}
-	return ib
+	return b
 }
 
 // UseDialect resolves and applies the SQL dialect by name (e.g., "postgres").
 // This method configures how identifiers (tables, columns) are quoted
 // and how engine-specific syntax is emitted.
-func (ib *InsertBuilder) UseDialect(name string) *InsertBuilder {
-	ib.dialect = driver.ResolveDialect(name)
-	return ib
+func (b *InsertBuilder) UseDialect(name string) *InsertBuilder {
+	b.BaseBuilder.dialect = driver.ResolveDialect(name)
+	return b
 }
 
-// WithDialect sets the SQL dialect engine used for quoting identifiers.
-// It may be removed in a future version in favor of the string-based resolver.
+// Build compiles the full INSERT SQL statement along with arguments.
+// Returns an error if the structure is invalid or values are missing.
+// Build compiles the full INSERT SQL statement along with arguments.
+// Returns an error if the structure is invalid or values are missing.
+func (b *InsertBuilder) Build() (string, []any, error) {
+	return b.buildQuery(len(b.returning) > 0)
+}
+
+// BuildInsertOnly compiles a full INSERT SQL statement with arguments,
+// excluding any RETURNING clause.
 //
-// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
-// This method will be removed in v1.4.0.
-func (ib *InsertBuilder) WithDialect(name string) *InsertBuilder {
-	ib.dialect = driver.ResolveDialect(name)
-	return ib
+// This method is useful when you only need the INSERT operation itself,
+// without fetching results (e.g., for engines that don't support RETURNING).
+//
+// It validates the following before building:
+//   - A target table must be set using .Into()
+//   - At least one column must be defined via .Columns()
+//   - At least one row of values must be provided using .Values()
+//   - Each row must match the number of defined columns
+//
+// The dialect determines how placeholders (e.g., ?, $1, :name) and identifiers are rendered.
+//
+// Example output (Postgres dialect):
+//
+//	INSERT INTO "users" ("id", "name") VALUES ($1, $2)
+//
+// Returns the SQL string, the bound arguments, or an error.
+//
+// Since: v1.4.0
+func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
+	return b.buildQuery(false)
 }
 
-// Build compiles the full INSERT SQL statement along with arguments.
-// Returns an error if the structure is invalid or values are missing.
-// Build compiles the full INSERT SQL statement along with arguments.
-// Returns an error if the structure is invalid or values are missing.
-func (ib *InsertBuilder) Build() (string, []any, error) {
-	if ib.table == "" {
-		return "", nil, fmt.Errorf("INSERT requires a target table")
-	}
-	if len(ib.columns) == 0 {
-		return "", nil, fmt.Errorf("INSERT requires at least one field")
-	}
-	if len(ib.values) == 0 {
-		return "", nil, fmt.Errorf("INSERT requires at least one row of values")
+func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
+	if !b.HasDialect() {
+		_ = b.GetDialect()
 	}
 
-	// ─────────────────────────────────────
-	// Quote table name
-	// ─────────────────────────────────────
-	table := ib.table
-	if ib.dialect != nil {
-		table = ib.dialect.QuoteIdentifier(ib.table)
+	if b.HasErrors() {
+		return "", nil, fmt.Errorf("INSERT: %d invalid condition(s)", len(b.GetErrors()))
+	}
+	if b.table == "" {
+		return "", nil, fmt.Errorf("INSERT: requires a target table")
+	}
+	if len(b.columns) == 0 {
+		return "", nil, fmt.Errorf("INSERT: at least one column is required")
+	}
+	if len(b.values) == 0 {
+		return "", nil, fmt.Errorf("INSERT: at least one set of values is required")
 	}
 
-	// ─────────────────────────────────────
-	// Quote field names
-	// ─────────────────────────────────────
-	var quotedCols []string
-	for _, column := range ib.columns {
-		if column.Alias != "" {
-			return "", nil, fmt.Errorf("column aliasing is not supported in INSERT statements")
-		}
-
-		name := column.Name
-		if ib.dialect != nil && !column.IsRaw {
-			name = ib.dialect.QuoteIdentifier(name)
-		}
-		quotedCols = append(quotedCols, name)
+	dialect := b.GetDialect()
+	if withReturning && !b.dialect.SupportsReturning() {
+		return "", nil, fmt.Errorf("INSERT: returning columns not allowed when dialect is %s", b.dialect.Name())
 	}
-	columns := strings.Join(quotedCols, ", ")
 
-	// ─────────────────────────────────────
-	// Construct value placeholders and args
-	// ─────────────────────────────────────
-	var valuesSQL []string
+	colCount := len(b.columns)
+	binder := bind.NewParamBinder(dialect)
+
 	var args []any
-
-	for i, row := range ib.values {
-		if len(row) != len(ib.columns) {
-			return "", nil, fmt.Errorf("row %d has %d values, expected %d", i+1, len(row), len(ib.columns))
-		}
-
-		placeholders := make([]string, len(row))
-		for i, val := range row {
-			placeholders[i] = "?"
-			args = append(args, val)
-		}
-		valuesSQL = append(valuesSQL, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+	var rowPlaceholders []string
+	quotedCols := make([]string, len(b.columns))
+	for i, col := range b.columns {
+		quotedCols[i] = dialect.QuoteIdentifier(col.Name)
 	}
 
-	// ─────────────────────────────────────
-	// Compose base INSERT statement
-	// ─────────────────────────────────────
+	for i, row := range b.values {
+		if len(row) != colCount {
+			return "", nil, fmt.Errorf("INSERT: row %d has %d values, expected %d", i+1, len(row), colCount)
+		}
+		placeholders := binder.BindMany(row...)
+		args = append(args, row...)
+		rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+	}
+
 	tokens := []string{
-		fmt.Sprintf("INSERT INTO %s (%s)", table, columns),
-		"VALUES",
-		strings.Join(valuesSQL, ", "),
+		"INSERT INTO", dialect.QuoteIdentifier(b.table),
+		fmt.Sprintf("(%s)", strings.Join(quotedCols, ", ")),
+		"VALUES", strings.Join(rowPlaceholders, ", "),
 	}
 
-	// ─────────────────────────────────────
-	// Append RETURNING clause if allowed
-	// ─────────────────────────────────────
-	if len(ib.returning) > 0 {
-		if ib.dialect == nil || !ib.dialect.SupportsReturning() {
-			name := "generic"
-			if ib.dialect != nil {
-				name = ib.dialect.Name()
-			}
-			return "", nil, fmt.Errorf("RETURNING is not supported by the active dialect: %q", name)
+	if withReturning {
+		returnCols := make([]string, len(b.returning))
+		for i, col := range b.returning {
+			returnCols[i] = dialect.QuoteIdentifier(col.Name)
 		}
-
-		var quotedRet []string
-		for _, field := range ib.returning {
-			name := field.Name
-			if !field.IsRaw && ib.dialect != nil {
-				name = ib.dialect.QuoteIdentifier(name)
-			}
-			quotedRet = append(quotedRet, name)
-		}
-		tokens = append(tokens, "RETURNING "+strings.Join(quotedRet, ", "))
+		tokens = append(tokens, "RETURNING", strings.Join(returnCols, ", "))
 	}
 
 	return strings.Join(tokens, " "), args, nil
-}
-
-func (ib *InsertBuilder) BuildInsertOnly() (string, []any, error) {
-	if ib.table == "" {
-		return "", nil, fmt.Errorf("table name is required")
-	}
-	if len(ib.columns) == 0 {
-		return "", nil, fmt.Errorf("at least one column is required")
-	}
-	if len(ib.values) == 0 {
-		return "", nil, fmt.Errorf("at least one set of values is required")
-	}
-	for i, row := range ib.values {
-		if len(row) != len(ib.columns) {
-			return "", nil, fmt.Errorf("row %d: expected %d values, got %d", i+1, len(ib.columns), len(row))
-		}
-	}
-
-	tableName := ib.table
-	if ib.dialect != nil {
-		tableName = ib.dialect.QuoteIdentifier(tableName)
-	}
-
-	quotedCols := make([]string, len(ib.columns))
-	for i, col := range ib.columns {
-		quotedCols[i] = col.Name
-		if ib.dialect != nil {
-			quotedCols[i] = ib.dialect.QuoteIdentifier(col.Name)
-		}
-	}
-
-	placeholders := make([]string, len(ib.values))
-	args := make([]any, 0, len(ib.values)*len(ib.columns))
-	for i, row := range ib.values {
-		args = append(args, row...)
-		ph := make([]string, len(row))
-		for j := range row {
-			ph[j] = "?"
-		}
-		placeholders[i] = "(" + strings.Join(ph, ", ") + ")"
-	}
-
-	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s",
-		tableName,
-		strings.Join(quotedCols, ", "),
-		strings.Join(placeholders, ", "))
-
-	return sql, args, nil
 }
