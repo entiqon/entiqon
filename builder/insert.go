@@ -34,7 +34,7 @@ func NewInsert() *InsertBuilder {
 // Into sets the target table for the INSERT operation.
 func (b *InsertBuilder) Into(table string) *InsertBuilder {
 	if table == "" {
-		b.AddStageError("FROM", fmt.Errorf("table is empty"))
+		b.AddStageError("INTO", fmt.Errorf("table is empty"))
 	} else {
 		b.table = table
 	}
@@ -62,7 +62,7 @@ func (b *InsertBuilder) Columns(names ...string) *InsertBuilder {
 	for _, name := range names {
 		f := token.Field(name)
 		if f.Alias != "" {
-			b.AddStageError("COLUMNS", fmt.Errorf("INSERT: column aliasing is not allowed: '%s AS %s'", f.Name, f.Alias))
+			b.AddStageError("COLUMNS", fmt.Errorf("column aliasing is not allowed: '%s AS %s'", f.Name, f.Alias))
 			continue
 		}
 		b.columns = append(b.columns, f)
@@ -129,8 +129,9 @@ func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
 }
 
 func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
+	var dialect = b.dialect
 	if !b.HasDialect() {
-		_ = b.GetDialect()
+		dialect = b.GetDialect()
 	}
 
 	if b.HasErrors() {
@@ -146,7 +147,6 @@ func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
 		return "", nil, fmt.Errorf("INSERT: at least one set of values is required")
 	}
 
-	dialect := b.GetDialect()
 	if withReturning && !b.dialect.SupportsReturning() {
 		return "", nil, fmt.Errorf("INSERT: returning columns not allowed when dialect is %s", b.dialect.Name())
 	}

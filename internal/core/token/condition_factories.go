@@ -38,6 +38,9 @@ func NewCondition(conditionType ConditionType, name string, value ...any) Condit
 	if value == nil || len(value) == 0 {
 		// Attempt inline literal resolution
 		field, operator, literal, ok := extractConditionParts(name)
+		if literal == "" {
+			return Condition{Error: fmt.Errorf("unable to parse condition")}
+		}
 		if util.ContainsUnboundPlaceholder(literal) {
 			return Condition{Error: fmt.Errorf("placeholder without a value for %s=", name)}
 		}
@@ -48,16 +51,24 @@ func NewCondition(conditionType ConditionType, name string, value ...any) Condit
 		return NewConditionWithOperator(conditionType, field, operator, v)
 	}
 
-	field, operator, _, ok := extractConditionParts(name)
+	if len(value) > 2 {
+		return NewConditionWithOperator(conditionType, name, "IN", value...)
+	}
+
+	field, operator, l, ok := extractConditionParts(name)
 	if !ok {
 		return NewConditionWithOperator(conditionType, name, "=", value[0])
 	}
-
 	// Flatten if single slice is passed
 	if len(value) == 1 {
 		if inner, ok := value[0].([]any); ok {
 			value = inner
 		}
+	}
+
+	literal := util.InferLiteralType(l)
+	if value == nil {
+		return NewConditionWithOperator(conditionType, field, operator, literal)
 	}
 
 	switch operator {
@@ -198,7 +209,7 @@ func NewConditionWithOperator(conditionType ConditionType, field, operator strin
 		Values:   values,
 	}
 
-	if strings.TrimSpace(field) == "" || strings.TrimSpace(operator) == "" {
+	if strings.TrimSpace(field) == "" || strings.TrimSpace(operator) == "" || values == nil {
 		c.Error = fmt.Errorf("%s: invalid condition parameters: field='%s', operator='%s', values=%d", conditionType, field, operator, len(values))
 		return c
 	}

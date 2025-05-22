@@ -42,6 +42,14 @@ func (s *DeleteBuilderTestSuite) TestWhere_AddsSimpleCondition() {
 	s.Equal([]any{100}, args)
 }
 
+func (s *SelectBuilderTestSuite) TestWhere_InvalidCondition() {
+	s.qb.Select("*").From("users").Where("status =")
+	_, _, err := s.qb.Build()
+
+	s.Error(err)
+	s.Contains(err.Error(), "1 invalid condition(s)")
+}
+
 // ─────────────────────────────────────────────
 // 🧪 AndWhere
 // ─────────────────────────────────────────────

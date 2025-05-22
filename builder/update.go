@@ -65,26 +65,28 @@ func (b *UpdateBuilder) Where(condition string, values ...any) *UpdateBuilder {
 // AndWhere adds an AND clause.
 // AndWhere appends a condition with an AND operator to the current WHERE clause.
 func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder {
-	c := token.NewCondition(token.ConditionSimple, condition, values)
+	c := token.NewCondition(token.ConditionAnd, condition, values)
 	if !c.IsValid() {
 		b.errors = append(b.errors, builder.Error{
 			Token:  "WHERE",
 			Errors: []error{c.Error},
 		})
 	}
+	b.conditions = append(b.conditions, c)
 	return b
 }
 
 // OrWhere adds an OR clause.
 // OrWhere appends a condition with an OR operator to the current WHERE clause.
 func (b *UpdateBuilder) OrWhere(condition string, values ...any) *UpdateBuilder {
-	c := token.NewCondition(token.ConditionSimple, condition, values)
+	c := token.NewCondition(token.ConditionOr, condition, values)
 	if !c.IsValid() {
 		b.errors = append(b.errors, builder.Error{
 			Token:  "WHERE",
 			Errors: []error{c.Error},
 		})
 	}
+	b.conditions = append(b.conditions, c)
 	return b
 }
 

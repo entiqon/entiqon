@@ -101,9 +101,11 @@ func (b *DeleteBuilder) Limit(n int) *DeleteBuilder {
 // Build assembles the DELETE SQL query with placeholders.
 // Updated: v1.4.0
 func (b *DeleteBuilder) Build() (string, []any, error) {
+	var dialect = b.dialect
 	if !b.HasDialect() {
-		_ = b.GetDialect()
+		dialect = b.GetDialect()
 	}
+
 	if b.HasErrors() {
 		return "", nil, fmt.Errorf("DELETE: %d invalid condition(s)", len(b.GetErrors()))
 	}
@@ -111,7 +113,6 @@ func (b *DeleteBuilder) Build() (string, []any, error) {
 		return "", nil, fmt.Errorf("DELETE: requires a target table")
 	}
 
-	dialect := b.GetDialect()
 	tokens := []string{"DELETE FROM", dialect.QuoteIdentifier(b.table)}
 	var args []any
 

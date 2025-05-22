@@ -26,7 +26,7 @@ func (s *ConditionTestSuite) TestSet_WithParams() {
 func (s *ConditionTestSuite) TestSet_WithoutParams() {
 	c := token.NewCondition(token.ConditionSimple, "active = true")
 	s.Equal("active", c.Key)
-	s.Equal([]any{"true"}, c.Values)
+	s.Equal([]any{true}, c.Values)
 	s.Contains(c.Raw, "active = :active")
 	s.True(c.IsValid())
 }
@@ -52,8 +52,8 @@ func (s *ConditionTestSuite) TestAllConstructors() {
 	now := time.Now()
 	s.Run("NewCondition_WithThreeParams", func() {
 		c := token.NewCondition(token.ConditionSimple, "value", 1, 2, 3)
-		s.False(c.IsValid())
-		s.Contains(c.Error.Error(), "invalid number of parameters on condition")
+		s.True(c.IsValid())
+		s.Nil(c.Error)
 	})
 	s.Run("EmptyInlineValue", func() {
 		c := token.NewCondition(token.ConditionSimple, "status = ")
