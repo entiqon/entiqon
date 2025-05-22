@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/internal/core/builder"
+	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
@@ -12,7 +14,7 @@ import (
 //
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
-	dialect    driver.Dialect
+	BaseBuilder
 	columns    []token.FieldToken
 	from       string
 	conditions []token.Condition
@@ -24,110 +26,121 @@ type SelectBuilder struct {
 // NewSelect creates and returns a new instance of SelectBuilder.
 func NewSelect() *SelectBuilder {
 	return &SelectBuilder{
-		columns:    make([]token.FieldToken, 0),
-		conditions: make([]token.Condition, 0),
-		sorting:    make([]string, 0),
+		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
+		columns:     make([]token.FieldToken, 0),
+		conditions:  make([]token.Condition, 0),
+		sorting:     make([]string, 0),
 	}
 }
 
 // Select adds raw column strings (can include aliases like "id", "name AS n").
 // Select sets columns using FieldsFromExpr(...) and resets previous entries.
-func (sb *SelectBuilder) Select(columns ...string) *SelectBuilder {
-	sb.columns = []token.FieldToken{}
+func (b *SelectBuilder) Select(columns ...string) *SelectBuilder {
+	b.columns = []token.FieldToken{}
 	for _, expr := range columns {
-		sb.columns = append(sb.columns, token.FieldsFromExpr(expr)...)
+		b.columns = append(b.columns, token.FieldsFromExpr(expr)...)
 	}
-	return sb
+	return b
 }
 
 // AddSelect appends more columns using FieldsFromExpr(...) without resetting.
-func (sb *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
+func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 	for _, expr := range columns {
-		sb.columns = append(sb.columns, token.FieldsFromExpr(expr)...)
+		b.columns = append(b.columns, token.FieldsFromExpr(expr)...)
 	}
-	return sb
+	return b
 }
 
 // From sets the target table for the SELECT statement.
-func (sb *SelectBuilder) From(from string) *SelectBuilder {
-	sb.from = from
-	return sb
+func (b *SelectBuilder) From(table string) *SelectBuilder {
+	if table == "" {
+		b.AddStageError("FROM", fmt.Errorf("table is empty"))
+	} else {
+		b.from = table
+	}
+	return b
 }
 
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
-func (sb *SelectBuilder) Where(condition string, params ...any) *SelectBuilder {
-	sb.conditions = token.AppendCondition(
-		[]token.Condition{},
-		token.NewCondition(token.ConditionSimple, condition, params...),
-	)
-	return sb
+func (b *SelectBuilder) Where(condition string, values ...any) *SelectBuilder {
+	c := token.NewCondition(token.ConditionSimple, condition, values...)
+	if !c.IsValid() {
+		b.AddStageError("WHERE", c.Error)
+	}
+	b.conditions = []token.Condition{c}
+	return b
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
-func (sb *SelectBuilder) AndWhere(condition string, params ...any) *SelectBuilder {
-	sb.conditions = token.AppendCondition(sb.conditions, token.NewCondition(token.ConditionAnd, condition, params...))
-	return sb
+func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder {
+	c := token.NewCondition(token.ConditionAnd, condition, values...)
+	if !c.IsValid() {
+		b.AddStageError("WHERE", c.Error)
+	}
+	b.conditions = append(b.conditions, c)
+	return b
 }
 
 // OrWhere adds an OR condition to the WHERE clause.
-func (sb *SelectBuilder) OrWhere(condition string, params ...any) *SelectBuilder {
-	sb.conditions = token.AppendCondition(sb.conditions, token.NewCondition(token.ConditionOr, condition, params...))
-	return sb
+func (b *SelectBuilder) OrWhere(condition string, values ...any) *SelectBuilder {
+	c := token.NewCondition(token.ConditionOr, condition, values...)
+	if !c.IsValid() {
+		b.AddStageError("WHERE", c.Error)
+	}
+	b.conditions = append(b.conditions, c)
+	return b
 }
 
 // OrderBy appends a column or expression to the ORDER BY clause.
-func (sb *SelectBuilder) OrderBy(column string) *SelectBuilder {
-	sb.sorting = append(sb.sorting, column)
-	return sb
+func (b *SelectBuilder) OrderBy(column string) *SelectBuilder {
+	b.sorting = append(b.sorting, column)
+	return b
 }
 
 // Take limits the number of rows returned by the query (engine-agnostic equivalent).
-func (sb *SelectBuilder) Take(value int) *SelectBuilder {
-	sb.take = &value
-	return sb
+func (b *SelectBuilder) Take(value int) *SelectBuilder {
+	b.take = &value
+	return b
 }
 
 // Skip offsets the rows returned by the query (engine-agnostic equivalent).
-func (sb *SelectBuilder) Skip(value int) *SelectBuilder {
-	sb.skip = &value
-	return sb
+func (b *SelectBuilder) Skip(value int) *SelectBuilder {
+	b.skip = &value
+	return b
 }
 
 // UseDialect resolves and applies the dialect by name (e.g., "postgres").
 // It replaces any previously set dialect on the builder.
-func (sb *SelectBuilder) UseDialect(name string) *SelectBuilder {
-	sb.dialect = driver.ResolveDialect(name)
-	return sb
-}
-
-// WithDialect sets the dialect engine used for escaping and quoting.
-//
-// Deprecated: Use UseDialect(name string) instead for consistent resolution and future-proofing.
-// This method will be removed in v1.4.0.
-func (sb *SelectBuilder) WithDialect(name string) *SelectBuilder {
-	sb.dialect = driver.ResolveDialect(name)
-	return sb
+func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
+	b.BaseBuilder.dialect = driver.ResolveDialect(name)
+	return b
 }
 
 // Build compiles the SELECT statement and returns it as a string and argument list.
 // If the FROM clause is missing, an error is returned.
 // Dialect rules (quoting, pagination) are applied if configured.
-func (sb *SelectBuilder) Build() (string, []any, error) {
-	if sb.from == "" {
-		return "", nil, fmt.Errorf("FROM clause is required")
+func (b *SelectBuilder) Build() (string, []any, error) {
+	dialect := b.GetDialect()
+
+	if b.HasErrors() {
+		return "", nil, fmt.Errorf("FROM: %d invalid condition(s)", len(b.GetErrors()))
+	}
+
+	if b.from == "" {
+		return "", nil, fmt.Errorf("FROM: requires a target table")
 	}
 
 	// ─────────────────────────────────────────────────────────────
 	// Render SELECT columns
 	// ─────────────────────────────────────────────────────────────
 	columns := "*"
-	if len(sb.columns) > 0 {
+	if len(b.columns) > 0 {
 		var rendered []string
-		for _, col := range sb.columns {
+		for _, col := range b.columns {
 			name := col.Name
-			if sb.dialect != nil && !col.IsRaw {
-				name = sb.dialect.QuoteIdentifier(col.Name)
+			if b.dialect != nil && !col.IsRaw {
+				name = dialect.QuoteIdentifier(col.Name)
 			}
 			if col.Alias != "" {
 				name = fmt.Sprintf("%s AS %s", name, col.Alias)
@@ -140,9 +153,9 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 	// ─────────────────────────────────────────────────────────────
 	// Render FROM clause (quoted if dialect provided)
 	// ─────────────────────────────────────────────────────────────
-	from := sb.from
-	if sb.dialect != nil {
-		from = sb.dialect.QuoteIdentifier(from)
+	from := b.from
+	if b.dialect != nil {
+		from = b.dialect.QuoteIdentifier(from)
 	}
 
 	tokens := []string{
@@ -153,68 +166,45 @@ func (sb *SelectBuilder) Build() (string, []any, error) {
 	// ─────────────────────────────────────────────────────────────
 	// Render WHERE conditions
 	// ─────────────────────────────────────────────────────────────
-	if len(sb.conditions) > 0 {
-		var parts []string
-		for _, condition := range sb.conditions {
-			rendered := condition.Key
-
-			if sb.dialect != nil {
-				if parsed := strings.SplitN(condition.Key, "=", 2); len(parsed) == 2 {
-					field := strings.TrimSpace(parsed[0])
-					right := strings.TrimSpace(parsed[1])
-					rendered = fmt.Sprintf("%s = %s", sb.dialect.QuoteIdentifier(field), right)
-				}
-			}
-
-			switch condition.Type {
-			case token.ConditionSimple:
-				parts = append(parts, rendered)
-			case token.ConditionAnd, token.ConditionOr:
-				parts = append(parts, fmt.Sprintf("%s %s", condition.Type, rendered))
-			default:
-				return "", nil, fmt.Errorf("invalid condition type: %s", condition.Type)
-			}
+	var args []any
+	if len(b.conditions) > 0 {
+		binder := bind.NewParamBinderWithPosition(dialect, len(args)+1)
+		whereClause, clauseArgs, err := builder.RenderConditionsWithBinder(dialect, b.conditions, binder)
+		if err != nil {
+			return "", nil, fmt.Errorf("SELECT: %w", err)
 		}
-		tokens = append(tokens, fmt.Sprintf("WHERE %s", strings.Join(parts, " ")))
+		tokens = append(tokens, "WHERE", whereClause)
+		args = append(args, clauseArgs...)
 	}
 
 	// ─────────────────────────────────────────────────────────────
 	// ORDER BY
 	// ─────────────────────────────────────────────────────────────
-	if len(sb.sorting) > 0 {
-		tokens = append(tokens, "ORDER BY "+strings.Join(sb.sorting, ", "))
+	if len(b.sorting) > 0 {
+		tokens = append(tokens, "ORDER BY "+strings.Join(b.sorting, ", "))
 	}
 
 	// ─────────────────────────────────────────────────────────────
 	// LIMIT/OFFSET via dialect
 	// ─────────────────────────────────────────────────────────────
 	limit, offset := -1, -1
-	if sb.take != nil {
-		limit = *sb.take
+	if b.take != nil {
+		limit = *b.take
 	}
-	if sb.skip != nil {
-		offset = *sb.skip
+	if b.skip != nil {
+		offset = *b.skip
 	}
 
-	if sb.dialect != nil && (limit >= 0 || offset >= 0) {
-		tokens = append(tokens, sb.dialect.BuildLimitOffset(limit, offset))
+	if limit > 0 && offset > 0 {
+		tokens = append(tokens, dialect.BuildLimitOffset(limit, offset))
 	} else {
-		if limit >= 0 {
+		if limit > 0 {
 			tokens = append(tokens, fmt.Sprintf("LIMIT %d", limit))
 		}
-		if offset >= 0 {
+		if offset > 0 {
 			tokens = append(tokens, fmt.Sprintf("OFFSET %d", offset))
 		}
 	}
 
-	return strings.Join(tokens, " "), sb.collectArgs(), nil
-}
-
-// collectArgs gathers all condition parameters.
-func (sb *SelectBuilder) collectArgs() []any {
-	var args []any
-	for _, c := range sb.conditions {
-		args = append(args, c.Params...)
-	}
-	return args
+	return strings.Join(tokens, " "), args, nil
 }

@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ialopezg/entiqon/internal/core/token"
@@ -90,6 +91,14 @@ func (s *SelectBuilderTestSuite) TestMissingFromClause() {
 	s.Empty(sql)
 }
 
+func (s *SelectBuilderTestSuite) TestFrom_MissingTable() {
+	s.qb.Select("*").From("")
+	_, _, err := s.qb.Build()
+
+	s.Error(err)
+	s.Contains(err.Error(), "1 invalid condition(s)")
+}
+
 // ─────────────────────────────────────────────
 // 🧪 Where, AndWhere, OrWhere
 // ─────────────────────────────────────────────
@@ -97,10 +106,10 @@ func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
 	sql, _, err := s.qb.
 		Select("id").
 		From("customers").
-		Where("active = ?", true).
-		AndWhere("email_verified = ?", true).
-		OrWhere("country = ?", "US").
-		OrWhere("country = ?", "CA").
+		Where("active", true).
+		AndWhere("email_verified", true).
+		OrWhere("country", "US").
+		OrWhere("country", "CA").
 		Build()
 
 	expected := "SELECT id FROM customers WHERE active = ? AND email_verified = ? OR country = ? OR country = ?"
@@ -111,9 +120,9 @@ func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
 func (s *SelectBuilderTestSuite) TestGroupedAndWhere() {
 	sql, _, err := s.qb.
 		From("invoices").
-		Where("paid = ?", false).
-		AndWhere("amount > ?", 100).
-		AndWhere("overdue = ?", true).
+		Where("paid = false").
+		AndWhere("amount > 100").
+		AndWhere("overdue = true").
 		Build()
 
 	expected := "SELECT * FROM invoices WHERE paid = ? AND amount > ? AND overdue = ?"
@@ -125,19 +134,49 @@ func (s *SelectBuilderTestSuite) TestSelectBuilderMultiParams() {
 	sql, params, err := s.qb.
 		Select("id", "email").
 		From("users").
-		Where("status = ?", "active").
-		AndWhere("role = ?", "admin").
-		AndWhere("created_at > ? AND region = ?", "2024-01-01", "NA").
+		Where("status", "active").
+		AndWhere("role", "admin").
+		AndWhere("created_at > 2024-01-01").
+		AndWhere("region = NA").
 		OrderBy("last_login DESC").
 		Take(50).
 		Skip(0).
 		Build()
 
-	expected := "SELECT id, email FROM users WHERE status = ? AND role = ? AND created_at > ? AND region = ? ORDER BY last_login DESC LIMIT 50 OFFSET 0"
+	expected := "SELECT id, email FROM users WHERE status = ? AND role = ? AND created_at > ? AND region = ? ORDER BY last_login DESC LIMIT 50"
 
 	s.NoError(err)
 	s.Equal(expected, sql)
 	s.Equal([]any{"active", "admin", "2024-01-01", "NA"}, params)
+}
+
+func (s *SelectBuilderTestSuite) TestBuild_UnsupportedConditionType() {
+	c := token.NewCondition(token.ConditionSimple, "id", 1)
+	c.Type = token.ConditionType(rune(999)) // force invalid
+
+	s.qb.From("users").Select("*")
+	s.qb.conditions = []token.Condition{c}
+
+	_, _, err := s.qb.Build()
+	s.Error(err)
+	s.Contains(err.Error(), "unsupported condition type")
+}
+
+func (s *SelectBuilderTestSuite) TestOrWhere_InvalidCondition() {
+	s.Run("AndWhere_InvalidCondition", func() {
+		s.qb.Select("*").From("users").Where("active = ?", true).AndWhere("amount >")
+		_, _, err := s.qb.Build()
+
+		s.Error(err)
+		s.Contains(err.Error(), "1 invalid condition(s)")
+	})
+	s.Run("OrWhere_InvalidCondition", func() {
+		s.qb.Select("*").From("users").Where("active = ?", true).OrWhere("amount >")
+		_, _, err := s.qb.Build()
+
+		s.Error(err)
+		s.Contains(err.Error(), "1 invalid condition(s)")
+	})
 }
 
 // ─────────────────────────────────────────────
@@ -155,6 +194,46 @@ func (s *SelectBuilderTestSuite) TestOrderingTakeSkip() {
 	expected := "SELECT name FROM employees ORDER BY created_at DESC LIMIT 10 OFFSET 5"
 	s.NoError(err)
 	s.Equal(expected, sql)
+}
+
+func (s *SelectBuilderTestSuite) TestBuild_LimitOffsetWithoutDialect() {
+	s.qb.Select("*").From("users").Take(10).Skip(5)
+
+	sql, _, err := s.qb.Build()
+
+	s.NoError(err)
+	s.Contains(sql, "LIMIT 10")
+	s.Contains(sql, "OFFSET 5")
+
+	s.Run("Limit", func() {
+		s.qb.Select("*").From("users").Take(10).Skip(0)
+		sql, _, err := s.qb.Build()
+		s.NoError(err)
+		s.Contains(sql, "LIMIT 10")
+	})
+	s.Run("Offset", func() {
+		s.qb.Select("*").From("users").Take(0).Skip(5)
+		sql, _, err := s.qb.Build()
+		s.NoError(err)
+		s.Contains(sql, "OFFSET 5")
+	})
+}
+
+// ─────────────────────────────────────────────
+// 🧪 UseDialect
+// ─────────────────────────────────────────────
+func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
+	sql, args, err := s.qb.
+		Select("id", "created_at").
+		From("users").
+		Where("status", "active").
+		UseDialect("postgres").
+		Build()
+
+	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = $1`
+	s.NoError(err)
+	s.Equal(expectedSQL, sql)
+	s.Equal([]any{"active"}, args)
 }
 
 // ─────────────────────────────────────────────
@@ -176,7 +255,7 @@ func (s *SelectBuilderTestSuite) TestBuild_InvalidConditionType() {
 
 	_, _, err := b.Build()
 	s.Error(err)
-	s.Contains(err.Error(), "invalid condition type")
+	s.Contains(err.Error(), "unsupported condition type")
 }
 
 func (s *SelectBuilderTestSuite) TestBuild_WithoutDialect_UsesRawLimitOffset() {
@@ -209,40 +288,32 @@ func (s *SelectBuilderTestSuite) TestBuild_WithDialect_UsesDialectLimitOffset() 
 	s.Empty(args)
 }
 
-// ─────────────────────────────────────────────
-// 🧪 UseDialect
-// ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
-	sql, args, err := s.qb.
-		Select("id", "created_at").
-		From("users").
-		Where("status = ?", "active").
-		UseDialect("postgres").
-		Build()
+func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
 
-	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = ?`
-	s.NoError(err)
-	s.Equal(expectedSQL, sql)
-	s.Equal([]any{"active"}, args)
+	b := SelectBuilder{}
+	s.Run("EmptyTable", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.ErrorContains(err, "requires a target table")
+	})
+	if !c.IsValid() {
+		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
+	}
+	b.From("users")
+	s.Run("HasDialect", func() {
+		b.conditions = []token.Condition{c}
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Equal("generic", b.dialect.Name())
+	})
+	s.Run("HasErrors", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Contains(err.Error(), "1 invalid condition(s)")
+	})
+
 }
-
-// ─────────────────────────────────────────────
-// 🧪 WithDialect
-// ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestSelectBuilderWithDialect() {
-	b := NewSelect().
-		From("users").
-		WithDialect("postgres")
-	sql, args, err := b.Build()
-
-	s.Require().NoError(err)
-	s.Contains(sql, `SELECT * FROM`)
-	s.Empty(args)
-}
-
-// ─────────────────────────────────────────────
-// 🧪 UseDialect
-// ─────────────────────────────────────────────
 
 func TestSelectBuilderTestSuite(t *testing.T) {
 	suite.Run(t, new(SelectBuilderTestSuite))
