@@ -16,6 +16,9 @@ func AppendCondition(existing []token.Condition, newCond token.Condition) []toke
 	if newCond.IsValid() {
 		return append(existing, newCond)
 	}
+	if len(existing) == 0 && newCond.Type != token.ConditionSimple {
+		newCond.Type = token.ConditionSimple
+	}
 	return existing
 }
 

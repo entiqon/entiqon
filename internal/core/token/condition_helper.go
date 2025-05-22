@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-var supportedOps = []string{
-	"NOT IN", "IN", "BETWEEN", "<>", "!=", ">=", "<=", "LIKE", "=", ">", "<",
-}
-
 var conditionRegex = regexp.MustCompile(`(?i)^(.+?)\s+(NOT IN|IN|BETWEEN|<>|!=|>=|<=|LIKE|=|>|<)\s+(.+)$`)
 
 // AreCompatibleTypes checks whether all provided values belong to the same compatible type group.
