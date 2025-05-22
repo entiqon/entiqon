@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [v1.4.0] - 2025-05-22
+
+### ✨ Added
+- `NewCondition`: semantic-aware condition constructor with support for:
+  - Inline and placeholder syntax (e.g., `"status = active"`, `"status = ?"` + value)
+  - Type inference (`int`, `bool`, `float64`, `string`)
+  - Operator support: `=`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`, `BETWEEN`, `LIKE`, `NOT LIKE`
+- `ParamBinder`: unified argument binding for dialects (`?`, `$N`, `:field`)
+- `condition_helpers.go`: includes `InferLiteralType`, `ParsePlaceholderPattern`, `AllSameType`, and `ContainsUnboundPlaceholder`
+
+### 🧱 Builders Implemented
+- `SelectBuilder`
+- `InsertBuilder`
+- `UpdateBuilder`
+- `DeleteBuilder`
+- `UpsertBuilder` (with `ON CONFLICT`, `DO UPDATE`, and `DO NOTHING`)
+
+### ✅ Validation
+- All builders enforce:
+  - Table presence
+  - Column count/value alignment
+  - Alias rejection in INSERT/UPSERT
+  - Invalid or unsupported condition rejection via `AddStageError(...)`
+- `UpsertBuilder` supports `RETURNING` only if the dialect allows it (`SupportsReturning()`)
+
+### 🧪 Test Coverage
+- Achieved **100% coverage** on:
+  - `select.go`, `insert.go`, `update.go`, `delete.go`, `upsert.go`
+  - `condition_renderer.go`, `condition_helpers.go`, `param_binder.go`
+
+---
+
 ## \[v1.3.0] - 2025-05-19
 
 ### ✨ Added
