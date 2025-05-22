@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -80,11 +79,11 @@ func (s *SelectBuilderTestSuite) TestDeleteBuilderUseDialectPostgres() {
 	sql, args, err := s.qb.
 		Select("id", "created_at").
 		From("users").
-		Where("status = ?", "active").
+		Where("status", "active").
 		UseDialect("postgres").
 		Build()
 
-	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = ?`
+	expectedSQL := `SELECT "id", "created_at" FROM "users" WHERE "status" = $1`
 	s.NoError(err)
 	s.Equal(expectedSQL, sql)
 	s.Equal([]any{"active"}, args)
@@ -96,7 +95,7 @@ func (s *SelectBuilderTestSuite) TestDeleteBuilderUseDialectPostgres() {
 func (s *DeleteBuilderTestSuite) TestBuild_UseDialect() {
 	sql, _, err := NewDelete().
 		From("users").
-		UseDialect(driver.NewPostgresDialect()).
+		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
@@ -109,13 +108,13 @@ func (s *DeleteBuilderTestSuite) TestBuild_MissingFrom_ReturnsError() {
 		Build()
 
 	s.Error(err)
-	s.Contains(err.Error(), "DELETE requires a target table")
+	s.Contains(err.Error(), "requires a target table")
 }
 
 func (s *DeleteBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
 	qb := NewDelete().
 		From("users").
-		UseDialect(driver.NewPostgresDialect())
+		UseDialect("postgres")
 
 	_, _, err := qb.Build()
 	s.Nil(err)
@@ -176,6 +175,33 @@ func (s *DeleteBuilderTestSuite) TestOrWhere_InvalidCondition_ShouldAppendError(
 	s.Require().Len(errs, 1)
 	s.Equal("WHERE", errs[0].Token)
 	s.Contains(errs[0].Errors[0].Error(), "invalid")
+}
+
+func (s *DeleteBuilderTestSuite) TestBuild_BuildValidations() {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
+
+	b := DeleteBuilder{}
+	s.Run("EmptyTable", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.ErrorContains(err, "requires a target table")
+	})
+	if !c.IsValid() {
+		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
+	}
+	b.From("users")
+	s.Run("HasDialect", func() {
+		b.conditions = []token.Condition{c}
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Equal("generic", b.dialect.Name())
+	})
+	s.Run("HasErrors", func() {
+		_, _, err := b.Build()
+		s.Error(err)
+		s.Contains(err.Error(), "invalid condition(s)")
+	})
+
 }
 
 func TestDeleteBuilderTestSuite(t *testing.T) {

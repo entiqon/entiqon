@@ -15,8 +15,6 @@ import (
 // DeleteBuilder builds DELETE SQL queries with optional WHERE and LIMIT clauses.
 type DeleteBuilder struct {
 	BaseBuilder
-
-	dialect    driver.Dialect
 	binder     bind.ParamBinder
 	table      string
 	conditions []token.Condition
@@ -32,97 +30,103 @@ func NewDelete() *DeleteBuilder {
 		BaseBuilder: BaseBuilder{
 			dialect: dialect,
 		},
-		dialect: dialect,
-		binder:  *bind.NewParamBinder(dialect),
-		limit:   -1,
+		binder: *bind.NewParamBinder(dialect),
+		limit:  -1,
 	}
 }
 
 // UseDialect overrides the dialect for the delete builder.
+//
 // Updated: v1.4.0
-func (db *DeleteBuilder) UseDialect(d driver.Dialect) *DeleteBuilder {
-	db.BaseBuilder.UseDialect(d)
-	return db
+func (b *DeleteBuilder) UseDialect(name string) *DeleteBuilder {
+	b.BaseBuilder.UseDialect(name)
+	return b
 }
 
 // From sets the table to delete from.
-func (db *DeleteBuilder) From(table string) *DeleteBuilder {
-	db.table = table
-	return db
+func (b *DeleteBuilder) From(table string) *DeleteBuilder {
+	if table == "" {
+		b.AddStageError("FROM", fmt.Errorf("table is empty"))
+	} else {
+		b.table = table
+	}
+	return b
 }
 
 // Where sets the initial WHERE condition and resets previous ones.
-func (db *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
+func (b *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		db.errors = append(db.errors, builder.Error{
+		b.errors = append(b.errors, builder.Error{
 			Token:  "WHERE",
 			Errors: []error{c.Error},
 		})
 	}
-	db.conditions = append([]token.Condition{}, c)
-	return db
+	b.conditions = append([]token.Condition{}, c)
+	return b
 }
 
 // AndWhere adds an AND condition.
-func (db *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder {
+func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		db.errors = append(db.errors, builder.Error{
+		b.errors = append(b.errors, builder.Error{
 			Token:  "WHERE",
 			Errors: []error{c.Error},
 		})
 	}
-	db.conditions = append(db.conditions, c)
-	return db
+	b.conditions = append(b.conditions, c)
+	return b
 }
 
 // OrWhere adds OR condition.
-func (db *DeleteBuilder) OrWhere(condition string, values ...any) *DeleteBuilder {
+func (b *DeleteBuilder) OrWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		db.errors = append(db.errors, builder.Error{
+		b.errors = append(b.errors, builder.Error{
 			Token:  "WHERE",
 			Errors: []error{c.Error},
 		})
 	}
-	db.conditions = append(db.conditions, c)
-	return db
+	b.conditions = append(b.conditions, c)
+	return b
 }
 
 // Limit sets a row limit on the DELETE operation.
-func (db *DeleteBuilder) Limit(n int) *DeleteBuilder {
-	db.limit = n
-	return db
+func (b *DeleteBuilder) Limit(n int) *DeleteBuilder {
+	b.limit = n
+	return b
 }
 
 // Build assembles the DELETE SQL query with placeholders.
 // Updated: v1.4.0
-func (db *DeleteBuilder) Build() (string, []any, error) {
-	if db.HasErrors() {
-		return "", nil, fmt.Errorf("delete builder: %d invalid condition(s)", len(db.GetErrors()))
+func (b *DeleteBuilder) Build() (string, []any, error) {
+	if !b.HasDialect() {
+		_ = b.GetDialect()
+	}
+	if b.HasErrors() {
+		return "", nil, fmt.Errorf("DELETE: %d invalid condition(s)", len(b.GetErrors()))
+	}
+	if b.table == "" {
+		return "", nil, fmt.Errorf("DELETE: requires a target table")
 	}
 
-	if db.table == "" {
-		return "", nil, fmt.Errorf("DELETE requires a target table")
-	}
-
-	dialect := db.resolveDialect()
-
-	tokens := []string{"DELETE FROM", dialect.QuoteIdentifier(db.table)}
-
+	dialect := b.GetDialect()
+	tokens := []string{"DELETE FROM", dialect.QuoteIdentifier(b.table)}
 	var args []any
-	if len(db.conditions) > 0 {
-		whereClause, clauseArgs, err := builder.RenderConditions(dialect, db.conditions)
+
+	if len(b.conditions) > 0 {
+		binder := bind.NewParamBinderWithPosition(dialect, len(args)+1)
+		whereClause, condArgs, err := builder.RenderConditionsWithBinder(dialect, b.conditions, binder)
 		if err != nil {
-			return "", nil, fmt.Errorf("delete builder: %w", err)
+			return "", nil, fmt.Errorf("UPDATE: %w", err)
 		}
 		tokens = append(tokens, "WHERE", whereClause)
-		args = append(args, clauseArgs...)
+		args = append(args, condArgs...)
 	}
 
-	if db.limit >= 0 {
-		limitClause := dialect.BuildLimitOffset(db.limit, -1)
+	if b.limit >= 0 {
+		limitClause := dialect.BuildLimitOffset(b.limit, -1)
 		if limitClause != "" {
 			tokens = append(tokens, limitClause)
 		}
