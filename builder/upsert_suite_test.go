@@ -181,7 +181,7 @@ func (s *UpsertBuilderTestSuite) TestBuild_BuildValidations() {
 	s.Run("HasDialect", func() {
 		_, _, err := NewUpsert().Into("users").Columns("id").Build()
 		s.Error(err)
-		s.Equal("generic", b.GetDialect().Name())
+		s.Equal("generic", b.GetDialect().GetName())
 	})
 	s.Run("HasErrors", func() {
 		_, _, err := NewUpsert().Into("users").Columns("").Build()

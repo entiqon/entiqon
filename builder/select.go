@@ -16,7 +16,7 @@ import (
 type SelectBuilder struct {
 	BaseBuilder
 	columns    []token.FieldToken
-	from       string
+	from       []token.Table
 	conditions []token.Condition
 	sorting    []string
 	take       *int
@@ -52,12 +52,21 @@ func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 }
 
 // From sets the target table for the SELECT statement.
+//
+// Since: v0.0.1
+// Updated: v1.5.0
 func (b *SelectBuilder) From(table string) *SelectBuilder {
-	if table == "" {
+	return b.FromAs(table, "")
+}
+
+func (b *SelectBuilder) FromAs(table string, alias string) *SelectBuilder {
+	t := token.NewTableWithAlias(table, alias)
+	if !t.IsValid() {
 		b.AddStageError("FROM", fmt.Errorf("table is empty"))
-	} else {
-		b.from = table
+		return b
 	}
+	b.from = append(b.from, t)
+
 	return b
 }
 
@@ -124,13 +133,14 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	dialect := b.GetDialect()
 
 	if b.HasErrors() {
-		return "", nil, fmt.Errorf("FROM: %d invalid condition(s)", len(b.GetErrors()))
+		return "", nil, fmt.Errorf("SELECT: %d invalid condition(s)", len(b.GetErrors()))
 	}
 
-	if b.from == "" {
-		return "", nil, fmt.Errorf("FROM: requires a target table")
+	if len(b.from) == 0 {
+		return "", nil, fmt.Errorf("SELECT: requires a target table")
 	}
 
+	var tokens []string
 	// ─────────────────────────────────────────────────────────────
 	// Render SELECT columns
 	// ─────────────────────────────────────────────────────────────
@@ -150,17 +160,19 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		columns = strings.Join(rendered, ", ")
 	}
 
+	tokens = append([]string{}, fmt.Sprintf("SELECT %s", columns))
+
 	// ─────────────────────────────────────────────────────────────
 	// Render FROM clause (quoted if dialect provided)
 	// ─────────────────────────────────────────────────────────────
-	from := b.from
-	if b.dialect != nil {
-		from = b.dialect.QuoteIdentifier(from)
-	}
-
-	tokens := []string{
-		fmt.Sprintf("SELECT %s", columns),
-		fmt.Sprintf("FROM %s", from),
+	if len(b.from) > 0 {
+		var fromParts []string
+		for _, tbl := range b.from {
+			if tbl.IsValid() {
+				fromParts = append(fromParts, dialect.RenderFrom(tbl.Name, tbl.Alias))
+			}
+		}
+		tokens = append(tokens, "FROM "+strings.Join(fromParts, ", "))
 	}
 
 	// ─────────────────────────────────────────────────────────────

@@ -34,7 +34,7 @@ func NewUpsert() *UpsertBuilder {
 	dialect := driver.NewGenericDialect()
 	return &UpsertBuilder{
 		BaseBuilder: BaseBuilder{dialect: dialect},
-		insert:      NewInsert().UseDialect(dialect.Name()),
+		insert:      NewInsert().UseDialect(dialect.GetName()),
 		updateSet:   make([]Assignment, 0),
 		returning:   make([]string, 0),
 	}
@@ -68,7 +68,7 @@ func (b *UpsertBuilder) OnConflict(columns ...string) *UpsertBuilder {
 func (b *UpsertBuilder) Returning(columns ...string) *UpsertBuilder {
 	fmt.Println(!b.dialect.SupportsReturning() && len(b.returning) > 0)
 	if !b.dialect.SupportsReturning() && len(b.returning) > 0 {
-		b.AddStageError("RETURNING", fmt.Errorf("UPSERT: RETURNING is not supported for dialect: %s", b.dialect.Name()))
+		b.AddStageError("RETURNING", fmt.Errorf("UPSERT: RETURNING is not supported for dialect: %s", b.dialect.GetName()))
 	} else {
 		b.returning = append(b.returning, columns...)
 	}
@@ -93,7 +93,7 @@ func (b *UpsertBuilder) UseDialect(name string) *UpsertBuilder {
 func (b *UpsertBuilder) Build() (string, []any, error) {
 	dialect := b.GetDialect()
 	if b.insert == nil {
-		b.insert = NewInsert().UseDialect(dialect.Name())
+		b.insert = NewInsert().UseDialect(dialect.GetName())
 	}
 
 	if b.HasErrors() {
@@ -151,7 +151,7 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 			}
 			tokens = append(tokens, "RETURNING", strings.Join(returnCols, ", "))
 		} else {
-			return "", nil, fmt.Errorf("UPSERT: RETURNING not supported in dialect: %s", dialect.Name())
+			return "", nil, fmt.Errorf("UPSERT: RETURNING not supported in dialect: %s", dialect.GetName())
 		}
 	}
 

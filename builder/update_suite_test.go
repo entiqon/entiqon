@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/builder"
+	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -172,25 +172,22 @@ func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
 }
 
 func (s *UpdateBuilderTestSuite) TestAddStageError_AppendsToExistingToken() {
-	s.qb.errors = []builder.Error{
-		{Token: "WHERE", Errors: []error{fmt.Errorf("first")}},
-	}
+	s.qb.AddStageError(core.StageWhere, fmt.Errorf("first"))
+	s.qb.AddStageError(core.StageWhere, fmt.Errorf("second"))
 
-	s.qb.AddStageError("WHERE", fmt.Errorf("second"))
-
-	s.Len(s.qb.errors, 1)
-	s.Len(s.qb.errors[0].Errors, 2)
-	s.Contains(s.qb.errors[0].Errors[1].Error(), "second")
+	errs := s.qb.GetErrors()
+	s.Len(errs, 2)
+	s.ErrorContains(errs[0].Error, "first")
+	s.ErrorContains(errs[1].Error, "second")
 }
 
 func (s *UpdateBuilderTestSuite) TestAddStageError_CreatesNewTokenGroup() {
-	initialLen := len(s.qb.errors)
-
+	initialLen := len(s.qb.GetErrors())
 	s.qb.AddStageError("OR", fmt.Errorf("or error"))
 
-	s.Len(s.qb.errors, initialLen+1)
-	s.Equal("OR", s.qb.errors[len(s.qb.errors)-1].Token)
-	s.Contains(s.qb.errors[len(s.qb.errors)-1].Errors[0].Error(), "or error")
+	s.Len(s.qb.GetErrors(), initialLen+1)
+	s.Equal(core.StageToken("OR"), s.qb.GetErrors()[len(s.qb.GetErrors())-1].Stage)
+	s.ErrorContains(s.qb.GetErrors()[len(s.qb.GetErrors())-1].Error, "or error")
 }
 
 func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
@@ -199,7 +196,7 @@ func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
 	d := s.qb.GetDialect()
 
 	s.NotNil(d)
-	s.Equal("generic", d.Name())
+	s.Equal("generic", d.GetName())
 }
 
 func (s *UpdateBuilderTestSuite) TestGetErrors_ReturnsCollectedErrors() {
@@ -207,25 +204,25 @@ func (s *UpdateBuilderTestSuite) TestGetErrors_ReturnsCollectedErrors() {
 	errs := s.qb.GetErrors()
 
 	s.Len(errs, 1)
-	s.Equal("WHERE", errs[0].Token)
-	s.Contains(errs[0].Errors[0].Error(), "invalid field")
+	s.Equal(core.StageWhere, errs[0].Stage)
+	s.ErrorContains(errs[0].Error, "invalid field")
 }
 
 func (s *UpdateBuilderTestSuite) TestUseDialect_ShortCircuitsOnEmptyOrSameName() {
 	s.qb.UseDialect("generic")
 
 	ptr1 := s.qb.UseDialect("generic")
-	s.Equal(ptr1.dialect.Name(), s.qb.dialect.Name())
+	s.Equal(ptr1.dialect.GetName(), s.qb.dialect.GetName())
 
 	ptr2 := s.qb.UseDialect("")
-	s.Equal(ptr2.dialect.Name(), s.qb.dialect.Name())
+	s.Equal(ptr2.dialect.GetName(), s.qb.dialect.GetName())
 }
 
 func (s *UpdateBuilderTestSuite) TestUseDialect_ResolvesNamedDialect() {
 	s.qb.UseDialect("postgres")
 
 	d := s.qb.GetDialect()
-	s.Equal("postgres", d.Name())
+	s.Equal("postgres", d.GetName())
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_BuildValidations() {
@@ -240,7 +237,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_BuildValidations() {
 		b.conditions = []token.Condition{c}
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.dialect.Name())
+		s.Equal("generic", b.dialect.GetName())
 	})
 	s.Run("HasErrors", func() {
 		_, _, err := b.Build()

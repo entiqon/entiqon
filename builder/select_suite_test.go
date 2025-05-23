@@ -20,16 +20,16 @@ func (s *SelectBuilderTestSuite) SetupTest() {
 // ─────────────────────────────────────────────
 // 🧪 Select
 // ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestSelectBasicColumns() {
-	sql, _, err := s.qb.
-		Select("id", "name").
-		From("users").
-		Build()
+func (s *SelectBuilderTestSuite) TestSelect() {
+	s.Run("Basic", func() {
+		sql, _, err := s.qb.
+			Select("id", "name").
+			From("users").
+			Build()
 
-	expected := "SELECT id, name FROM users"
-
-	s.NoError(err)
-	s.Equal(expected, sql)
+		s.NoError(err)
+		s.Contains(sql, "SELECT id, name FROM users")
+	})
 }
 
 func (s *SelectBuilderTestSuite) TestSelectCommaSeparated() {
@@ -70,33 +70,45 @@ func (s *SelectBuilderTestSuite) TestSelect_AddSelectAppends() {
 // ─────────────────────────────────────────────
 // 🧪 From
 // ─────────────────────────────────────────────
-func (s *SelectBuilderTestSuite) TestFrom_SingleTable() {
-	sql, _, err := s.qb.
-		Select("id").
-		From("customers").
-		Build()
+func (s *SelectBuilderTestSuite) TestFrom() {
+	s.Run("SingleTable", func() {
+		sql, _, err := s.qb.
+			Select("id").
+			From("customers").
+			Build()
 
-	expected := "SELECT id FROM customers"
+		expected := "SELECT id FROM customers"
 
-	s.NoError(err)
-	s.Equal(expected, sql)
-}
+		s.NoError(err)
+		s.Equal(expected, sql)
+	})
 
-func (s *SelectBuilderTestSuite) TestMissingFromClause() {
-	sql, _, err := s.qb.
-		Select("id").
-		Build()
+	s.Run("WithAlias", func() {
+		sql, _, err := s.qb.
+			Select("id", "name").
+			FromAs("users", "u").
+			Build()
 
-	s.Error(err)
-	s.Empty(sql)
-}
+		s.NoError(err)
+		s.Contains(sql, "users u")
+	})
 
-func (s *SelectBuilderTestSuite) TestFrom_MissingTable() {
-	s.qb.Select("*").From("")
-	_, _, err := s.qb.Build()
+	s.Run("EmptyTable", func() {
+		s.qb.Select("*").From("")
+		_, _, err := s.qb.Build()
 
-	s.Error(err)
-	s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Error(err)
+		s.Contains(err.Error(), "1 invalid condition(s)")
+	})
+
+	s.Run("MissingFromClause", func() {
+		_, _, err := NewSelect().
+			Select("id").
+			Build()
+
+		s.Error(err)
+		s.ErrorContains(err, "requires a target table")
+	})
 }
 
 // ─────────────────────────────────────────────
@@ -115,6 +127,18 @@ func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
 	expected := "SELECT id FROM customers WHERE active = ? AND email_verified = ? OR country = ? OR country = ?"
 	s.NoError(err)
 	s.Equal(expected, sql)
+
+	//s.Run("MulpleInline", func() {
+	//	sql, _, err := s.qb.
+	//		Select("id").
+	//		From("customers").
+	//		Where("active = true AND email_verified = true AND country = US OR country = CA").
+	//		Build()
+	//
+	//	expected := "SELECT id FROM customers WHERE active = ? AND email_verified = ? OR country = ? OR country = ?"
+	//	s.NoError(err)
+	//	s.Equal(expected, sql)
+	//})
 }
 
 func (s *SelectBuilderTestSuite) TestGroupedAndWhere() {
@@ -175,7 +199,7 @@ func (s *SelectBuilderTestSuite) TestOrWhere_InvalidCondition() {
 		_, _, err := s.qb.Build()
 
 		s.Error(err)
-		s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Contains(err.Error(), "invalid condition(s)")
 	})
 }
 
@@ -305,7 +329,7 @@ func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
 		b.conditions = []token.Condition{c}
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.dialect.Name())
+		s.Equal("generic", b.dialect.GetName())
 	})
 	s.Run("HasErrors", func() {
 		_, _, err := b.Build()

@@ -148,7 +148,7 @@ func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
 	}
 
 	if withReturning && !b.dialect.SupportsReturning() {
-		return "", nil, fmt.Errorf("INSERT: returning columns not allowed when dialect is %s", b.dialect.Name())
+		return "", nil, fmt.Errorf("INSERT: returning columns not allowed when dialect is %s", b.dialect.GetName())
 	}
 
 	colCount := len(b.columns)

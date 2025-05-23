@@ -23,8 +23,8 @@ func (c *StageErrorCollector) HasErrors() bool {
 	return len(c.errors) > 0
 }
 
-// Errors returns all recorded stage errors.
-func (c *StageErrorCollector) Errors() []StageError {
+// GetErrors returns all recorded stage errors.
+func (c *StageErrorCollector) GetErrors() []StageError {
 	return c.errors
 }
 

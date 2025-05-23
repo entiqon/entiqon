@@ -161,18 +161,19 @@ func (s *DeleteBuilderTestSuite) TestWhere_InvalidCondition_ShouldAppendError() 
 	errs := s.qb.GetErrors()
 
 	s.Require().Len(errs, 1)
-	s.Equal("WHERE", errs[0].Token)
-	s.Contains(errs[0].Errors[0].Error(), "invalid")
+	s.Equal("WHERE", errs[0].Stage.String())
+	s.ErrorContains(errs[0].Error, "invalid")
 }
 
 func (s *DeleteBuilderTestSuite) TestAndWhere_InvalidCondition_ShouldAppendError() {
 	s.qb.From("users").AndWhere("", 123) // Invalid condition
 
 	errs := s.qb.GetErrors()
+	err := errs[0]
 
 	s.Require().Len(errs, 1)
-	s.Equal("WHERE", errs[0].Token)
-	s.Contains(errs[0].Errors[0].Error(), "invalid")
+	s.Equal("WHERE", err.Stage.String())
+	s.ErrorContains(err.Error, "invalid")
 }
 
 func (s *DeleteBuilderTestSuite) TestOrWhere_InvalidCondition_ShouldAppendError() {
@@ -181,8 +182,8 @@ func (s *DeleteBuilderTestSuite) TestOrWhere_InvalidCondition_ShouldAppendError(
 	errs := s.qb.GetErrors()
 
 	s.Require().Len(errs, 1)
-	s.Equal("WHERE", errs[0].Token)
-	s.Contains(errs[0].Errors[0].Error(), "invalid")
+	s.Equal("WHERE", errs[0].Stage.String())
+	s.ErrorContains(errs[0].Error, "invalid")
 }
 
 func (s *DeleteBuilderTestSuite) TestBuild_BuildValidations() {
@@ -202,7 +203,7 @@ func (s *DeleteBuilderTestSuite) TestBuild_BuildValidations() {
 		b.conditions = []token.Condition{c}
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.dialect.Name())
+		s.Equal("generic", b.dialect.GetName())
 	})
 	s.Run("HasErrors", func() {
 		_, _, err := b.Build()

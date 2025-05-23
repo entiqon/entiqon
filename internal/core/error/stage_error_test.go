@@ -25,7 +25,7 @@ func (s *StageErrorSuite) TestAddAndHasErrors() {
 	s.collector.AddStageError("FROM", errors.New("table missing"))
 	s.collector.AddStageError("SELECT", errors.New("no fields"))
 	assert.True(s.T(), s.collector.HasErrors())
-	assert.Len(s.T(), s.collector.Errors(), 2)
+	assert.Len(s.T(), s.collector.GetErrors(), 2)
 }
 
 func (s *StageErrorSuite) TestErrorsByStage() {

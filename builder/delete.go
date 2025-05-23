@@ -9,6 +9,7 @@ import (
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
+	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
@@ -57,10 +58,7 @@ func (b *DeleteBuilder) From(table string) *DeleteBuilder {
 func (b *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append([]token.Condition{}, c)
 	return b
@@ -70,10 +68,7 @@ func (b *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
 func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -83,10 +78,7 @@ func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder
 func (b *DeleteBuilder) OrWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b

@@ -7,6 +7,7 @@ import (
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	"github.com/ialopezg/entiqon/internal/core/driver"
+	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
@@ -53,10 +54,7 @@ func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
 func (b *UpdateBuilder) Where(condition string, values ...any) *UpdateBuilder {
 	c := token.NewCondition(token.ConditionSimple, condition, values)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append([]token.Condition{}, c)
 	return b
@@ -67,10 +65,7 @@ func (b *UpdateBuilder) Where(condition string, values ...any) *UpdateBuilder {
 func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder {
 	c := token.NewCondition(token.ConditionAnd, condition, values)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -81,10 +76,7 @@ func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder
 func (b *UpdateBuilder) OrWhere(condition string, values ...any) *UpdateBuilder {
 	c := token.NewCondition(token.ConditionOr, condition, values)
 	if !c.IsValid() {
-		b.errors = append(b.errors, builder.Error{
-			Token:  "WHERE",
-			Errors: []error{c.Error},
-		})
+		b.errors.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b

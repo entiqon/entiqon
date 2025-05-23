@@ -253,7 +253,7 @@ func (s *InsertBuilderTestSuite) TestBuild_BuildValidations() {
 	s.Run("HasDialect", func() {
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.GetDialect().Name())
+		s.Equal("generic", b.GetDialect().GetName())
 	})
 	s.Run("HasErrors", func() {
 		_, _, err := b.Into("").Build()
