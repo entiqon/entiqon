@@ -3,6 +3,7 @@ package driver_test
 import (
 	"testing"
 
+	cd "github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/stretchr/testify/suite"
 )
@@ -174,6 +175,26 @@ func (s *DialectTestSuite) TestSupportsUpsert() {
 	})
 	s.Run("mysql", func() {
 		s.Equal(false, s.mysql.SupportsUpsert())
+	})
+}
+
+func (s *DialectTestSuite) TestValidate() {
+	s.Run("Valid", func() {
+		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: cd.PlaceholderQuestion}
+		err := d.Validate()
+		s.NoError(err)
+		s.Equal("?", d.Placeholder(0))
+	})
+	s.Run("MissingName", func() {
+		d := driver.BaseDialect{Name: ""}
+		err := d.Validate()
+		s.Error(err)
+		s.Contains(err.Error(), "name is not set")
+	})
+	s.Run("MissingPlaceholder", func() {
+		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: cd.PlaceholderSymbol("")}
+		err := d.Validate()
+		s.Error(err)
 	})
 }
 

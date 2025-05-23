@@ -5,80 +5,46 @@
 
 package driver
 
-// Dialect represents a SQL dialect (e.g., PostgreSQL, MySQL, MSSQL) and provides
-// dialect-specific logic for quoting, parameter placeholders, pagination syntax,
-// and feature support (e.g., UPSERT, RETURNING).
+// Dialect defines the behavior of a SQL dialect.
+// Implementations may embed BaseDialect and override specific methods as needed.
 type Dialect interface {
-	// GetName returns the name of the dialect, such as "postgres", "mysql", or "mssql".
-	//
-	// Updated: v1.4.0
+	// GetName returns the dialect name (e.g., "postgres", "mysql").
 	GetName() string
 
-	// QuoteType returns the QuotationType used to wrap SQL identifiers (tables, columns).
-	//
-	// Example:
-	//   - PostgreSQL: QuoteDouble → "users"
-	//   - MySQL:      QuoteBacktick → `users`
-	//   - SQL Server: QuoteBracket → [users]
-	//
-	// Since: v1.4.0
+	// QuoteType returns the quoting style used for identifiers.
 	QuoteType() QuotationType
 
-	// QuoteIdentifier returns the dialect-quoted form of a SQL identifier
-	// such as a table or column name. This ensures compatibility with reserved words
-	// or mixed-case names.
-	//
-	// Example:
-	//   - QuoteIdentifier("User") → "User" (PostgreSQL)
-	//
-	// Updated: v1.4.0
-	QuoteIdentifier(identifier string) string
+	// QuoteIdentifier quotes a table or column name according to the dialect's rules.
+	QuoteIdentifier(name string) string
 
-	// QuoteLiteral safely escapes a literal value for diagnostics or debugging purposes only.
-	// This is NOT used for actual query execution — always bind parameters instead.
-	//
-	// Example:
-	//   - QuoteLiteral("O'Hara") → "'O''Hara'"
+	// QuoteLiteral returns a safe literal string for diagnostics (not execution).
 	QuoteLiteral(value any) string
 
 	// Placeholder returns the dialect-specific placeholder string for a given parameter index.
-	//
-	// Examples:
-	//   - PostgreSQL: Placeholder(1) → "$1"
-	//   - MySQL:      Placeholder(1) → "?"
-	//
-	// This allows builders to generate parameterized SQL safely.
-	//
-	// Updated: v1.4.0
+	// Example: $1 (PostgreSQL), ? (MySQL), :1 (Oracle)
 	Placeholder(index int) string
 
-	// RenderFrom builds a FROM clause entry using dialect-specific quoting and aliasing rules.
-	//
-	// Examples:
-	//   - PostgreSQL: RenderFrom("users", "u") → `"users" u`
-	//   - MySQL:      RenderFrom("users", "u") → "`users` u"`
-	//
-	// Updated: v1.4.0
+	// RenderFrom renders a FROM clause reference using dialect-specific quoting and aliasing.
 	RenderFrom(table string, alias string) string
 
-	// BuildLimitOffset generates a LIMIT/OFFSET clause compatible with the dialect's syntax.
-	//
-	// Examples:
-	//   - PostgreSQL: LIMIT 10 OFFSET 5
-	//   - SQL Server: OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY
-	//
-	// Updated: v1.4.0
+	// BuildLimitOffset generates the full dialect-specific LIMIT/OFFSET clause.
 	BuildLimitOffset(limit, offset int) string
 
-	// SupportsUpsert returns true if the dialect supports native UPSERT syntax,
-	// such as `INSERT ... ON CONFLICT` or `INSERT ... ON DUPLICATE KEY UPDATE`.
+	// SupportsReturning returns true if the dialect supports RETURNING clauses,
+	// such as `INSERT ... RETURNING id`. Common in PostgreSQL.
 	//
-	// Updated: v1.4.0
+	// Since: v1.4.0
+	SupportsReturning() bool
+
+	// SupportsUpsert returns true if the dialect supports native UPSERT syntax,
+	// such as `INSERT ... ON CONFLICT DO UPDATE` or similar.
+	//
+	// Since: v1.4.0
 	SupportsUpsert() bool
 
-	// SupportsReturning returns true if the dialect supports RETURNING clauses
-	// (e.g., `INSERT ... RETURNING id`). Common in PostgreSQL and similar engines.
+	// Validate checks whether the dialect is structurally complete and safe to use.
+	// Custom dialects may override this method to enforce additional constraints.
 	//
-	// Updated: v1.4.0
-	SupportsReturning() bool
+	// Since: v1.4.0
+	Validate() error
 }

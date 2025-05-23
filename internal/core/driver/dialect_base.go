@@ -8,6 +8,9 @@ package driver
 import (
 	"fmt"
 	"strconv"
+	"strings"
+
+	core "github.com/ialopezg/entiqon/driver"
 )
 
 // BaseDialect provides a foundational implementation of the Dialect interface.
@@ -15,46 +18,58 @@ import (
 //
 // Since: v1.4.0
 type BaseDialect struct {
-	// name holds the dialect identifier (e.g., "postgres", "mysql").
-	name string
+	// EnableReturning specifies whether the dialect supports SQL RETURNING clauses,
+	// such as `INSERT ... RETURNING id` or `UPDATE ... RETURNING *`.
+	//
+	// This flag is evaluated by the SupportsReturning method.
+	// Commonly enabled in dialects like PostgreSQL.
+	//
+	// Since: v1.4.0
+	EnableReturning bool
 
-	// quotation defines the quoting style used for identifiers.
-	quotation QuotationType
+	// EnableUpsert specifies whether the dialect supports native UPSERT syntax,
+	// such as `INSERT ... ON CONFLICT DO UPDATE` or `INSERT ... ON DUPLICATE KEY UPDATE`.
+	//
+	// This flag is evaluated by the SupportsUpsert method.
+	// Typically enabled in PostgreSQL and MySQL dialects.
+	//
+	// Since: v1.4.0
+	EnableUpsert bool
 
-	// placeholder is an optional function that generates argument placeholders (e.g., $1, ?, :name).
-	placeholder func(index int) string
+	// Name holds the dialect identifier (e.g., "postgres", "mysql").
+	Name string
 
-	// supportsUpsert indicates native UPSERT support in the dialect.
-	supportsUpsert bool
+	// Quotation defines the quoting style used for identifiers.
+	Quotation QuotationType
 
-	// supportsReturning indicates RETURNING clause support in the dialect.
-	supportsReturning bool
+	// PlaceholderSymbol is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
+	PlaceholderSymbol core.PlaceholderSymbol
 }
 
-// GetName returns the dialect name.
+// GetName returns the dialect Name.
 // If unset, "base" is returned.
 //
 // Updated: v1.4.0
 func (b *BaseDialect) GetName() string {
-	if b.name == "" {
+	if b.Name == "" {
 		return "base"
 	}
-	return b.name
+	return b.Name
 }
 
-// QuoteType returns the configured identifier quotation style.
+// QuoteType returns the configured identifier Quotation style.
 //
 // Since: v1.4.0
 func (b *BaseDialect) QuoteType() QuotationType {
-	return b.quotation
+	return b.Quotation
 }
 
 // QuoteIdentifier returns the given identifier with dialect-appropriate quoting.
-// Defaults to no quoting unless the quotation style is configured.
+// Defaults to no quoting unless the Quotation style is configured.
 //
 // Updated: v1.4.0
 func (b *BaseDialect) QuoteIdentifier(identifier string) string {
-	switch b.quotation {
+	switch b.Quotation {
 	case QuoteDouble:
 		return `"` + identifier + `"`
 	case QuoteBacktick:
@@ -89,10 +104,14 @@ func (b *BaseDialect) QuoteLiteral(value any) string {
 //
 // Updated: v1.4.0
 func (b *BaseDialect) Placeholder(index int) string {
-	if b.placeholder != nil {
-		return b.placeholder(index)
+	if !b.PlaceholderSymbol.IsValid() {
+		return "?"
 	}
-	return "?"
+	if b.PlaceholderSymbol == core.PlaceholderQuestion {
+		return "?"
+	}
+	// Always fallback to dynamic prefix behavior
+	return fmt.Sprintf("%s%d", b.PlaceholderSymbol, index)
 }
 
 // BuildLimitOffset returns the dialect-compatible LIMIT and OFFSET clause.
@@ -114,7 +133,7 @@ func (b *BaseDialect) BuildLimitOffset(limit, offset int) string {
 }
 
 // RenderFrom returns a dialect-safe FROM clause expression.
-// Table name is quoted; alias is not quoted.
+// Table Name is quoted; alias is not quoted.
 //
 // Example: `"users" u`, `\`orders\` o`, `[logs] l`
 //
@@ -126,16 +145,45 @@ func (b *BaseDialect) RenderFrom(table string, alias string) string {
 	return b.QuoteIdentifier(table)
 }
 
-// SupportsUpsert returns whether the dialect supports native upsert syntax.
+// SupportsReturning returns true if the dialect supports RETURNING clauses.
 //
-// Updated: v1.4.0
-func (b *BaseDialect) SupportsUpsert() bool {
-	return b.supportsUpsert
+// This delegates to the EnableReturning field in BaseDialect, but may be overridden
+// in custom dialect implementations to enforce computed behavior.
+//
+// Since: v1.4.0
+func (b *BaseDialect) SupportsReturning() bool {
+	return b.EnableReturning
 }
 
-// SupportsReturning returns whether the dialect supports RETURNING clauses.
+// SupportsUpsert returns true if the dialect supports native UPSERT syntax.
 //
-// Updated: v1.4.0
-func (b *BaseDialect) SupportsReturning() bool {
-	return b.supportsReturning
+// This default implementation reads the EnableUpsert field in BaseDialect.
+// Custom dialects may override this method to implement dynamic or computed support.
+//
+// Since: v1.4.0
+func (b *BaseDialect) SupportsUpsert() bool {
+	return b.EnableUpsert
+}
+
+// Validate ensures the BaseDialect is correctly configured.
+//
+// A dialect is considered valid if:
+//   - PlaceholderSymbol is set to a non-empty value
+//   - Name is not empty or whitespace
+//
+// The Quotation style is allowed to be QuoteNone if the dialect does not require identifier quoting.
+//
+// Returns:
+//   - nil if the dialect is valid
+//   - an error if the configuration is incomplete or invalid
+//
+// Since: v1.4.0
+func (b *BaseDialect) Validate() error {
+	if strings.TrimSpace(b.Name) == "" {
+		return fmt.Errorf("BaseDialect: name is not set")
+	}
+	if !b.PlaceholderSymbol.IsValid() {
+		return fmt.Errorf("BaseDialect: placeholder symbol is not set")
+	}
+	return nil
 }

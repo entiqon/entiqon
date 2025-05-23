@@ -8,9 +8,9 @@ import (
 //
 // Valid:
 //
-//	Field("id")                          → FieldToken{Name: "id"}
-//	Field("first_name AS name")         → FieldToken{Name: "first_name", Alias: "name"}
-//	Field("first_name", "name")         → FieldToken{Name: "first_name", Alias: "name"}
+//	Field("id")                          → FieldToken{GetName: "id"}
+//	Field("first_name AS name")         → FieldToken{GetName: "first_name", Alias: "name"}
+//	Field("first_name", "name")         → FieldToken{GetName: "first_name", Alias: "name"}
 //
 // NOT allowed:
 //

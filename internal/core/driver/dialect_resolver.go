@@ -2,7 +2,7 @@ package driver
 
 import "strings"
 
-// ResolveDialect maps a dialect name to a Dialect implementation.
+// ResolveDialect maps a dialect GetName to a Dialect implementation.
 //
 // Valid names:
 //   - "postgres": returns PostgresDialect
@@ -18,6 +18,6 @@ func ResolveDialect(name string) Dialect {
 	//     return NewMySQLDialect()
 
 	default:
-		return &BaseDialect{name: "generic"}
+		return &BaseDialect{Name: "generic"}
 	}
 }
