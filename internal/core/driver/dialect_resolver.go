@@ -18,6 +18,6 @@ func ResolveDialect(name string) Dialect {
 	//     return NewMySQLDialect()
 
 	default:
-		return &BaseDialect{DialectName: "generic"}
+		return &BaseDialect{name: "generic"}
 	}
 }

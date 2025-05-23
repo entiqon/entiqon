@@ -17,7 +17,16 @@ func (s *PostgresDialectTestSuite) SetupTest() {
 }
 
 func (s *PostgresDialectTestSuite) TestPostgresDialect_NewInstance() {
-	s.Equal("postgres", s.d.Name())
+	s.Equal("postgres", s.d.GetName())
+
+	s.Run("RenderFrom", func() {
+		raw := s.d.RenderFrom("user", "")
+		s.Equal("\"user\"", raw)
+	})
+	s.Run("RenderFromWithAlias", func() {
+		raw := s.d.RenderFrom("user", "u")
+		s.Equal("\"user\" u", raw)
+	})
 }
 
 func (s *PostgresDialectTestSuite) TestPostgresDialect_SupportsUpsert() {

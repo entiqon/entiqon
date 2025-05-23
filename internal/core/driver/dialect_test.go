@@ -9,44 +9,29 @@ import (
 
 type DialectTestSuite struct {
 	suite.Suite
+	base     driver.Dialect
 	generic  driver.Dialect
 	postgres driver.Dialect
+	mssql    driver.Dialect
+	mysql    driver.Dialect
 }
 
 func (s *DialectTestSuite) SetupSuite() {
+	s.base = &driver.BaseDialect{}
 	s.generic = driver.NewGenericDialect()
 	s.postgres = driver.NewPostgresDialect()
-}
-
-func (s *DialectTestSuite) TestGenericDialect() {
-	s.Equal("generic", s.generic.Name())
-	s.Equal("?", s.generic.Placeholder(1))
-	s.Equal("?", s.generic.Placeholder(99))
-	s.Equal("users", s.generic.QuoteIdentifier("users"))
-}
-
-func (s *DialectTestSuite) TestPostgresDialect() {
-	s.Equal("postgres", s.postgres.Name())
-	s.Equal("$1", s.postgres.Placeholder(1))
-	s.Equal("$5", s.postgres.Placeholder(5))
-	s.Equal(`"users"`, s.postgres.QuoteIdentifier("users"))
-	s.True(s.postgres.SupportsUpsert())
-	s.True(s.postgres.SupportsReturning())
+	s.mssql = driver.NewMSSQLDialect()
+	s.mysql = driver.NewMySQLDialect()
 }
 
 func (s *DialectTestSuite) TestResolveDialect() {
-	s.Equal("postgres", driver.ResolveDialect("postgres").Name())
-	s.Equal("generic", driver.ResolveDialect("unknown").Name())
+	s.Equal("postgres", driver.ResolveDialect("postgres").GetName())
+	s.Equal("generic", driver.ResolveDialect("unknown").GetName())
 }
 
 func (s *DialectTestSuite) TestBaseDialectDirectMethods() {
-	base := &driver.BaseDialect{DialectName: "test"}
+	base := &driver.BaseDialect{}
 
-	s.Equal("test", base.Name())
-	s.Equal("?", base.Placeholder(999))
-	s.Equal("field", base.QuoteIdentifier("field"))
-	s.False(base.SupportsUpsert())
-	s.False(base.SupportsReturning())
 	s.Equal("LIMIT 10 OFFSET 20", base.BuildLimitOffset(10, 20))
 	s.Equal("LIMIT 5", base.BuildLimitOffset(5, -1))
 	s.Equal("OFFSET 20", base.BuildLimitOffset(-1, 20))
@@ -57,6 +42,139 @@ func (s *DialectTestSuite) TestBaseDialectDirectMethods() {
 	s.Equal("42", base.QuoteLiteral(42))
 	s.Equal("true", base.QuoteLiteral(true))
 	s.Equal("'[1 2 3]'", base.QuoteLiteral([]int{1, 2, 3}))
+}
+
+func (s *DialectTestSuite) TestGetName() {
+	s.Run("base", func() {
+		s.Equal("base", s.base.GetName())
+	})
+	s.Run("generic", func() {
+		s.Equal("generic", s.generic.GetName())
+	})
+	s.Run("postgres", func() {
+		s.Equal("postgres", s.postgres.GetName())
+	})
+	s.Run("mssql", func() {
+		s.Equal("mssql", s.mssql.GetName())
+	})
+	s.Run("mysql", func() {
+		s.Equal("mysql", s.mysql.GetName())
+	})
+}
+
+func (s *DialectTestSuite) TestQuoteIdentifier() {
+	s.Run("base", func() {
+		s.Equal("user", s.base.QuoteIdentifier("user"))
+	})
+	s.Run("generic", func() {
+		s.Equal("user", s.generic.QuoteIdentifier("user"))
+	})
+	s.Run("postgres", func() {
+		s.Equal("\"user\"", s.postgres.QuoteIdentifier("user"))
+	})
+	s.Run("mssql", func() {
+		s.Equal("[user]", s.mssql.QuoteIdentifier("user"))
+	})
+	s.Run("mysql", func() {
+		s.Equal("`user`", s.mysql.QuoteIdentifier("user"))
+	})
+}
+
+func (s *DialectTestSuite) TestQuoteTpeQuoteType() {
+	s.Run("generic", func() {
+		s.Equal(driver.QuoteNone, s.generic.QuoteType())
+	})
+	s.Run("postgres", func() {
+		s.Equal(driver.QuoteDouble, s.postgres.QuoteType())
+	})
+	s.Run("mssql", func() {
+		s.Equal(driver.QuoteBracket, s.mssql.QuoteType())
+	})
+	s.Run("mysql", func() {
+		s.Equal(driver.QuoteBacktick, s.mysql.QuoteType())
+	})
+}
+
+func (s *DialectTestSuite) TestPlaceholder() {
+	s.Run("base", func() {
+		s.Equal("?", s.base.Placeholder(1))
+		s.Equal("?", s.base.Placeholder(99))
+	})
+	s.Run("generic", func() {
+		s.Equal("?", s.generic.Placeholder(1))
+		s.Equal("?", s.generic.Placeholder(99))
+	})
+	s.Run("postgres", func() {
+		s.Equal("$1", s.postgres.Placeholder(1))
+		s.Equal("$5", s.postgres.Placeholder(5))
+	})
+	s.Run("mssql", func() {
+		s.Equal("?", s.mssql.Placeholder(1))
+		s.Equal("?", s.mssql.Placeholder(99))
+	})
+	s.Run("mysql", func() {
+		s.Equal("?", s.mysql.Placeholder(1))
+		s.Equal("?", s.mysql.Placeholder(99))
+	})
+}
+
+func (s *DialectTestSuite) TestSupportsRenderFrom() {
+	s.Run("base", func() {
+		s.Equal("users", s.base.RenderFrom("users", ""))
+		s.Equal("users u", s.base.RenderFrom("users", "u"))
+	})
+	s.Run("generic", func() {
+		s.Equal("users", s.generic.RenderFrom("users", ""))
+		s.Equal("users u", s.generic.RenderFrom("users", "u"))
+	})
+	s.Run("postgres", func() {
+		s.Equal("\"users\"", s.postgres.RenderFrom("users", ""))
+		s.Equal("\"users\" u", s.postgres.RenderFrom("users", "u"))
+	})
+	s.Run("mssql", func() {
+		s.Equal("[users]", s.mssql.RenderFrom("users", ""))
+		s.Equal("[users] u", s.mssql.RenderFrom("users", "u"))
+	})
+	s.Run("mysql", func() {
+		s.Equal("`users`", s.mysql.RenderFrom("users", ""))
+		s.Equal("`users` u", s.mysql.RenderFrom("users", "u"))
+	})
+}
+
+func (s *DialectTestSuite) TestSupportsReturning() {
+	s.Run("base", func() {
+		s.Equal(false, s.base.SupportsReturning())
+	})
+	s.Run("generic", func() {
+		s.Equal(false, s.generic.SupportsReturning())
+	})
+	s.Run("postgres", func() {
+		s.Equal(true, s.postgres.SupportsReturning())
+	})
+	s.Run("mssql", func() {
+		s.Equal(false, s.mssql.SupportsReturning())
+	})
+	s.Run("mysql", func() {
+		s.Equal(false, s.mysql.SupportsReturning())
+	})
+}
+
+func (s *DialectTestSuite) TestSupportsUpsert() {
+	s.Run("base", func() {
+		s.Equal(false, s.base.SupportsUpsert())
+	})
+	s.Run("generic", func() {
+		s.Equal(false, s.generic.SupportsUpsert())
+	})
+	s.Run("postgres", func() {
+		s.Equal(true, s.postgres.SupportsUpsert())
+	})
+	s.Run("mssql", func() {
+		s.Equal(false, s.mssql.SupportsUpsert())
+	})
+	s.Run("mysql", func() {
+		s.Equal(false, s.mysql.SupportsUpsert())
+	})
 }
 
 func TestDialectTestSuite(t *testing.T) {
