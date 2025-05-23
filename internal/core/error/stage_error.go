@@ -1,0 +1,18 @@
+// File: internal/core/error/stage_error.go
+// Description: Defines the StageError struct and its error interface.
+// Since: v1.5.0
+
+package error
+
+import "fmt"
+
+// StageError represents a validation failure tagged by a builder stage.
+type StageError struct {
+	Stage string
+	Err   error
+}
+
+// Error returns a string representation of the StageError.
+func (se StageError) Error() string {
+	return fmt.Sprintf("[%s] %s", se.Stage, se.Err.Error())
+}
