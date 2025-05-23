@@ -41,8 +41,38 @@ const (
 	StageOffset StageToken = "OFFSET"
 )
 
-// String returns the stage name as a string.
+// knownStageTokens contains all recognized StageToken values.
+var knownStageTokens = map[StageToken]struct{}{
+	StageSelect: {},
+	StageFrom:   {},
+	StageJoin:   {},
+	StageWhere:  {},
+	StageGroup:  {},
+	StageHaving: {},
+	StageOrder:  {},
+	StageLimit:  {},
+	StageOffset: {},
+}
+
+// String returns the string representation of the StageToken.
+//
+// If the token is one of the known stage constants, the method returns its string value.
+// If it is unrecognized, it returns "UNKNOWN" to ensure safe fallback behavior.
+//
 // Implements fmt.Stringer.
+//
+// Example:
+//
+//	var s StageToken = StageJoin
+//	fmt.Println(s.String()) // Output: "JOIN"
+//
+//	var invalid StageToken = "UNTRACKED"
+//	fmt.Println(invalid.String()) // Output: "UNKNOWN"
+//
+// Since: v1.4.0
 func (s StageToken) String() string {
-	return string(s)
+	if _, ok := knownStageTokens[s]; ok {
+		return string(s)
+	}
+	return "UNKNOWN"
 }

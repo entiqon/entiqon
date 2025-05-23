@@ -1,6 +1,6 @@
 // File: internal/core/error/error_collector.go
 // Description: Manages accumulation and grouping of StageErrors.
-// Since: v1.5.0
+// Since: v1.4.0
 
 package error
 
@@ -12,9 +12,9 @@ type StageErrorCollector struct {
 }
 
 // AddStageError adds a non-nil error associated with a specific stage.
-func (c *StageErrorCollector) AddStageError(stage string, err error) {
+func (c *StageErrorCollector) AddStageError(stage StageToken, err error) {
 	if err != nil {
-		c.errors = append(c.errors, StageError{Stage: stage, Err: err})
+		c.errors = append(c.errors, StageError{Stage: stage, Error: err})
 	}
 }
 
@@ -32,7 +32,7 @@ func (c *StageErrorCollector) Errors() []StageError {
 func (c *StageErrorCollector) ErrorsByStage() map[string][]error {
 	grouped := make(map[string][]error)
 	for _, e := range c.errors {
-		grouped[e.Stage] = append(grouped[e.Stage], e.Err)
+		grouped[e.Stage.String()] = append(grouped[e.Stage.String()], e.Error)
 	}
 	return grouped
 }

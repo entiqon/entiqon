@@ -8,11 +8,11 @@ import "fmt"
 
 // StageError represents a validation failure tagged by a builder stage.
 type StageError struct {
-	Stage string
-	Err   error
+	Stage StageToken
+	Error error
 }
 
-// Error returns a string representation of the StageError.
-func (se StageError) Error() string {
-	return fmt.Sprintf("[%s] %s", se.Stage, se.Err.Error())
+// String returns a string representation of the StageError.
+func (e StageError) String() string {
+	return fmt.Sprintf("[%s] %s", e.Stage, e.Error.Error())
 }
