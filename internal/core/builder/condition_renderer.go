@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 

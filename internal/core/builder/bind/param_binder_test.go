@@ -3,8 +3,8 @@ package bind_test
 import (
 	"testing"
 
+	driver2 "github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -14,7 +14,7 @@ type ParamBinderTestSuite struct {
 }
 
 func (s *ParamBinderTestSuite) SetupTest() {
-	s.binder = bind.NewParamBinder(driver.NewGenericDialect())
+	s.binder = bind.NewParamBinder(driver2.NewGenericDialect())
 }
 
 func (s *ParamBinderTestSuite) TestBind() {
@@ -23,7 +23,7 @@ func (s *ParamBinderTestSuite) TestBind() {
 	s.Equal([]any{"admin"}, s.binder.Args())
 
 	s.Run("WithPostgres", func() {
-		binder := bind.NewParamBinder(driver.NewPostgresDialect())
+		binder := bind.NewParamBinder(driver2.NewPostgresDialect())
 		placeholder = binder.Bind("alpha")
 		if placeholder != "$1" {
 			s.T().Errorf("expected $1, got %s", placeholder)
@@ -42,7 +42,7 @@ func (s *ParamBinderTestSuite) TestBindMany() {
 	s.Equal([]any{42, true, "active"}, s.binder.Args())
 
 	s.Run("WithPostgres", func() {
-		binder := bind.NewParamBinder(driver.NewPostgresDialect())
+		binder := bind.NewParamBinder(driver2.NewPostgresDialect())
 		placeholders := binder.BindMany(42, true, "active")
 		s.Equal([]string{"$1", "$2", "$3"}, placeholders)
 		s.Equal([]any{42, true, "active"}, binder.Args())
@@ -56,7 +56,7 @@ func (s *ParamBinderTestSuite) TestArgsReturnsBoundValues() {
 }
 
 func (s *ParamBinderTestSuite) TestParamBinderWithPosition() {
-	binder := bind.NewParamBinderWithPosition(driver.NewGenericDialect(), 4)
+	binder := bind.NewParamBinderWithPosition(driver2.NewGenericDialect(), 4)
 	placeholder := binder.Bind("next")
 	if placeholder != "?" {
 		s.T().Errorf("expected ?, got %s", placeholder)
@@ -68,7 +68,7 @@ func (s *ParamBinderTestSuite) TestParamBinderWithPosition() {
 	}
 
 	s.Run("WithPostgres", func() {
-		binder = bind.NewParamBinderWithPosition(driver.NewPostgresDialect(), 4)
+		binder = bind.NewParamBinderWithPosition(driver2.NewPostgresDialect(), 4)
 
 		placeholder := binder.Bind("next")
 		if placeholder != "$4" {

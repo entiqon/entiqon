@@ -3,9 +3,9 @@ package builder_test
 import (
 	"testing"
 
+	driver2 "github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -44,15 +44,15 @@ func (s *ConditionRendererTestSuite) TestRenderConditions_Generic() {
 			token.NewCondition(token.ConditionSimple, "active", true),
 		}
 
-		sql, args, err := builder.RenderConditions(driver.NewGenericDialect(), conditions)
+		sql, args, err := builder.RenderConditions(driver2.NewGenericDialect(), conditions)
 		s.NoError(err)
 		s.Equal("active = ?", sql)
 		s.Equal([]any{true}, args)
 	})
 
 	s.Run("Empty", func() {
-		binder := bind.NewParamBinder(driver.NewGenericDialect())
-		sql, args, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), nil, binder)
+		binder := bind.NewParamBinder(driver2.NewGenericDialect())
+		sql, args, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), nil, binder)
 
 		s.NoError(err)
 		s.Equal("", sql)
@@ -63,8 +63,8 @@ func (s *ConditionRendererTestSuite) TestRenderConditions_Generic() {
 		c := token.NewCondition(token.ConditionSimple, "status", "active")
 		c.Type = token.ConditionType(rune(999)) // simulate unsupported condition type
 
-		binder := bind.NewParamBinder(driver.NewGenericDialect())
-		_, _, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), []token.Condition{c}, binder)
+		binder := bind.NewParamBinder(driver2.NewGenericDialect())
+		_, _, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), []token.Condition{c}, binder)
 
 		s.Error(err)
 		s.Contains(err.Error(), "unsupported condition type")
@@ -75,8 +75,8 @@ func (s *ConditionRendererTestSuite) TestRenderConditions_Generic() {
 			{}, // invalid: missing Key and Error is nil
 		}
 
-		binder := bind.NewParamBinder(driver.NewGenericDialect())
-		_, _, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), conditions, binder)
+		binder := bind.NewParamBinder(driver2.NewGenericDialect())
+		_, _, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), conditions, binder)
 
 		s.Error(err)
 		s.Contains(err.Error(), "invalid condition")
@@ -88,8 +88,8 @@ func (s *ConditionRendererTestSuite) TestRenderConditions_Generic() {
 			token.NewCondition(token.ConditionAnd, "deleted", false),
 		}
 
-		binder := bind.NewParamBinder(driver.NewGenericDialect())
-		sql, args, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), conditions, binder)
+		binder := bind.NewParamBinder(driver2.NewGenericDialect())
+		sql, args, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), conditions, binder)
 
 		s.NoError(err)
 		s.Equal("status = ? AND deleted = ?", sql)
@@ -103,8 +103,8 @@ func (s *ConditionRendererTestSuite) TestRenderConditionsWithBinder_Postgres() {
 		token.NewCondition(token.ConditionOr, "email_verified", false),
 	}
 
-	binder := bind.NewParamBinderWithPosition(driver.NewPostgresDialect(), 4)
-	sql, args, err := builder.RenderConditionsWithBinder(driver.NewPostgresDialect(), conditions, binder)
+	binder := bind.NewParamBinderWithPosition(driver2.NewPostgresDialect(), 4)
+	sql, args, err := builder.RenderConditionsWithBinder(driver2.NewPostgresDialect(), conditions, binder)
 
 	s.NoError(err)
 	s.Equal("\"email_verified\" = $4 OR \"email_verified\" = $5", sql)
