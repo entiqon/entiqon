@@ -116,16 +116,16 @@ Use it when your INSERT logic may result in duplicates and should either update 
 
 ✅ **100% tested**, including deprecated behavior.
 
-| Area                        | Coverage |
-|-----------------------------|----------|
-| `Into`, `Columns`, `Values` | ✅        |
-| `OnConflict`, `DoUpdateSet` | ✅        |
-| `RETURNING` clause          | ✅        |
-| Dialect injection (`UseDialect`) | ✅ |
-| Deprecated `WithDialect`    | ✅        |
-| Validation rules            | ✅        |
-| Clause ordering             | ✅        |
-| Dialect-specific quoting    | ✅        |
+| Area                             | Coverage |
+|----------------------------------|----------|
+| `Into`, `Columns`, `Values`      | ✅        |
+| `OnConflict`, `DoUpdateSet`      | ✅        |
+| `RETURNING` clause               | ✅        |
+| Dialect injection (`UseDialect`) | ✅        |
+| Deprecated `WithDialect`         | ✅        |
+| Validation rules                 | ✅        |
+| Clause ordering                  | ✅        |
+| Dialect-specific quoting         | ✅        |
 
 > ✅ All builder methods and clause behaviors are tested.
 > Even deprecated features like `WithDialect(...)` are covered for backward compatibility.

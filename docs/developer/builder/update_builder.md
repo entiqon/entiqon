@@ -75,16 +75,16 @@ Args:
 
 ✅ **100% tested**, grouped by method and edge cases.
 
-| Area           | Covered |
-|----------------|---------|
-| `.Table(...)`  | ✅       |
-| `.Set(...)`    | ✅       |
-| `.Where/And/Or`| ✅       |
-| `.Build()`     | ✅       |
-| `.UseDialect()`| ✅       |
-| `.WithDialect()`| ✅      |
-| Validation     | ✅       |
-| Aliased field  | ✅ error triggered |
+| Area             | Covered           |
+|------------------|-------------------|
+| `.Table(...)`    | ✅                 |
+| `.Set(...)`      | ✅                 |
+| `.Where/And/Or`  | ✅                 |
+| `.Build()`       | ✅                 |
+| `.UseDialect()`  | ✅                 |
+| `.WithDialect()` | ✅                 |
+| Validation       | ✅                 |
+| Aliased field    | ✅ error triggered |
 
 > 🧪 Even if necessary, **tests will be tested.**
 > Because coverage isn't just a number — it's a philosophy.
@@ -104,5 +104,5 @@ Args:
 * [InsertBuilder Guide](./insert_builder.md)
 * [SelectBuilder Guide](./select_builder.md)
 * [DeleteBuilder Guide](./delete_builder.md)
-* [UpsertBuilder Guide](./upsert_builder_full_guide.md)
-* [Dialect Guide](./dialect_engine.md)
+* [UpsertBuilder Guide](./upsert_builder.md)
+* [Dialect Guide](./../core/driver/dialect.md)

@@ -1,21 +1,20 @@
-# Dockerfile for clean MkDocs deployment with Material theme
-FROM squidfunk/mkdocs-material
+# use a pinned version for consistency
+FROM squidfunk/mkdocs-material:9.4.7
 
-WORKDIR /docs
+WORKDIR /project
 
-# Copy only the required files explicitly
 COPY mkdocs.yml requirements.txt ./
-COPY builder_guide_updates.md ./
-COPY select_builder.md ./
-COPY insert_builder.md ./
-COPY update_builder.md ./
-COPY delete_builder.md ./
-COPY upsert_builder.md ./
-COPY documentation-infra.md ./
-COPY index.md ./
-COPY releases/ releases/
-COPY docs/ docs/
+
+# Stage documentation content and maintain folder structure
+RUN mkdir -p docs-site/developer/builder docs-site/developer/core docs-site/releases
+
+COPY documentation-infra.md docs-site/
+COPY CHANGELOG.md docs-site/
+COPY docs/index.md docs-site/index.md
+COPY docs/developer/builder/ docs-site/developer/builder/
+COPY docs/developer/core/ docs-site/developer/core/
+COPY releases/ docs-site/releases/
 
 EXPOSE 8000
 
-CMD ["mkdocs", "serve", "--dev-addr=0.0.0.0:8000"]
+CMD ["serve", "--dev-addr=0.0.0.0:8000"]

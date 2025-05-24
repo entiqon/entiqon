@@ -21,6 +21,9 @@
 go.work
 go.work.sum
 
+# local
+/docs/CHANGELOG.md
+/docs/releases/
+
 # env file
 .env
-
