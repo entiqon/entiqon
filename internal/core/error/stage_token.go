@@ -16,8 +16,17 @@ const (
 	// StageSelect indicates errors related to the SELECT projection or fields.
 	StageSelect StageToken = "SELECT"
 
+	// StageSet indicates errors related to the SET projection or fields.
+	StageSet StageToken = "SET"
+
 	// StageFrom indicates errors related to the FROM clause or source tables.
 	StageFrom StageToken = "FROM"
+
+	// StageInto indicates errors related to the INTO clause or source tables.
+	StageInto StageToken = "INTO"
+
+	// StageValues indicates errors related to the VALUES clause or source tables.
+	StageValues StageToken = "VALUES"
 
 	// StageJoin indicates errors related to JOIN clauses (INNER, LEFT, etc.).
 	StageJoin StageToken = "JOIN"
@@ -39,19 +48,25 @@ const (
 
 	// StageOffset indicates issues with OFFSET clause or pagination logic.
 	StageOffset StageToken = "OFFSET"
+
+	// StageReturning indicates issues with RETURNING clause logic.
+	StageReturning StageToken = "RETURNING"
 )
 
 // knownStageTokens contains all recognized StageToken values.
 var knownStageTokens = map[StageToken]struct{}{
-	StageSelect: {},
-	StageFrom:   {},
-	StageJoin:   {},
-	StageWhere:  {},
-	StageGroup:  {},
-	StageHaving: {},
-	StageOrder:  {},
-	StageLimit:  {},
-	StageOffset: {},
+	StageSelect:    {},
+	StageSet:       {},
+	StageFrom:      {},
+	StageInto:      {},
+	StageJoin:      {},
+	StageWhere:     {},
+	StageReturning: {},
+	StageGroup:     {},
+	StageHaving:    {},
+	StageOrder:     {},
+	StageLimit:     {},
+	StageOffset:    {},
 }
 
 // String returns the string representation of the StageToken.
