@@ -36,10 +36,10 @@ jobs:
           docker run --rm -v ${{ github.workspace }}/site:/project/site entiqon-docs build --clean
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
-          path: site
           name: github-pages
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deploy
