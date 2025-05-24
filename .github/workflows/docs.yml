@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
       - name: Checkout source
@@ -35,14 +35,8 @@ jobs:
           mkdir -p site
           docker run --rm -v ${{ github.workspace }}/site:/project/site entiqon-docs mkdocs build --clean
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v2
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: site
-
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
+        id: deploy
+        uses: actions/deploy-pages@v2
+        with:
+          artifact_path: site
