@@ -5,8 +5,6 @@
 
 package driver
 
-import core "github.com/ialopezg/entiqon/driver"
-
 // MySQLDialect implements the Dialect interface for MySQL-compatible databases.
 //
 // This dialect uses:
@@ -34,7 +32,8 @@ func NewMySQLDialect() *MySQLDialect {
 		BaseDialect: BaseDialect{
 			Name:              "mysql",
 			Quotation:         QuoteBacktick,
-			PlaceholderSymbol: core.PlaceholderQuestion,
+			PlaceholderSymbol: PlaceholderQuestion,
+			EnableAliasing:    true,
 			EnableReturning:   false,
 			EnableUpsert:      false,
 		},

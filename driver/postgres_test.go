@@ -3,7 +3,7 @@ package driver_test
 import (
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/stretchr/testify/suite"
 )
 

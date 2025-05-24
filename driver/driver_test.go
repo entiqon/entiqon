@@ -3,8 +3,7 @@ package driver_test
 import (
 	"testing"
 
-	cd "github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -122,11 +121,11 @@ func (s *DialectTestSuite) TestPlaceholder() {
 func (s *DialectTestSuite) TestSupportsRenderFrom() {
 	s.Run("base", func() {
 		s.Equal("users", s.base.RenderFrom("users", ""))
-		s.Equal("users u", s.base.RenderFrom("users", "u"))
+		s.Equal("users", s.base.RenderFrom("users", "u"))
 	})
 	s.Run("generic", func() {
 		s.Equal("users", s.generic.RenderFrom("users", ""))
-		s.Equal("users u", s.generic.RenderFrom("users", "u"))
+		s.Equal("users", s.generic.RenderFrom("users", "u"))
 	})
 	s.Run("postgres", func() {
 		s.Equal("\"users\"", s.postgres.RenderFrom("users", ""))
@@ -180,7 +179,7 @@ func (s *DialectTestSuite) TestSupportsUpsert() {
 
 func (s *DialectTestSuite) TestValidate() {
 	s.Run("Valid", func() {
-		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: cd.PlaceholderQuestion}
+		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: driver.PlaceholderQuestion}
 		err := d.Validate()
 		s.NoError(err)
 		s.Equal("?", d.Placeholder(0))
@@ -192,7 +191,7 @@ func (s *DialectTestSuite) TestValidate() {
 		s.Contains(err.Error(), "name is not set")
 	})
 	s.Run("MissingPlaceholder", func() {
-		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: cd.PlaceholderSymbol("")}
+		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: driver.PlaceholderSymbol("")}
 		err := d.Validate()
 		s.Error(err)
 	})

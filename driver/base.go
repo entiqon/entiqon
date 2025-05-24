@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	core "github.com/ialopezg/entiqon/driver"
 )
 
 // BaseDialect provides a foundational implementation of the Dialect interface.
@@ -18,6 +16,14 @@ import (
 //
 // Since: v1.4.0
 type BaseDialect struct {
+	// EnableAliasing indicates whether the dialect supports table aliases
+	// in clauses such as DELETE FROM, UPDATE FROM, or SELECT FROM.
+	//
+	// When true, builders will include alias expressions using RenderFrom.
+	//
+	// Since: v1.4.0
+	EnableAliasing bool
+
 	// EnableReturning specifies whether the dialect supports SQL RETURNING clauses,
 	// such as `INSERT ... RETURNING id` or `UPDATE ... RETURNING *`.
 	//
@@ -43,7 +49,7 @@ type BaseDialect struct {
 	Quotation QuotationType
 
 	// PlaceholderSymbol is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
-	PlaceholderSymbol core.PlaceholderSymbol
+	PlaceholderSymbol PlaceholderSymbol
 }
 
 // GetName returns the dialect Name.
@@ -107,7 +113,7 @@ func (b *BaseDialect) Placeholder(index int) string {
 	if !b.PlaceholderSymbol.IsValid() {
 		return "?"
 	}
-	if b.PlaceholderSymbol == core.PlaceholderQuestion {
+	if b.PlaceholderSymbol == PlaceholderQuestion {
 		return "?"
 	}
 	// Always fallback to dynamic prefix behavior
@@ -139,10 +145,11 @@ func (b *BaseDialect) BuildLimitOffset(limit, offset int) string {
 //
 // Updated: v1.4.0
 func (b *BaseDialect) RenderFrom(table string, alias string) string {
-	if alias != "" {
-		return fmt.Sprintf("%s %s", b.QuoteIdentifier(table), alias)
+	quoted := b.QuoteIdentifier(table)
+	if alias != "" && b.EnableAliasing {
+		return fmt.Sprintf("%s %s", quoted, alias)
 	}
-	return b.QuoteIdentifier(table)
+	return quoted
 }
 
 // SupportsReturning returns true if the dialect supports RETURNING clauses.

@@ -5,8 +5,6 @@
 
 package driver
 
-import core "github.com/ialopezg/entiqon/driver"
-
 // NewGenericDialect returns a BaseDialect instance representing a neutral,
 // non-engine-specific SQL dialect.
 //
@@ -27,7 +25,8 @@ func NewGenericDialect() Dialect {
 	return &BaseDialect{
 		Name:              "generic",
 		Quotation:         QuoteNone,
-		PlaceholderSymbol: core.PlaceholderQuestion,
+		PlaceholderSymbol: PlaceholderQuestion,
+		EnableAliasing:    false,
 		EnableReturning:   false,
 		EnableUpsert:      false,
 	}
