@@ -33,7 +33,7 @@ jobs:
       - name: Generate static site
         run: |
           mkdir -p site
-          docker run --rm -v ${{ github.workspace }}/site:/project/site entiqon-docs mkdocs build --clean
+          docker run --rm -v ${{ github.workspace }}/site:/project/site entiqon-docs build --clean
 
       - name: Deploy to GitHub Pages
         id: deploy
