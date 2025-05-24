@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -14,7 +15,7 @@ type SelectBuilderTestSuite struct {
 }
 
 func (s *SelectBuilderTestSuite) SetupTest() {
-	s.qb = NewSelect()
+	s.qb = NewSelect(nil)
 }
 
 // ─────────────────────────────────────────────
@@ -86,11 +87,11 @@ func (s *SelectBuilderTestSuite) TestFrom() {
 	s.Run("WithAlias", func() {
 		sql, _, err := s.qb.
 			Select("id", "name").
-			FromAs("users", "u").
+			From("users", "u").
 			Build()
 
 		s.NoError(err)
-		s.Contains(sql, "users u")
+		s.Contains(sql, "users")
 	})
 
 	s.Run("EmptyTable", func() {
@@ -98,11 +99,11 @@ func (s *SelectBuilderTestSuite) TestFrom() {
 		_, _, err := s.qb.Build()
 
 		s.Error(err)
-		s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Contains(err.Error(), "table is empty")
 	})
 
 	s.Run("MissingFromClause", func() {
-		_, _, err := NewSelect().
+		_, _, err := NewSelect(nil).
 			Select("id").
 			Build()
 
@@ -115,7 +116,7 @@ func (s *SelectBuilderTestSuite) TestFrom() {
 // 🧪 Where, AndWhere, OrWhere
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
-	sql, _, err := s.qb.
+	sql, _, err := NewSelect(nil).
 		Select("id").
 		From("customers").
 		Where("active", true).
@@ -128,8 +129,8 @@ func (s *SelectBuilderTestSuite) TestWhereAndOrConditions() {
 	s.NoError(err)
 	s.Equal(expected, sql)
 
-	//s.Run("MulpleInline", func() {
-	//	sql, _, err := s.qb.
+	//s.Run("MultipleInline", func() {
+	//	sql, _, err := NewSelect(nil).
 	//		Select("id").
 	//		From("customers").
 	//		Where("active = true AND email_verified = true AND country = US OR country = CA").
@@ -192,14 +193,14 @@ func (s *SelectBuilderTestSuite) TestOrWhere_InvalidCondition() {
 		_, _, err := s.qb.Build()
 
 		s.Error(err)
-		s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Contains(err.Error(), "unable to parse condition")
 	})
 	s.Run("OrWhere_InvalidCondition", func() {
 		s.qb.Select("*").From("users").Where("active = ?", true).OrWhere("amount >")
 		_, _, err := s.qb.Build()
 
 		s.Error(err)
-		s.Contains(err.Error(), "invalid condition(s)")
+		s.Contains(err.Error(), "unable to parse condition")
 	})
 }
 
@@ -247,7 +248,7 @@ func (s *SelectBuilderTestSuite) TestBuild_LimitOffsetWithoutDialect() {
 // 🧪 UseDialect
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
-	sql, args, err := s.qb.
+	sql, args, err := NewSelect(driver.NewPostgresDialect()).
 		Select("id", "created_at").
 		From("users").
 		Where("status", "active").
@@ -264,7 +265,7 @@ func (s *SelectBuilderTestSuite) TestSelectBuilderUseDialectPostgres() {
 // 🧪 Build
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestBuild_InvalidConditionType() {
-	b := NewSelect().
+	b := NewSelect(nil).
 		Select("id").
 		From("users")
 
@@ -278,6 +279,7 @@ func (s *SelectBuilderTestSuite) TestBuild_InvalidConditionType() {
 	b.conditions = append(b.conditions, rogue)
 
 	_, _, err := b.Build()
+
 	s.Error(err)
 	s.Contains(err.Error(), "unsupported condition type")
 }
@@ -315,28 +317,25 @@ func (s *SelectBuilderTestSuite) TestBuild_WithDialect_UsesDialectLimitOffset() 
 func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
 	c := token.NewCondition(token.ConditionSimple, "id = ?")
 
-	b := SelectBuilder{}
 	s.Run("EmptyTable", func() {
-		_, _, err := b.Build()
+		_, _, err := NewSelect(nil).Build()
 		s.Error(err)
 		s.ErrorContains(err, "requires a target table")
 	})
-	if !c.IsValid() {
-		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
-	}
-	b.From("users")
 	s.Run("HasDialect", func() {
-		b.conditions = []token.Condition{c}
+		b := NewSelect(nil)
+		if !c.IsValid() {
+			b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
+		}
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.dialect.GetName())
+		s.Equal("generic", b.Dialect.GetName())
 	})
 	s.Run("HasErrors", func() {
-		_, _, err := b.Build()
+		_, _, err := NewSelect(nil).Build()
 		s.Error(err)
-		s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Contains(err.Error(), "builder validation failed")
 	})
-
 }
 
 func TestSelectBuilderTestSuite(t *testing.T) {

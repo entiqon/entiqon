@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ialopezg/entiqon/builder"
+	driver2 "github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
@@ -15,14 +16,14 @@ type InsertBuilderTestSuite struct {
 }
 
 func (s *InsertBuilderTestSuite) SetupTest() {
-	s.qb = builder.NewInsert()
+	s.qb = builder.NewInsert(nil)
 }
 
 // ─────────────────────────────────────────────
 // 🧪 Columns()
 // ─────────────────────────────────────────────
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoColumns() {
-	b := builder.NewInsert().Into("users").Values(1, "Watson")
+	b := builder.NewInsert(nil).Into("users").Values(1, "Watson")
 	_, _, err := b.BuildInsertOnly()
 	s.ErrorContains(err, "at least one column is required")
 }
@@ -31,7 +32,7 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoColumns() {
 // 🧪 Values
 // ─────────────────────────────────────────────
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoValues() {
-	b := builder.NewInsert().Into("users").Columns("id", "name")
+	b := builder.NewInsert(nil).Into("users").Columns("id", "name")
 	_, _, err := b.BuildInsertOnly()
 	s.ErrorContains(err, "at least one set of values is required")
 }
@@ -40,12 +41,11 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoValues() {
 // 🧪 Returning
 // ─────────────────────────────────────────────
 func (s *InsertBuilderTestSuite) TestInsertBuilder_WithReturning() {
-	q := s.qb.
+	q := builder.NewInsert(driver2.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
-		Returning("id", "created_at").
-		UseDialect("postgres")
+		Returning("id", "created_at")
 
 	sql, args, err := q.Build()
 	s.NoError(err)
@@ -57,11 +57,10 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithReturning() {
 // 🧪 Dialect Handling
 // ─────────────────────────────────────────────
 func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_Postgres() {
-	sql, _, err := builder.NewInsert().
+	sql, _, err := builder.NewInsert(driver2.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
-		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
@@ -72,7 +71,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_Postgres() {
 // 🧪 Build()
 // ─────────────────────────────────────────────
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MismatchedRowLength() {
-	b := builder.NewInsert().
+	b := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1)
@@ -83,21 +82,21 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MismatchedRowLength() {
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_BuildErrors() {
 	// Missing table
-	_, _, err := builder.NewInsert().
+	_, _, err := builder.NewInsert(nil).
 		Columns("id").
 		Values(1).
 		Build()
 	s.Error(err)
 
 	// Missing columns
-	_, _, err = builder.NewInsert().
+	_, _, err = builder.NewInsert(nil).
 		Into("users").
 		Values(1).
 		Build()
 	s.Error(err)
 
 	// Missing values
-	_, _, err = builder.NewInsert().
+	_, _, err = builder.NewInsert(nil).
 		Into("users").
 		Columns("id").
 		Build()
@@ -105,7 +104,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_BuildErrors() {
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_MismatchedValueCount() {
-	_, _, err := builder.NewInsert().
+	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1).
@@ -114,7 +113,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_MismatchedValueCount() {
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_MissingFieldError() {
-	_, _, err := builder.NewInsert().
+	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name", "email").
 		Values(1, "Watson"). // Only 2 values for 3 columns
@@ -125,7 +124,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_MissingFieldError() {
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_WithAliasedColumn() {
-	sql, args, err := builder.NewInsert().
+	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("email AS contact").
 		Values("watson@example.com").
@@ -137,22 +136,21 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_WithAliasedColumn() {
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithoutDialectFails() {
-	_, _, err := builder.NewInsert().
+	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id").
 		Values(1).
 		Returning("id").
 		Build()
 
-	s.ErrorContains(err, "returning columns not allowed")
+	s.ErrorContains(err, "builder validation failed")
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_WithDialectNoReturning() {
-	sql, args, err := builder.NewInsert().
+	sql, args, err := builder.NewInsert(driver2.NewPostgresDialect()).
 		Into("users").
 		Columns("id").
 		Values(1).
-		UseDialect("postgres").
 		Build()
 
 	s.NoError(err)
@@ -161,14 +159,14 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_WithDialectNoReturning(
 }
 
 func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithGenericDialectFails() {
-	sql, args, err := builder.NewInsert().
+	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id").
 		Values(1).
 		Returning("id").
 		Build()
 
-	s.ErrorContains(err, "returning columns not allowed")
+	s.ErrorContains(err, "builder validation failed")
 	s.Empty(sql)
 	s.Nil(args)
 }
@@ -178,7 +176,7 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithGenericDia
 // ─────────────────────────────────────────────
 // BuildInsertOnly with valid input — ensures success case
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ValidInsert() {
-	b := builder.NewInsert().
+	b := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson")
@@ -190,7 +188,7 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ValidInsert() {
 }
 
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MultiRowSuccess() {
-	sql, args, err := builder.NewInsert().
+	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
@@ -203,7 +201,7 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MultiRowSuccess() {
 }
 
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MissingTableFails() {
-	_, _, err := builder.NewInsert().
+	_, _, err := builder.NewInsert(nil).
 		Columns("id").
 		Values(1).
 		BuildInsertOnly()
@@ -212,11 +210,10 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MissingTableFails() {
 }
 
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_TableWithDialect() {
-	sql, args, err := builder.NewInsert().
+	sql, args, err := builder.NewInsert(driver2.NewPostgresDialect()).
 		Into("users").
 		Columns("id").
 		Values(1).
-		UseDialect("postgres").
 		BuildInsertOnly()
 
 	s.NoError(err)
@@ -225,40 +222,73 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_TableWithDialect() {
 }
 
 func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ColumnEscapingWithDialect() {
-	sql, _, err := builder.NewInsert().
-		Into("users").
-		Columns("user_id", "email").
-		Values(1, "x@example.com").
-		UseDialect("postgres").
-		BuildInsertOnly()
+	s.Run("Generic", func() {
+		sql, _, err := builder.NewInsert(driver2.NewGenericDialect()).
+			Into("users").
+			Columns("email").
+			Values("x@example.com").
+			BuildInsertOnly()
 
-	s.NoError(err)
-	s.Contains(sql, `"user_id"`)
-	s.Contains(sql, `"email"`)
+		s.NoError(err)
+		s.Contains(sql, "email")
+	})
+	s.Run("MSSQL", func() {
+		sql, _, err := builder.NewInsert(driver2.NewMSSQLDialect()).
+			Into("users").
+			Columns("email").
+			Values("x@example.com").
+			BuildInsertOnly()
+
+		s.NoError(err)
+		s.Contains(sql, "[email]")
+	})
+	s.Run("MySQL", func() {
+		sql, _, err := builder.NewInsert(driver2.NewMySQLDialect()).
+			Into("users").
+			Columns("email").
+			Values("x@example.com").
+			BuildInsertOnly()
+
+		s.NoError(err)
+		s.Contains(sql, "`email`")
+	})
+	s.Run("PostgreSQL", func() {
+		sql, _, err := builder.NewInsert(driver2.NewPostgresDialect()).
+			Into("users").
+			Columns("email").
+			Values("x@example.com").
+			BuildInsertOnly()
+
+		s.NoError(err)
+		s.Contains(sql, `"email"`)
+	})
 }
 
 func (s *InsertBuilderTestSuite) TestBuild_BuildValidations() {
 	c := token.NewCondition(token.ConditionSimple, "id = ?")
 
-	b := builder.InsertBuilder{}
 	s.Run("EmptyTable", func() {
+		b := builder.NewInsert(nil)
 		_, _, err := b.Build()
 		s.Error(err)
 		s.Contains(err.Error(), "requires a target table")
 	})
-	if !c.IsValid() {
-		b.AddStageError("WHERE", fmt.Errorf("invalid clause"))
-	}
-	b.Into("users")
 	s.Run("HasDialect", func() {
+		b := builder.NewInsert(nil).Into("users")
 		_, _, err := b.Build()
+
+		if !c.IsValid() {
+			b.AddStageError("WHERE", fmt.Errorf("invalid clause"))
+		}
+
 		s.Error(err)
 		s.Equal("generic", b.GetDialect().GetName())
 	})
 	s.Run("HasErrors", func() {
+		b := builder.NewInsert(nil).Into("users")
 		_, _, err := b.Into("").Build()
 		s.Error(err)
-		s.Contains(err.Error(), "invalid condition(s)")
+		s.Contains(err.Error(), "builder validation failed")
 	})
 
 }

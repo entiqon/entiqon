@@ -6,75 +6,115 @@ package builder
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	driver2 "github.com/ialopezg/entiqon/driver"
 	core "github.com/ialopezg/entiqon/internal/core/error"
 )
 
 // BaseBuilder provides shared dialect behavior and error handling for all query builders.
 type BaseBuilder struct {
-	dialect driver.Dialect
+	Dialect   driver2.Dialect
+	Name      string
+	Validator core.StageErrorCollector
+
+	dialect driver2.Dialect
 	// Stage-tagged error collector
 	errors core.StageErrorCollector
 }
 
+// NewBaseBuilder creates a properly initialized BaseBuilder with a specified name.
+//
+// This constructor ensures:
+//   - The builder name is always set and lowercased (e.g., "select", "delete")
+//   - If the provided dialect is nil, the builder defaults to using the generic dialect.
+//   - The Validator is initialized (ready for AddStageError, etc.)
+//   - Safe behavior in Validate() and error diagnostics
+//
+// Example:
+//
+//	b := NewBaseBuilder("select", driver.NewPostgresDialect())
+//
+// Since: v1.4.0
+func NewBaseBuilder(name string, dialect driver2.Dialect) BaseBuilder {
+	if dialect == nil {
+		dialect = driver2.NewGenericDialect()
+	}
+	return BaseBuilder{
+		Name:      strings.ToLower(name),
+		Dialect:   dialect,
+		Validator: core.StageErrorCollector{},
+	}
+}
+
 // AddStageError records an error tied to a specific logical stage (e.g. "FROM", "WHERE").
 func (b *BaseBuilder) AddStageError(stage core.StageToken, err error) {
-	b.errors.AddStageError(stage, err)
+	b.Validator.AddStageError(stage, err)
 }
 
 // CombineErrors returns a grouped and readable error summary across all stages.
 func (b *BaseBuilder) CombineErrors() error {
-	return b.errors.CombineErrors()
+	return b.Validator.CombineErrors()
 }
 
 // ErrorsByStage groups errors by their logical builder stage.
 func (b *BaseBuilder) ErrorsByStage() map[string][]error {
-	return b.errors.ErrorsByStage()
+	return b.Validator.ErrorsByStage()
 }
 
 // GetDialect returns the resolved dialect, falling back to the generic default if unset.
-func (b *BaseBuilder) GetDialect() driver.Dialect {
-	if b.dialect == nil {
-		b.dialect = driver.NewGenericDialect()
+func (b *BaseBuilder) GetDialect() driver2.Dialect {
+	if b.Dialect == nil {
+		b.Dialect = driver2.NewGenericDialect()
 	}
-	return b.dialect
-}
-
-// GetErrors returns all collected stage-tagged errors.
-func (b *BaseBuilder) GetErrors() []core.StageError {
-	return b.errors.Errors()
-}
-
-// GetErrorsString returns a stringified grouped summary of all collected errors.
-func (b *BaseBuilder) GetErrorsString() string {
-	return b.errors.String()
+	return b.Dialect
 }
 
 // HasDialect checks if a specific dialect has been set.
 func (b *BaseBuilder) HasDialect() bool {
-	return b.dialect != nil
+	return b.Dialect != nil
 }
 
 // HasErrors returns true if any stage errors exist.
 func (b *BaseBuilder) HasErrors() bool {
-	return b.errors.HasErrors()
+	return b.Validator.HasErrors()
 }
 
 func (b *BaseBuilder) RenderFrom(table string, alias string) string {
 	if alias != "" {
-		return fmt.Sprintf("%s %s", b.dialect.QuoteIdentifier(table), alias)
+		return fmt.Sprintf("%s %s", b.Dialect.QuoteIdentifier(table), alias)
 	}
-	return b.dialect.QuoteIdentifier(table)
+	return b.Dialect.QuoteIdentifier(table)
 }
 
 // UseDialect sets a specific dialect to be used by the builder.
 func (b *BaseBuilder) UseDialect(name string) *BaseBuilder {
-	if name == "" || (b.dialect != nil && b.dialect.GetName() == name) {
+	if name == "" || (b.Dialect != nil && b.Dialect.GetName() == name) {
 		return b
 	}
-	if d := driver.ResolveDialect(name); d != nil {
-		b.dialect = d
+	if d := driver2.ResolveDialect(name); d != nil {
+		b.Dialect = d
 	}
 	return b
+}
+
+// Validate checks that a dialect is assigned to the builder.
+// If not, returns a formatted error using the builder's Name field.
+//
+// Usage:
+//
+//	if err := b.Validate(); err != nil {
+//	    return "", nil, err
+//	}
+func (b *BaseBuilder) Validate() error {
+	if b.Dialect == nil {
+		return fmt.Errorf(
+			"%s: no dialect set — please assign one (e.g., driver.NewGenericDriver())",
+			strings.ToUpper(b.Name),
+		)
+	}
+	if b.Validator.HasErrors() {
+		return b.Validator.CombineErrors()
+	}
+	return nil
 }

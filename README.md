@@ -47,6 +47,7 @@ Entiqon is a modular query engine designed to:
 
 
 ## ✅ Developer Guides
+* [Custom Driver Guide](./docs/developer/core/driver/custom_driver_guide.md) — Extend Entiqon with your own SQL dialect
 
 Each builder is fully documented and independently tested:
 

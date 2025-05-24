@@ -3,6 +3,7 @@ package builder
 import (
 	"testing"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -18,8 +19,7 @@ func TestUpsertBuilderTestSuite(t *testing.T) {
 // 🧪 WithDialect
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
-	q := NewUpsert().
-		UseDialect("postgres").
+	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
@@ -38,7 +38,7 @@ func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
 }
 
 func (s *UpsertBuilderTestSuite) TestWithoutDialect() {
-	q := NewUpsert().
+	q := NewUpsert(nil).
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
@@ -57,7 +57,7 @@ func (s *UpsertBuilderTestSuite) TestWithoutDialect() {
 }
 
 func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
-	q := NewUpsert().
+	q := NewUpsert(nil).
 		Into("emails").
 		Columns("id", "value").
 		Values(101, "none@entiqon.dev").
@@ -74,8 +74,7 @@ func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
 // 🧪 Returning
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestReturning_AppendsReturningClause() {
-	q := NewUpsert().
-		UseDialect("postgres").
+	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "email").
 		Values(1, "dev@entiqon.dev").
@@ -98,7 +97,7 @@ func (s *UpsertBuilderTestSuite) TestReturning_AppendsReturningClause() {
 // 🧪 DoUpdateSet
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
-	q := NewUpsert().
+	q := NewUpsert(nil).
 		DoUpdateSet(
 			Assignment{Column: "name", Expr: "EXCLUDED.name"},
 			Assignment{Column: "email", Expr: "EXCLUDED.email"},
@@ -117,8 +116,7 @@ func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
 // 🧪 OnConflict
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
-	q := NewUpsert().
-		UseDialect("postgres").
+	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("people").
 		Columns("id", "email").
 		Values(1, "someone@dev.com").
@@ -137,7 +135,7 @@ func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
 // 🧪 Build
 // ─────────────────────────────────────────────
 func (s *UpsertBuilderTestSuite) TestBuild_DoUpdate() {
-	q := NewUpsert().
+	q := NewUpsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
@@ -156,7 +154,7 @@ func (s *UpsertBuilderTestSuite) TestBuild_DoUpdate() {
 }
 
 func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
-	q := NewUpsert().
+	q := NewUpsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
@@ -174,32 +172,32 @@ func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
 func (s *UpsertBuilderTestSuite) TestBuild_BuildValidations() {
 	b := UpsertBuilder{}
 	s.Run("EmptyTable", func() {
-		_, _, err := b.Build()
+		_, _, err := NewUpsert(nil).Build()
 		s.Error(err)
 		s.Contains(err.Error(), "requires a target table")
 	})
 	s.Run("HasDialect", func() {
-		_, _, err := NewUpsert().Into("users").Columns("id").Build()
+		_, _, err := NewUpsert(nil).Into("users").Columns("id").Build()
 		s.Error(err)
 		s.Equal("generic", b.GetDialect().GetName())
 	})
 	s.Run("HasErrors", func() {
-		_, _, err := NewUpsert().Into("users").Columns("").Build()
+		_, _, err := NewUpsert(nil).Into("users").Columns("").Build()
 		s.Error(err)
 		s.Contains(err.Error(), "at least one set of values is required")
 	})
 	s.Run("Returning", func() {
-		_, _, err := NewUpsert().Into("users").Columns("id").Values(1).Returning("id").Build()
+		_, _, err := NewUpsert(nil).Into("users").Columns("id").Values(1).Returning("id").Build()
 		s.Error(err)
 		s.Contains(err.Error(), "RETURNING not supported in dialect")
 	})
 	s.Run("ColumnWithAlias", func() {
-		_, _, err := NewUpsert().Into("users").
+		_, _, err := NewUpsert(nil).Into("users").
 			Columns("id AS IDENTIFIER").
 			Values(1).
 			Build()
 		s.Error(err)
-		s.Contains(err.Error(), "1 invalid condition(s)")
+		s.Contains(err.Error(), "row 1 has 1 values")
 	})
 }
 

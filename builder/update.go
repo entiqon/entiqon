@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
@@ -19,12 +19,17 @@ type UpdateBuilder struct {
 	conditions  []token.Condition
 }
 
-// NewUpdate creates a new UpdateBuilder.
-// NewUpdate creates a new instance of UpdateBuilder.
-// This is the entry point for building a SQL UPDATE query fluently.
-func NewUpdate() *UpdateBuilder {
+// NewUpdate creates a new UpdateBuilder using the given SQL dialect.
+//
+// If the provided dialect is nil, it defaults to driver.NewGenericDialect().
+// The builder name is automatically set to "update".
+//
+// Since: v1.4.0
+func NewUpdate(dialect driver.Dialect) *UpdateBuilder {
+	base := NewBaseBuilder("update", dialect)
+
 	return &UpdateBuilder{
-		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
+		BaseBuilder: base,
 		assignments: []token.FieldToken{},
 		conditions:  []token.Condition{},
 	}
@@ -91,19 +96,11 @@ func (b *UpdateBuilder) UseDialect(name string) *UpdateBuilder {
 
 // Build renders the UPDATE SQL query and returns the query + args.
 func (b *UpdateBuilder) Build() (string, []any, error) {
-	if !b.HasDialect() {
-		_ = b.GetDialect()
-	}
-
-	if b.HasErrors() {
-		return "", nil, fmt.Errorf("UPDATE: %d invalid condition(s)", len(b.GetErrors()))
-	}
-
 	if b.table == "" {
-		return "", nil, fmt.Errorf("UPDATE: requires a target table")
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
 	}
 	if len(b.assignments) == 0 {
-		return "", nil, fmt.Errorf("UPDATE: must define at least one column assignment")
+		b.Validator.AddStageError(core.StageSet, fmt.Errorf("must define at least one column assignment"))
 	}
 
 	dialect := b.GetDialect()
@@ -113,7 +110,11 @@ func (b *UpdateBuilder) Build() (string, []any, error) {
 
 	for _, f := range b.assignments {
 		if f.Alias != "" {
-			return "", nil, fmt.Errorf("UPDATE: column aliasing is not supported: '%s AS %s'", f.Name, f.Alias)
+			b.Validator.AddStageError(
+				core.StageSet,
+				fmt.Errorf("column aliasing is not supported: '%s AS %s'", f.Name, f.Alias),
+			)
+			continue
 		}
 
 		name := f.Name
@@ -136,6 +137,10 @@ func (b *UpdateBuilder) Build() (string, []any, error) {
 		}
 		tokens = append(tokens, "WHERE", whereClause)
 		args = append(args, condArgs...)
+	}
+
+	if err := b.Validate(); err != nil {
+		return "", nil, err
 	}
 
 	return strings.Join(tokens, " "), args, nil

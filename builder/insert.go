@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
@@ -21,10 +22,17 @@ type InsertBuilder struct {
 	returning []token.FieldToken
 }
 
-// NewInsert returns a new instance of InsertBuilder.
-func NewInsert() *InsertBuilder {
+// NewInsert creates a new InsertBuilder using the given SQL dialect.
+//
+// If the provided dialect is nil, it defaults to driver.NewGenericDialect().
+// The builder name is automatically set to "insert".
+//
+// Since: v1.4.0
+func NewInsert(dialect driver.Dialect) *InsertBuilder {
+	base := NewBaseBuilder("insert", dialect)
+
 	return &InsertBuilder{
-		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
+		BaseBuilder: base,
 		columns:     []token.FieldToken{},
 		values:      [][]any{},
 		returning:   []token.FieldToken{},
@@ -34,7 +42,7 @@ func NewInsert() *InsertBuilder {
 // Into sets the target table for the INSERT operation.
 func (b *InsertBuilder) Into(table string) *InsertBuilder {
 	if table == "" {
-		b.AddStageError("INTO", fmt.Errorf("table is empty"))
+		b.AddStageError("INTO", fmt.Errorf("requires a target table"))
 	} else {
 		b.table = table
 	}
@@ -87,14 +95,6 @@ func (b *InsertBuilder) Returning(fields ...string) *InsertBuilder {
 	return b
 }
 
-// UseDialect resolves and applies the SQL dialect by name (e.g., "postgres").
-// This method configures how identifiers (tables, columns) are quoted
-// and how engine-specific syntax is emitted.
-func (b *InsertBuilder) UseDialect(name string) *InsertBuilder {
-	b.BaseBuilder.dialect = driver.ResolveDialect(name)
-	return b
-}
-
 // Build compiles the full INSERT SQL statement along with arguments.
 // Returns an error if the structure is invalid or values are missing.
 // Build compiles the full INSERT SQL statement along with arguments.
@@ -129,49 +129,49 @@ func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
 }
 
 func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
-	var dialect = b.dialect
-	if !b.HasDialect() {
-		dialect = b.GetDialect()
-	}
-
-	if b.HasErrors() {
-		return "", nil, fmt.Errorf("INSERT: %d invalid condition(s)", len(b.GetErrors()))
-	}
 	if b.table == "" {
-		return "", nil, fmt.Errorf("INSERT: requires a target table")
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
 	}
 	if len(b.columns) == 0 {
-		return "", nil, fmt.Errorf("INSERT: at least one column is required")
+		b.Validator.AddStageError(core.StageInto, fmt.Errorf("at least one column is required"))
 	}
 	if len(b.values) == 0 {
-		return "", nil, fmt.Errorf("INSERT: at least one set of values is required")
+		b.Validator.AddStageError(core.StageValues, fmt.Errorf("at least one set of values is required"))
 	}
 
-	if withReturning && !b.dialect.SupportsReturning() {
-		return "", nil, fmt.Errorf("INSERT: returning columns not allowed when dialect is %s", b.dialect.GetName())
+	if withReturning && !b.Dialect.SupportsReturning() {
+		b.Validator.AddStageError(core.StageReturning, fmt.Errorf("at least one set of values is required"))
 	}
 
 	colCount := len(b.columns)
-	binder := bind.NewParamBinder(dialect)
+	binder := bind.NewParamBinder(b.Dialect)
 
 	var args []any
 	var rowPlaceholders []string
 	quotedCols := make([]string, len(b.columns))
 	for i, col := range b.columns {
-		quotedCols[i] = dialect.QuoteIdentifier(col.Name)
+		quotedCols[i] = b.Dialect.QuoteIdentifier(col.Name)
 	}
 
 	for i, row := range b.values {
 		if len(row) != colCount {
-			return "", nil, fmt.Errorf("INSERT: row %d has %d values, expected %d", i+1, len(row), colCount)
+			b.Validator.AddStageError(
+				core.StageReturning,
+				fmt.Errorf("row %d has %d values, expected %d", i+1, len(row), colCount),
+			)
 		}
 		placeholders := binder.BindMany(row...)
 		args = append(args, row...)
 		rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
 	}
 
+	if err := b.Validate(); err != nil {
+		return "", nil, err
+	}
+
 	tokens := []string{
-		"INSERT INTO", dialect.QuoteIdentifier(b.table),
+		"INSERT INTO",
+		b.Dialect.RenderFrom(b.table, ""),
 		fmt.Sprintf("(%s)", strings.Join(quotedCols, ", ")),
 		"VALUES", strings.Join(rowPlaceholders, ", "),
 	}
@@ -179,7 +179,7 @@ func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
 	if withReturning {
 		returnCols := make([]string, len(b.returning))
 		for i, col := range b.returning {
-			returnCols[i] = dialect.QuoteIdentifier(col.Name)
+			returnCols[i] = b.Dialect.QuoteIdentifier(col.Name)
 		}
 		tokens = append(tokens, "RETURNING", strings.Join(returnCols, ", "))
 	}

@@ -1,4 +1,6 @@
-// filename: /builder/delete.go
+// File: builder/delete.go
+// Description: Provides DeleteBuilder for constructing DELETE SQL statements.
+// Since: v1.4.0
 
 package builder
 
@@ -6,121 +8,128 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
 	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
-// DeleteBuilder builds DELETE SQL queries with optional WHERE and LIMIT clauses.
+// DeleteBuilder builds a SQL DELETE statement with optional WHERE and LIMIT clauses.
 type DeleteBuilder struct {
 	BaseBuilder
+
 	binder     bind.ParamBinder
 	table      string
+	alias      string
 	conditions []token.Condition
 	limit      int
 }
 
-// NewDelete creates a new DeleteBuilder and resolves its base dialect.
-// Updated: v1.4.0
-func NewDelete() *DeleteBuilder {
-	dialect := driver.NewGenericDialect()
+// NewDelete creates a new DeleteBuilder using the given SQL dialect.
+//
+// If the provided dialect is nil, it defaults to driver.NewGenericDialect().
+// The builder name is automatically set to "delete".
+//
+// Since: v1.4.0
+func NewDelete(dialect driver.Dialect) *DeleteBuilder {
+	base := NewBaseBuilder("delete", dialect)
 
 	return &DeleteBuilder{
-		BaseBuilder: BaseBuilder{
-			dialect: dialect,
-		},
-		binder: *bind.NewParamBinder(dialect),
-		limit:  -1,
+		BaseBuilder: base,
+		binder:      *bind.NewParamBinder(base.Dialect),
+		limit:       -1,
 	}
 }
 
-// UseDialect overrides the dialect for the delete builder.
-//
-// Updated: v1.4.0
-func (b *DeleteBuilder) UseDialect(name string) *DeleteBuilder {
-	b.BaseBuilder.UseDialect(name)
-	return b
-}
-
-// From sets the table to delete from.
-func (b *DeleteBuilder) From(table string) *DeleteBuilder {
+// From sets the target table for the DELETE operation.
+func (b *DeleteBuilder) From(table string, alias ...string) *DeleteBuilder {
 	if table == "" {
-		b.AddStageError("FROM", fmt.Errorf("table is empty"))
-	} else {
-		b.table = table
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
+	}
+	b.table = table
+	if len(alias) > 0 {
+		b.alias = strings.TrimSpace(alias[0])
 	}
 	return b
 }
 
-// Where sets the initial WHERE condition and resets previous ones.
+// Where sets the initial WHERE clause for the DELETE statement,
+// replacing any previously defined conditions.
 func (b *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(core.StageWhere, c.Error)
 	}
-	b.conditions = append([]token.Condition{}, c)
+	b.conditions = []token.Condition{c}
 	return b
 }
 
-// AndWhere adds an AND condition.
+// AndWhere appends a condition to the WHERE clause using logical AND.
 func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
 }
 
-// OrWhere adds OR condition.
+// OrWhere appends a condition to the WHERE clause using logical OR.
 func (b *DeleteBuilder) OrWhere(condition string, values ...any) *DeleteBuilder {
 	c := token.NewCondition(token.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
 }
 
-// Limit sets a row limit on the DELETE operation.
+// Limit sets the maximum number of rows to delete.
 func (b *DeleteBuilder) Limit(n int) *DeleteBuilder {
 	b.limit = n
 	return b
 }
 
-// Build assembles the DELETE SQL query with placeholders.
+// Build assembles the DELETE SQL query and returns the final SQL string and arguments.
+//
+// If validation fails, an error is returned describing any missing elements or invalid conditions.
+//
+// Returns:
+//   - SQL string (e.g., DELETE FROM users WHERE id = $1)
+//   - Arguments for parameterized execution
+//   - Error if the builder state is invalid
+//
 // Updated: v1.4.0
 func (b *DeleteBuilder) Build() (string, []any, error) {
-	var dialect = b.dialect
-	if !b.HasDialect() {
-		dialect = b.GetDialect()
-	}
-
-	if b.HasErrors() {
-		return "", nil, fmt.Errorf("DELETE: %d invalid condition(s)", len(b.GetErrors()))
-	}
 	if b.table == "" {
-		return "", nil, fmt.Errorf("DELETE: requires a target table")
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
 	}
 
-	tokens := []string{"DELETE FROM", dialect.QuoteIdentifier(b.table)}
+	var whereClause string
 	var args []any
 
 	if len(b.conditions) > 0 {
-		binder := bind.NewParamBinderWithPosition(dialect, len(args)+1)
-		whereClause, condArgs, err := builder.RenderConditionsWithBinder(dialect, b.conditions, binder)
-		if err != nil {
-			return "", nil, fmt.Errorf("UPDATE: %w", err)
+		binder := bind.NewParamBinderWithPosition(b.Dialect, 1)
+		var condErr error
+		whereClause, args, condErr = builder.RenderConditionsWithBinder(b.Dialect, b.conditions, binder)
+		if condErr != nil {
+			b.Validator.AddStageError(core.StageWhere, condErr)
 		}
+	}
+
+	if err := b.Validate(); err != nil {
+		return "", nil, err
+	}
+
+	tokens := []string{"DELETE FROM", b.Dialect.QuoteIdentifier(b.table)}
+
+	if whereClause != "" {
 		tokens = append(tokens, "WHERE", whereClause)
-		args = append(args, condArgs...)
 	}
 
 	if b.limit >= 0 {
-		limitClause := dialect.BuildLimitOffset(b.limit, -1)
-		if limitClause != "" {
+		if limitClause := b.Dialect.BuildLimitOffset(b.limit, -1); limitClause != "" {
 			tokens = append(tokens, limitClause)
 		}
 	}

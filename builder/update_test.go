@@ -15,7 +15,7 @@ type UpdateBuilderTestSuite struct {
 }
 
 func (s *UpdateBuilderTestSuite) SetupTest() {
-	s.qb = NewUpdate()
+	s.qb = NewUpdate(nil)
 }
 
 // ─────────────────────────────────────────────
@@ -125,7 +125,7 @@ func (s *UpdateBuilderTestSuite) TestBuild_MissingTableReturnsError() {
 		Build()
 
 	s.Error(err)
-	s.Contains(err.Error(), "UPDATE: requires a target table")
+	s.Contains(err.Error(), "requires a target table")
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
@@ -134,11 +134,11 @@ func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
 		Build()
 
 	s.Error(err)
-	s.Contains(err.Error(), "UPDATE: must define at least one column assignment")
+	s.Contains(err.Error(), "must define at least one column assignment")
 }
 
 func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
-	q := NewUpdate().
+	q := NewUpdate(nil).
 		Table("users").
 		Set("name", "Watson")
 
@@ -172,22 +172,23 @@ func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
 }
 
 func (s *UpdateBuilderTestSuite) TestAddStageError_AppendsToExistingToken() {
-	s.qb.AddStageError(core.StageWhere, fmt.Errorf("first"))
-	s.qb.AddStageError(core.StageWhere, fmt.Errorf("second"))
+	qb := NewUpdate(nil)
+	qb.AddStageError(core.StageWhere, fmt.Errorf("first"))
+	qb.AddStageError(core.StageWhere, fmt.Errorf("second"))
 
-	errs := s.qb.GetErrors()
+	errs := qb.Validator.GetErrors()
 	s.Len(errs, 2)
 	s.ErrorContains(errs[0].Error, "first")
 	s.ErrorContains(errs[1].Error, "second")
 }
 
 func (s *UpdateBuilderTestSuite) TestAddStageError_CreatesNewTokenGroup() {
-	initialLen := len(s.qb.GetErrors())
+	initialLen := len(s.qb.Validator.GetErrors())
 	s.qb.AddStageError("OR", fmt.Errorf("or error"))
 
-	s.Len(s.qb.GetErrors(), initialLen+1)
-	s.Equal(core.StageToken("OR"), s.qb.GetErrors()[len(s.qb.GetErrors())-1].Stage)
-	s.ErrorContains(s.qb.GetErrors()[len(s.qb.GetErrors())-1].Error, "or error")
+	s.Len(s.qb.Validator.GetErrors(), initialLen+1)
+	s.Equal(core.StageToken("OR"), s.qb.Validator.GetErrors()[len(s.qb.Validator.GetErrors())-1].Stage)
+	s.ErrorContains(s.qb.Validator.GetErrors()[len(s.qb.Validator.GetErrors())-1].Error, "or error")
 }
 
 func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
@@ -201,7 +202,7 @@ func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
 
 func (s *UpdateBuilderTestSuite) TestGetErrors_ReturnsCollectedErrors() {
 	s.qb.AddStageError("WHERE", fmt.Errorf("invalid field"))
-	errs := s.qb.GetErrors()
+	errs := s.qb.Validator.GetErrors()
 
 	s.Len(errs, 1)
 	s.Equal(core.StageWhere, errs[0].Stage)
@@ -212,10 +213,10 @@ func (s *UpdateBuilderTestSuite) TestUseDialect_ShortCircuitsOnEmptyOrSameName()
 	s.qb.UseDialect("generic")
 
 	ptr1 := s.qb.UseDialect("generic")
-	s.Equal(ptr1.dialect.GetName(), s.qb.dialect.GetName())
+	s.Equal(ptr1.Dialect.GetName(), s.qb.Dialect.GetName())
 
 	ptr2 := s.qb.UseDialect("")
-	s.Equal(ptr2.dialect.GetName(), s.qb.dialect.GetName())
+	s.Equal(ptr2.Dialect.GetName(), s.qb.Dialect.GetName())
 }
 
 func (s *UpdateBuilderTestSuite) TestUseDialect_ResolvesNamedDialect() {
@@ -234,15 +235,19 @@ func (s *UpdateBuilderTestSuite) TestBuild_BuildValidations() {
 	}
 	b.Table("users").Set("name", "Watson")
 	s.Run("HasDialect", func() {
+		b := NewUpdate(nil)
+		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
 		b.conditions = []token.Condition{c}
 		_, _, err := b.Build()
 		s.Error(err)
-		s.Equal("generic", b.dialect.GetName())
+		s.Equal(true, b.HasDialect())
+		s.Equal("generic", b.Dialect.GetName())
 	})
 	s.Run("HasErrors", func() {
-		_, _, err := b.Build()
+		_, _, err := NewUpdate(nil).Build()
+
 		s.Error(err)
-		s.Contains(err.Error(), "invalid condition(s)")
+		s.Contains(err.Error(), "must define at least one column assignment")
 	})
 
 }

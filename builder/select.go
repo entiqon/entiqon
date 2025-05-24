@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	driver2 "github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	core "github.com/ialopezg/entiqon/internal/core/error"
 	"github.com/ialopezg/entiqon/internal/core/token"
 )
 
@@ -23,10 +24,17 @@ type SelectBuilder struct {
 	skip       *int
 }
 
-// NewSelect creates and returns a new instance of SelectBuilder.
-func NewSelect() *SelectBuilder {
+// NewSelect creates a new SelectBuilder using the given SQL dialect.
+//
+// If the provided dialect is nil, it defaults to driver.NewGenericDialect().
+// The builder name is automatically set to "select".
+//
+// Since: v1.4.0
+func NewSelect(dialect driver2.Dialect) *SelectBuilder {
+	base := NewBaseBuilder("select", dialect)
+
 	return &SelectBuilder{
-		BaseBuilder: BaseBuilder{dialect: driver.NewGenericDialect()},
+		BaseBuilder: base,
 		columns:     make([]token.FieldToken, 0),
 		conditions:  make([]token.Condition, 0),
 		sorting:     make([]string, 0),
@@ -55,18 +63,15 @@ func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 //
 // Since: v0.0.1
 // Updated: v1.5.0
-func (b *SelectBuilder) From(table string) *SelectBuilder {
-	return b.FromAs(table, "")
-}
-
-func (b *SelectBuilder) FromAs(table string, alias string) *SelectBuilder {
-	t := token.NewTableWithAlias(table, alias)
-	if !t.IsValid() {
-		b.AddStageError("FROM", fmt.Errorf("table is empty"))
-		return b
+func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
+	if table == "" {
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
 	}
-	b.from = append(b.from, t)
-
+	if len(alias) > 0 {
+		b.from = append(b.from, token.NewTableWithAlias(table, alias[0]))
+	} else {
+		b.from = append(b.from, token.NewTable(table))
+	}
 	return b
 }
 
@@ -75,7 +80,7 @@ func (b *SelectBuilder) FromAs(table string, alias string) *SelectBuilder {
 func (b *SelectBuilder) Where(condition string, values ...any) *SelectBuilder {
 	c := token.NewCondition(token.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError("WHERE", c.Error)
+		b.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = []token.Condition{c}
 	return b
@@ -85,7 +90,7 @@ func (b *SelectBuilder) Where(condition string, values ...any) *SelectBuilder {
 func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder {
 	c := token.NewCondition(token.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError("WHERE", c.Error)
+		b.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -95,7 +100,7 @@ func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder
 func (b *SelectBuilder) OrWhere(condition string, values ...any) *SelectBuilder {
 	c := token.NewCondition(token.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError("WHERE", c.Error)
+		b.AddStageError(core.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -122,7 +127,7 @@ func (b *SelectBuilder) Skip(value int) *SelectBuilder {
 // UseDialect resolves and applies the dialect by name (e.g., "postgres").
 // It replaces any previously set dialect on the builder.
 func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
-	b.BaseBuilder.dialect = driver.ResolveDialect(name)
+	b.BaseBuilder.dialect = driver2.ResolveDialect(name)
 	return b
 }
 
@@ -130,14 +135,12 @@ func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
 // If the FROM clause is missing, an error is returned.
 // Dialect rules (quoting, pagination) are applied if configured.
 func (b *SelectBuilder) Build() (string, []any, error) {
-	dialect := b.GetDialect()
-
-	if b.HasErrors() {
-		return "", nil, fmt.Errorf("SELECT: %d invalid condition(s)", len(b.GetErrors()))
+	if len(b.from) == 0 {
+		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
 	}
 
-	if len(b.from) == 0 {
-		return "", nil, fmt.Errorf("SELECT: requires a target table")
+	if err := b.Validate(); err != nil {
+		return "", nil, err
 	}
 
 	var tokens []string
@@ -149,8 +152,8 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		var rendered []string
 		for _, col := range b.columns {
 			name := col.Name
-			if b.dialect != nil && !col.IsRaw {
-				name = dialect.QuoteIdentifier(col.Name)
+			if b.Dialect != nil && !col.IsRaw {
+				name = b.Dialect.QuoteIdentifier(col.Name)
 			}
 			if col.Alias != "" {
 				name = fmt.Sprintf("%s AS %s", name, col.Alias)
@@ -169,7 +172,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		var fromParts []string
 		for _, tbl := range b.from {
 			if tbl.IsValid() {
-				fromParts = append(fromParts, dialect.RenderFrom(tbl.Name, tbl.Alias))
+				fromParts = append(fromParts, b.Dialect.RenderFrom(tbl.Name, tbl.Alias))
 			}
 		}
 		tokens = append(tokens, "FROM "+strings.Join(fromParts, ", "))
@@ -180,8 +183,8 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	// ─────────────────────────────────────────────────────────────
 	var args []any
 	if len(b.conditions) > 0 {
-		binder := bind.NewParamBinderWithPosition(dialect, len(args)+1)
-		whereClause, clauseArgs, err := builder.RenderConditionsWithBinder(dialect, b.conditions, binder)
+		binder := bind.NewParamBinderWithPosition(b.Dialect, len(args)+1)
+		whereClause, clauseArgs, err := builder.RenderConditionsWithBinder(b.Dialect, b.conditions, binder)
 		if err != nil {
 			return "", nil, fmt.Errorf("SELECT: %w", err)
 		}
@@ -208,7 +211,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	}
 
 	if limit > 0 && offset > 0 {
-		tokens = append(tokens, dialect.BuildLimitOffset(limit, offset))
+		tokens = append(tokens, b.Dialect.BuildLimitOffset(limit, offset))
 	} else {
 		if limit > 0 {
 			tokens = append(tokens, fmt.Sprintf("LIMIT %d", limit))

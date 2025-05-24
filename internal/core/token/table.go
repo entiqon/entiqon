@@ -32,7 +32,7 @@ func NewTable(name string) Table {
 //
 //	t := NewTableWithAlias("orders", "o")
 //	t.String() // "orders o"
-func NewTableWithAlias(name, alias string) Table {
+func NewTableWithAlias(name string, alias string) Table {
 	name = strings.TrimSpace(name)
 	alias = strings.TrimSpace(alias)
 

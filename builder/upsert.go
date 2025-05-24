@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/internal/core/driver"
+	driver2 "github.com/ialopezg/entiqon/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.
@@ -29,12 +29,18 @@ type UpsertBuilder struct {
 	returning []string
 }
 
-// NewUpsert returns a new instance of UpsertBuilder.
-func NewUpsert() *UpsertBuilder {
-	dialect := driver.NewGenericDialect()
+// NewUpsert creates a new UpsertBuilder using the given SQL dialect.
+//
+// If the provided dialect is nil, it defaults to driver.NewGenericDialect().
+// The builder name is automatically set to "upsert".
+//
+// Since: v1.4.0
+func NewUpsert(dialect driver2.Dialect) *UpsertBuilder {
+	base := NewBaseBuilder("upsert", dialect)
+
 	return &UpsertBuilder{
-		BaseBuilder: BaseBuilder{dialect: dialect},
-		insert:      NewInsert().UseDialect(dialect.GetName()),
+		BaseBuilder: base,
+		insert:      NewInsert(dialect),
 		updateSet:   make([]Assignment, 0),
 		returning:   make([]string, 0),
 	}
@@ -66,8 +72,7 @@ func (b *UpsertBuilder) OnConflict(columns ...string) *UpsertBuilder {
 
 // Returning specifies the RETURNING clause for the UPSERT statement.
 func (b *UpsertBuilder) Returning(columns ...string) *UpsertBuilder {
-	fmt.Println(!b.dialect.SupportsReturning() && len(b.returning) > 0)
-	if !b.dialect.SupportsReturning() && len(b.returning) > 0 {
+	if !b.Dialect.SupportsReturning() && len(b.returning) > 0 {
 		b.AddStageError("RETURNING", fmt.Errorf("UPSERT: RETURNING is not supported for dialect: %s", b.dialect.GetName()))
 	} else {
 		b.returning = append(b.returning, columns...)
@@ -84,22 +89,13 @@ func (b *UpsertBuilder) DoUpdateSet(assignments ...Assignment) *UpsertBuilder {
 // UseDialect resolves and applies the dialect_engine.md by name (e.g., "postgres").
 // It replaces any previously set dialect on the builder.
 func (b *UpsertBuilder) UseDialect(name string) *UpsertBuilder {
-	b.insert.dialect = driver.ResolveDialect(name)
+	b.insert.dialect = driver2.ResolveDialect(name)
 	b.dialect = b.insert.dialect
 	return b
 }
 
 // Build compiles the UPSERT SQL statement and returns the query and arguments.
 func (b *UpsertBuilder) Build() (string, []any, error) {
-	dialect := b.GetDialect()
-	if b.insert == nil {
-		b.insert = NewInsert().UseDialect(dialect.GetName())
-	}
-
-	if b.HasErrors() {
-		return "", nil, fmt.Errorf("UPSERT: %d invalid  condition(s)", len(b.GetErrors()))
-	}
-
 	insertSQL, args, err := b.insert.BuildInsertOnly()
 	if err != nil {
 		return "", nil, fmt.Errorf("UPSERT: %w", err)
@@ -116,7 +112,7 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 			if col == "" {
 				return "", nil, fmt.Errorf("UPSERT: empty conflict column name")
 			}
-			quoted = append(quoted, dialect.QuoteIdentifier(col))
+			quoted = append(quoted, b.Dialect.QuoteIdentifier(col))
 		}
 		tokens = append(tokens, fmt.Sprintf("ON CONFLICT (%s)", strings.Join(quoted, ", ")))
 	}
@@ -132,7 +128,7 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 			if assign.Column == "" || assign.Expr == "" {
 				return "", nil, fmt.Errorf("UPSERT: column or expression is empty")
 			}
-			col := b.GetDialect().QuoteIdentifier(assign.Column)
+			col := b.Dialect.QuoteIdentifier(assign.Column)
 			assignments = append(assignments, fmt.Sprintf("%s = %s", col, assign.Expr))
 		}
 		if len(assignments) > 0 {
@@ -144,14 +140,14 @@ func (b *UpsertBuilder) Build() (string, []any, error) {
 	// RETURNING (dialect-aware)
 	// ───────────────────────────────────────────────
 	if len(b.returning) > 0 {
-		if dialect.SupportsReturning() {
+		if b.Dialect.SupportsReturning() {
 			var returnCols []string
 			for _, col := range b.returning {
-				returnCols = append(returnCols, dialect.QuoteIdentifier(col))
+				returnCols = append(returnCols, b.Dialect.QuoteIdentifier(col))
 			}
 			tokens = append(tokens, "RETURNING", strings.Join(returnCols, ", "))
 		} else {
-			return "", nil, fmt.Errorf("UPSERT: RETURNING not supported in dialect: %s", dialect.GetName())
+			return "", nil, fmt.Errorf("RETURNING not supported in dialect: %s", b.Dialect.GetName())
 		}
 	}
 
