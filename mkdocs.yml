@@ -1,6 +1,6 @@
 site_name: Entiqon Docs
-repo_url: https://github.com/ialopezg/entiqon
-repo_name: ialopezg/entiqon
+site_url: https://ialopezg.github.io/entiqon/
+
 theme:
   name: material
   logo: assets/entiqon_black.png
@@ -13,6 +13,10 @@ theme:
     - content.code.copy
 
 docs_dir: docs-site
+use_directory_urls: true
+
+extra:
+  base_url: /entiqon
 
 nav:
   - 🏠 Home: index.md
@@ -33,7 +37,7 @@ nav:
       - v1.2.0: releases/release-notes-v1.2.0.md
       - v1.1.0: releases/release-notes-v1.1.0.md
       - v1.0.0: releases/release-notes-v1.0.0.md
-      - Full Changelog: CHANGELOG.md
+      - Full Changelog: ../CHANGELOG.md
 
 markdown_extensions:
   - toc:
