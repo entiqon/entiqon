@@ -1,4 +1,6 @@
-# 📘 Developer Guide: InsertBuilder
+# 📘 InsertBuilder Developer Guide
+**Safe and validated INSERT builder with dialect injection and RETURNING support.**
+
 
 This document describes the behavior, constraints, and dialect integration strategy for Entiqon's `InsertBuilder`. It ensures insert operations are consistent, secure, and aligned with SQL engine-specific capabilities.
 

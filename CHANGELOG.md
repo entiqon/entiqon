@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+# Changelog
+
+## [v1.5.0] – 2025-05-24
+
+### ✨ Features
+- `StageToken`: Standardized clause tagging for error validation
+- Public Dialect API: Enables custom dialect implementations
+- Enhanced builder error tagging with `StageToken`
+
+### 🛠️ Refactors
+- Normalized ParamBinder and Condition to use injected Dialect
+- All builders updated to unified token/dialect handling strategy
+- Centralized placeholder resolution across WHERE, SET, VALUES
+
+### ✅ Test Coverage
+- builder: 94.4%
+- driver: 100.0%
+- core/builder: 95.5%
+- bind, test packages: 100%
+- error/token: >75%
+
+### 📄 Docs
+- Updated all builder guides
+- Documented new dialect interface and StageToken strategy
+
+---
+
 ## [v1.4.0] - 2025-05-22
 
 ### ✨ Added

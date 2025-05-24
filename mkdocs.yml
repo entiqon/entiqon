@@ -12,20 +12,22 @@ theme:
     - search.highlight
     - content.code.copy
 
+docs_dir: .
+
 nav:
   - 🏠 Home: index.md
   - 📘 Architecture:
       - Builder Overview: builder_guide_updates.md
-      - Custom Driver Guide: docs/developer/core/driver/custom_driver_guide.md
+      - Infrastructure: documentation-infra.md
   - 🧱 Builders:
       - SelectBuilder: select_builder.md
       - InsertBuilder: insert_builder.md
       - UpdateBuilder: update_builder.md
       - DeleteBuilder: delete_builder.md
       - UpsertBuilder: upsert_builder.md
-  - 🧪 Releases:
-      - Release Notes v1.5.0: release_notes_v1.5.0.md
-      - CHANGELOG: CHANGELOG_v1.5.0.md
+  - 📦 Releases:
+      - v1.5.0: releases/release_notes_v1.5.0.md
+      - CHANGELOG: releases/CHANGELOG.md
 
 markdown_extensions:
   - toc:

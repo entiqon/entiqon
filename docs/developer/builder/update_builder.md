@@ -1,4 +1,6 @@
 
+**Fluent UPDATE builder with validation, error tagging and dialect-safe formatting.**
+
 # 🛠️ UpdateBuilder Developer Guide
 
 `UpdateBuilder` constructs SQL `UPDATE` statements using a fluent API that ensures clarity, correctness, and dialect-aware formatting.

@@ -1,4 +1,6 @@
 # 🛠️ UpsertBuilder Developer Guide
+**UPSERT (INSERT ON CONFLICT) builder with conflict resolution and dialect safety.**
+
 
 The `UpsertBuilder` composes SQL `INSERT ... ON CONFLICT DO UPDATE/NOTHING` statements using a fluent API over an internal `InsertBuilder`. It ensures safe dialect-specific identifier handling and consistent structure across SQL dialects.
 

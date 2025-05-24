@@ -1,4 +1,6 @@
-# 🧱 DeleteBuilder
+# 🧱 DeleteBuilder Developer Guide
+**DELETE builder with condition chaining, dialect integration, and error validation.**
+
 
 The `DeleteBuilder` is a fluent query generator for composing SQL `DELETE` statements with argument binding and dialect-aware formatting. It is part of Entiqon's core builder module and provides composable support for:
 

@@ -1,4 +1,6 @@
-# 📘 Developer Guide: SelectBuilder
+# 📘 SelectBuilder Developer Guide
+**Dialect-aware SELECT builder with full clause tagging and error validation.**
+
 
 This document explains the behavior, features, and dialect integration of Entiqon's `SelectBuilder`. It serves both as an implementation reference for contributors and a usage guide for consumers.
 

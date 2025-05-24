@@ -1,4 +1,4 @@
-name: Deploy Documentation
+name: Deploy Documentation (Docker)
 
 on:
   push:
@@ -24,21 +24,21 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
+      - name: Set up Docker
+        run: docker --version
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Build MkDocs container
+        run: docker build -f Dockerfile-documentation -t entiqon-docs .
 
-      - name: Build site
-        run: mkdocs build --clean
+      - name: Generate static site
+        run: |
+          mkdir -p site
+          docker run --rm -v ${{ github.workspace }}/site:/docs/site entiqon-docs mkdocs build --clean
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v2
 
-      - name: Upload built site
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v1
         with:
           path: site
