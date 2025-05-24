@@ -1,0 +1,38 @@
+site_name: Entiqon Docs
+repo_url: https://github.com/ialopezg/entiqon
+repo_name: ialopezg/entiqon
+theme:
+  name: material
+  logo: assets/entiqon_black.png
+  favicon: assets/favicon.ico
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - 🏠 Home: index.md
+  - 📘 Architecture:
+      - Builder Overview: builder_guide_updates.md
+      - Custom Driver Guide: docs/developer/core/driver/custom_driver_guide.md
+  - 🧱 Builders:
+      - SelectBuilder: select_builder.md
+      - InsertBuilder: insert_builder.md
+      - UpdateBuilder: update_builder.md
+      - DeleteBuilder: delete_builder.md
+      - UpsertBuilder: upsert_builder.md
+  - 🧪 Releases:
+      - Release Notes v1.5.0: release_notes_v1.5.0.md
+      - CHANGELOG: CHANGELOG_v1.5.0.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - codehilite
+  - footnotes
+  - tables
+  - attr_list
+  - md_in_html
