@@ -1,18 +1,45 @@
-# IDE
-/.idea
+# IDEs
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# Editor artifacts
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Dependency directories (if vendored)
+vendor/
+
+# Git metadata
+*.orig
+
+# OS-specific
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Binaries for programs and plugins
+bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-# Test binary, built with `go test -c`
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+coverage.*
+*.coverprofile
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -21,9 +48,17 @@
 go.work
 go.work.sum
 
+# Logs
+logs/
+*.log
+*.out
+
 # local
 /docs/CHANGELOG.md
 /docs/releases/
+docs/_site/
+docs/public/
+public/
 
 # env file
 .env

@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Run tests with conditional coverage
+    name: Run tests with coverage and enforce threshold
     runs-on: ubuntu-latest
 
     steps:
@@ -18,27 +18,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
-
-      - name: Build
-        run: go build -v ./...
+          go-version: stable
 
       - name: Run tests with coverage
-        run: go test -v -coverprofile=coverage.out ./...
+        run: |
+          go test ./... -coverprofile=coverage.out
+          test -s coverage.out
 
-      - name: Upload coverage on release only
-        if: github.event_name == 'release'
+      - name: Show coverage %
+        run: |
+          echo "Total coverage:"
+          go tool cover -func=coverage.out | grep total
+
+      - name: Enforce minimum 80% coverage
+        run: |
+          pct=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Coverage: $pct%"
+          awk -v p="$pct" 'BEGIN {exit !(p >= 80)}'
+
+      - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.out
-
-      - name: Upload to Codecov on release only
-        if: github.event_name == 'release'
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage.out
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
