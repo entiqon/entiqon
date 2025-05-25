@@ -24,7 +24,7 @@ type PostgresDialect struct {
 // preconfigured with PostgreSQL-compatible rules.
 //
 // Quoting style: "identifier"
-// PlaceholderSymbol style: $1, $2, ...
+// PlaceholderStyle style: $1, $2, ...
 // SupportsUpsert: true
 // EnableReturning: true
 //
@@ -32,12 +32,12 @@ type PostgresDialect struct {
 func NewPostgresDialect() *PostgresDialect {
 	return &PostgresDialect{
 		BaseDialect: BaseDialect{
-			Name:              "postgres",
-			Quotation:         styling.QuoteDouble,
-			PlaceholderSymbol: PlaceholderDollar,
-			EnableAliasing:    true,
-			EnableReturning:   true,
-			EnableUpsert:      true,
+			Name:             "postgres",
+			Quotation:        styling.QuoteDouble,
+			PlaceholderStyle: styling.PlaceholderDollar,
+			EnableAliasing:   true,
+			EnableReturning:  true,
+			EnableUpsert:     true,
 		},
 	}
 }

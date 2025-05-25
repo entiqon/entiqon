@@ -15,7 +15,7 @@ import "github.com/ialopezg/entiqon/driver/styling"
 //
 //   - GetName: "generic"
 //   - QuoteType: none
-//   - PlaceholderSymbol: "?" (unnumbered positional)
+//   - PlaceholderStyle: "?" (unnumbered positional)
 //   - SupportsUpsert: false
 //   - EnableReturning: false
 //
@@ -25,11 +25,11 @@ import "github.com/ialopezg/entiqon/driver/styling"
 // Updated: v1.4.0
 func NewGenericDialect() Dialect {
 	return &BaseDialect{
-		Name:              "generic",
-		Quotation:         styling.QuoteNone,
-		PlaceholderSymbol: PlaceholderQuestion,
-		EnableAliasing:    false,
-		EnableReturning:   false,
-		EnableUpsert:      false,
+		Name:             "generic",
+		Quotation:        styling.QuoteNone,
+		PlaceholderStyle: styling.PlaceholderQuestion,
+		EnableAliasing:   false,
+		EnableReturning:  false,
+		EnableUpsert:     false,
 	}
 }

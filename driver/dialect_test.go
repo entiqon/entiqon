@@ -10,11 +10,11 @@ import (
 
 func TestBaseDialectInterfaceSatisfaction(t *testing.T) {
 	d := &core.BaseDialect{
-		Name:              "test",
-		Quotation:         styling.QuoteDouble,
-		PlaceholderSymbol: core.PlaceholderDollar,
-		EnableReturning:   true,
-		EnableUpsert:      true,
+		Name:             "test",
+		Quotation:        styling.QuoteDouble,
+		PlaceholderStyle: styling.PlaceholderDollar,
+		EnableReturning:  true,
+		EnableUpsert:     true,
 	}
 
 	// Satisfies interface

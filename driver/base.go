@@ -50,8 +50,8 @@ type BaseDialect struct {
 	// Quotation defines the quoting style used for identifiers.
 	Quotation styling.QuoteStyle
 
-	// PlaceholderSymbol is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
-	PlaceholderSymbol PlaceholderSymbol
+	// PlaceholderStyle is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
+	PlaceholderStyle styling.PlaceholderStyle
 }
 
 // GetName returns the dialect Name.
@@ -112,14 +112,14 @@ func (b *BaseDialect) QuoteLiteral(value any) string {
 //
 // Updated: v1.4.0
 func (b *BaseDialect) Placeholder(index int) string {
-	if !b.PlaceholderSymbol.IsValid() {
+	if !b.PlaceholderStyle.IsValid() {
 		return "?"
 	}
-	if b.PlaceholderSymbol == PlaceholderQuestion {
+	if b.PlaceholderStyle == styling.PlaceholderQuestion {
 		return "?"
 	}
 	// Always fallback to dynamic prefix behavior
-	return fmt.Sprintf("%s%d", b.PlaceholderSymbol, index)
+	return fmt.Sprintf("%s%d", b.PlaceholderStyle, index)
 }
 
 // BuildLimitOffset returns the dialect-compatible LIMIT and OFFSET clause.
@@ -177,7 +177,7 @@ func (b *BaseDialect) SupportsUpsert() bool {
 // Validate ensures the BaseDialect is correctly configured.
 //
 // A dialect is considered valid if:
-//   - PlaceholderSymbol is set to a non-empty value
+//   - PlaceholderStyle is set to a non-empty value
 //   - Name is not empty or whitespace
 //
 // The Quotation style is allowed to be QuoteNone if the dialect does not require identifier quoting.
@@ -191,7 +191,7 @@ func (b *BaseDialect) Validate() error {
 	if strings.TrimSpace(b.Name) == "" {
 		return fmt.Errorf("BaseDialect: name is not set")
 	}
-	if !b.PlaceholderSymbol.IsValid() {
+	if !b.PlaceholderStyle.IsValid() {
 		return fmt.Errorf("BaseDialect: placeholder symbol is not set")
 	}
 	return nil

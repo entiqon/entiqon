@@ -24,7 +24,7 @@ type MSSQLDialect struct {
 // preconfigured with SQL Server-compatible rules.
 //
 // Quoting style: [identifier]
-// PlaceholderSymbol style: ?
+// PlaceholderStyle style: ?
 // SupportsUpsert: false
 // EnableReturning: false
 //
@@ -32,12 +32,12 @@ type MSSQLDialect struct {
 func NewMSSQLDialect() *MSSQLDialect {
 	return &MSSQLDialect{
 		BaseDialect{
-			Name:              "mssql",
-			Quotation:         styling.QuoteBracket,
-			PlaceholderSymbol: PlaceholderQuestion,
-			EnableAliasing:    true,
-			EnableReturning:   false,
-			EnableUpsert:      false,
+			Name:             "mssql",
+			Quotation:        styling.QuoteBracket,
+			PlaceholderStyle: styling.PlaceholderQuestion,
+			EnableAliasing:   true,
+			EnableReturning:  false,
+			EnableUpsert:     false,
 		},
 	}
 }

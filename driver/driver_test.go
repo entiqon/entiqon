@@ -180,7 +180,7 @@ func (s *DialectTestSuite) TestSupportsUpsert() {
 
 func (s *DialectTestSuite) TestValidate() {
 	s.Run("Valid", func() {
-		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: driver.PlaceholderQuestion}
+		d := driver.BaseDialect{Name: "test", PlaceholderStyle: styling.PlaceholderQuestion}
 		err := d.Validate()
 		s.NoError(err)
 		s.Equal("?", d.Placeholder(0))
@@ -192,7 +192,7 @@ func (s *DialectTestSuite) TestValidate() {
 		s.Contains(err.Error(), "name is not set")
 	})
 	s.Run("MissingPlaceholder", func() {
-		d := driver.BaseDialect{Name: "test", PlaceholderSymbol: driver.PlaceholderSymbol("")}
+		d := driver.BaseDialect{Name: "test", PlaceholderStyle: styling.PlaceholderStyle("")}
 		err := d.Validate()
 		s.Error(err)
 	})

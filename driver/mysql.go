@@ -24,7 +24,7 @@ type MySQLDialect struct {
 // preconfigured with MySQL-compatible rules.
 //
 // Quoting style: `identifier`
-// PlaceholderSymbol style: ?
+// PlaceholderStyle style: ?
 // SupportsUpsert: false
 // EnableReturning: false
 //
@@ -32,12 +32,12 @@ type MySQLDialect struct {
 func NewMySQLDialect() *MySQLDialect {
 	return &MySQLDialect{
 		BaseDialect: BaseDialect{
-			Name:              "mysql",
-			Quotation:         styling.QuoteBacktick,
-			PlaceholderSymbol: PlaceholderQuestion,
-			EnableAliasing:    true,
-			EnableReturning:   false,
-			EnableUpsert:      false,
+			Name:             "mysql",
+			Quotation:        styling.QuoteBacktick,
+			PlaceholderStyle: styling.PlaceholderQuestion,
+			EnableAliasing:   true,
+			EnableReturning:  false,
+			EnableUpsert:     false,
 		},
 	}
 }
