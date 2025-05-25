@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [v1.6.0] - 2025-05-25
+
+## [v1.6.0] - 2025-05-25
+
+### Added
+- Support for aliasable SQL expressions with optional table qualification
+- Introduces reusable token abstraction for handling elements like `table.column AS alias`
+- Provides helper methods: `Raw()`, `String()`, `WithTable()`, `IsValid()`, etc.
+
+### Notes
+This version enables standardized handling of SQL identifiers across the builder, including aliases and table scoping. It's the first practical application of the previously introduced `AliasableToken`.
+
+**Codename:** Keystone
+
+---
 
 # Changelog
 

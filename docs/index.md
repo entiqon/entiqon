@@ -28,7 +28,7 @@ coverage and modular design.
 
 ## 📦 Releases
 - [Overview](./releases/index.md)
-- [v1.5.0 - Without Sin](./releases/release-notes-v1.5.0.md)
+- [v1.6.0 - Keystone](./releases/release-notes-v1.6.0.md)
 - [Full Changelog](./CHANGELOG.md)
 
 ---
