@@ -5,10 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
 
 jobs:
   test:
-    name: Run tests with coverage
+    name: Run tests with conditional coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -25,3 +27,18 @@ jobs:
 
       - name: Run tests with coverage
         run: go test -v -coverprofile=coverage.out ./...
+
+      - name: Upload coverage on release only
+        if: github.event_name == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+      - name: Upload to Codecov on release only
+        if: github.event_name == 'release'
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
