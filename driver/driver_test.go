@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ialopezg/entiqon/driver"
+	"github.com/ialopezg/entiqon/driver/styling"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -82,16 +83,16 @@ func (s *DialectTestSuite) TestQuoteIdentifier() {
 
 func (s *DialectTestSuite) TestQuoteTpeQuoteType() {
 	s.Run("generic", func() {
-		s.Equal(driver.QuoteNone, s.generic.QuoteType())
+		s.Equal(styling.QuoteNone, s.generic.QuoteType())
 	})
 	s.Run("postgres", func() {
-		s.Equal(driver.QuoteDouble, s.postgres.QuoteType())
+		s.Equal(styling.QuoteDouble, s.postgres.QuoteType())
 	})
 	s.Run("mssql", func() {
-		s.Equal(driver.QuoteBracket, s.mssql.QuoteType())
+		s.Equal(styling.QuoteBracket, s.mssql.QuoteType())
 	})
 	s.Run("mysql", func() {
-		s.Equal(driver.QuoteBacktick, s.mysql.QuoteType())
+		s.Equal(styling.QuoteBacktick, s.mysql.QuoteType())
 	})
 }
 

@@ -5,6 +5,8 @@
 
 package driver
 
+import "github.com/ialopezg/entiqon/driver/styling"
+
 // Dialect defines the behavior of a SQL dialect.
 // Implementations may embed BaseDialect and override specific methods as needed.
 type Dialect interface {
@@ -12,7 +14,7 @@ type Dialect interface {
 	GetName() string
 
 	// QuoteType returns the quoting style used for identifiers.
-	QuoteType() QuotationType
+	QuoteType() styling.QuoteStyle
 
 	// QuoteIdentifier quotes a table or column name according to the dialect's rules.
 	QuoteIdentifier(name string) string

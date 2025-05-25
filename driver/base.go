@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/ialopezg/entiqon/driver/styling"
 )
 
 // BaseDialect provides a foundational implementation of the Dialect interface.
@@ -46,7 +48,7 @@ type BaseDialect struct {
 	Name string
 
 	// Quotation defines the quoting style used for identifiers.
-	Quotation QuotationType
+	Quotation styling.QuoteStyle
 
 	// PlaceholderSymbol is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
 	PlaceholderSymbol PlaceholderSymbol
@@ -66,7 +68,7 @@ func (b *BaseDialect) GetName() string {
 // QuoteType returns the configured identifier Quotation style.
 //
 // Since: v1.4.0
-func (b *BaseDialect) QuoteType() QuotationType {
+func (b *BaseDialect) QuoteType() styling.QuoteStyle {
 	return b.Quotation
 }
 
@@ -76,11 +78,11 @@ func (b *BaseDialect) QuoteType() QuotationType {
 // Updated: v1.4.0
 func (b *BaseDialect) QuoteIdentifier(identifier string) string {
 	switch b.Quotation {
-	case QuoteDouble:
+	case styling.QuoteDouble:
 		return `"` + identifier + `"`
-	case QuoteBacktick:
+	case styling.QuoteBacktick:
 		return "`" + identifier + "`"
-	case QuoteBracket:
+	case styling.QuoteBracket:
 		return "[" + identifier + "]"
 	default:
 		return identifier

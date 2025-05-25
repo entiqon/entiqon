@@ -5,6 +5,8 @@
 
 package driver
 
+import "github.com/ialopezg/entiqon/driver/styling"
+
 // PostgresDialect implements the Dialect interface for PostgreSQL-compatible databases.
 //
 // This dialect uses:
@@ -31,7 +33,7 @@ func NewPostgresDialect() *PostgresDialect {
 	return &PostgresDialect{
 		BaseDialect: BaseDialect{
 			Name:              "postgres",
-			Quotation:         QuoteDouble,
+			Quotation:         styling.QuoteDouble,
 			PlaceholderSymbol: PlaceholderDollar,
 			EnableAliasing:    true,
 			EnableReturning:   true,

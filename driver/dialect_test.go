@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	core "github.com/ialopezg/entiqon/driver"
+	"github.com/ialopezg/entiqon/driver/styling"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBaseDialectInterfaceSatisfaction(t *testing.T) {
 	d := &core.BaseDialect{
 		Name:              "test",
-		Quotation:         core.QuoteDouble,
+		Quotation:         styling.QuoteDouble,
 		PlaceholderSymbol: core.PlaceholderDollar,
 		EnableReturning:   true,
 		EnableUpsert:      true,

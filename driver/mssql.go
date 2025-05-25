@@ -5,6 +5,8 @@
 
 package driver
 
+import "github.com/ialopezg/entiqon/driver/styling"
+
 // MSSQLDialect implements the Dialect interface for Microsoft SQL Server.
 //
 // This dialect uses:
@@ -31,7 +33,7 @@ func NewMSSQLDialect() *MSSQLDialect {
 	return &MSSQLDialect{
 		BaseDialect{
 			Name:              "mssql",
-			Quotation:         QuoteBracket,
+			Quotation:         styling.QuoteBracket,
 			PlaceholderSymbol: PlaceholderQuestion,
 			EnableAliasing:    true,
 			EnableReturning:   false,

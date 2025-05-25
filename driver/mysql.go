@@ -5,6 +5,8 @@
 
 package driver
 
+import "github.com/ialopezg/entiqon/driver/styling"
+
 // MySQLDialect implements the Dialect interface for MySQL-compatible databases.
 //
 // This dialect uses:
@@ -31,7 +33,7 @@ func NewMySQLDialect() *MySQLDialect {
 	return &MySQLDialect{
 		BaseDialect: BaseDialect{
 			Name:              "mysql",
-			Quotation:         QuoteBacktick,
+			Quotation:         styling.QuoteBacktick,
 			PlaceholderSymbol: PlaceholderQuestion,
 			EnableAliasing:    true,
 			EnableReturning:   false,
