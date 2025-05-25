@@ -26,4 +26,13 @@ func TestBaseDialectInterfaceSatisfaction(t *testing.T) {
 	assert.Equal(t, true, d.SupportsReturning())
 	assert.Equal(t, true, d.SupportsUpsert())
 	assert.NoError(t, d.Validate())
+
+	t.Run("IsValid", func(t *testing.T) {
+		d := &core.BaseDialect{
+			Name:      "test",
+			Quotation: styling.QuoteStyle(10),
+		}
+
+		assert.Error(t, d.Validate())
+	})
 }

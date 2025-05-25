@@ -9,23 +9,23 @@ import "fmt"
 
 // QuoteStyle defines the quoting style used by a SQL dialect for identifiers
 // such as table names, column names, and aliases.
-type QuoteStyle string
+type QuoteStyle int
 
 const (
 	// QuoteNone indicates that no quoting is applied to identifiers.
-	QuoteNone QuoteStyle = "none"
+	QuoteNone QuoteStyle = iota
 
 	// QuoteDouble uses standard double quotes: "identifier"
 	// Common in PostgreSQL, ANSI SQL.
-	QuoteDouble QuoteStyle = "double"
+	QuoteDouble
 
 	// QuoteBacktick uses backticks: `identifier`
 	// Common in MySQL and SQLite.
-	QuoteBacktick QuoteStyle = "backtick"
+	QuoteBacktick
 
 	// QuoteBracket uses square brackets: [identifier]
 	// Common in Microsoft SQL Server.
-	QuoteBracket QuoteStyle = "bracket"
+	QuoteBracket
 )
 
 // IsValid returns true if the QuoteStyle is one of the known quoting options.
