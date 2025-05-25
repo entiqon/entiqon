@@ -8,11 +8,10 @@ COPY mkdocs.yml requirements.txt ./
 # Stage documentation content and maintain folder structure
 RUN mkdir -p docs-site/dev/builder docs-site/dev/core docs-site/releases
 
-COPY documentation-infra.md docs-site/
-COPY CHANGELOG.md docs-site/
+COPY docs/documentation-infra.md docs-site/
 COPY docs/index.md docs-site/index.md
-COPY docs/dev/builder/ docs-site/dev/builder/
-COPY docs/dev/core/ docs-site/dev/core/
+COPY CHANGELOG.md docs-site/
+COPY docs/dev/ docs-site/dev/
 COPY releases/ docs-site/releases/
 
 EXPOSE 8000
