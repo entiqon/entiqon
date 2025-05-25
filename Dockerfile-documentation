@@ -6,13 +6,13 @@ WORKDIR /project
 COPY mkdocs.yml requirements.txt ./
 
 # Stage documentation content and maintain folder structure
-RUN mkdir -p docs-site/developer/builder docs-site/developer/core docs-site/releases
+RUN mkdir -p docs-site/dev/builder docs-site/dev/core docs-site/releases
 
 COPY documentation-infra.md docs-site/
 COPY CHANGELOG.md docs-site/
 COPY docs/index.md docs-site/index.md
-COPY docs/developer/builder/ docs-site/developer/builder/
-COPY docs/developer/core/ docs-site/developer/core/
+COPY docs/dev/builder/ docs-site/dev/builder/
+COPY docs/dev/core/ docs-site/dev/core/
 COPY releases/ docs-site/releases/
 
 EXPOSE 8000

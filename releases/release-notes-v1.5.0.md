@@ -51,7 +51,7 @@ All reflect the new dialect strategy and validation system via StageToken.
 ## 📄 Resources
 
 - [CHANGELOG](./../CHANGELOG.md)
-- [Builder Guide](./../developer/builder/builder_guide.md)
+- [Builder Guide](../dev/builder/builder_guide.md)
 
 ---
 
