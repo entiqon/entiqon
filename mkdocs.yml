@@ -21,14 +21,14 @@ extra:
 nav:
   - 🏠 Home: index.md
   - 📘 Architecture:
-      - Builder Overview: developer/builder/builder_guide.md
+      - Builder Overview: dev/builder/builder_guide.md
       - Infrastructure: documentation-infra.md
   - 🧱 Builders:
-      - SelectBuilder: developer/builder/select_builder.md
-      - InsertBuilder: developer/builder/insert_builder.md
-      - UpdateBuilder: developer/builder/update_builder.md
-      - DeleteBuilder: developer/builder/delete_builder.md
-      - UpsertBuilder: developer/builder/upsert_builder.md
+      - SelectBuilder: dev/builder/select_builder.md
+      - InsertBuilder: dev/builder/insert_builder.md
+      - UpdateBuilder: dev/builder/update_builder.md
+      - DeleteBuilder: dev/builder/delete_builder.md
+      - UpsertBuilder: dev/builder/upsert_builder.md
   - 📦 Releases:
       - Overview: releases/index.md
       - v1.5.0: releases/release-notes-v1.5.0.md
@@ -37,7 +37,7 @@ nav:
       - v1.2.0: releases/release-notes-v1.2.0.md
       - v1.1.0: releases/release-notes-v1.1.0.md
       - v1.0.0: releases/release-notes-v1.0.0.md
-      - Full Changelog: ../CHANGELOG.md
+      - Full Changelog: CHANGELOG.md
 
 markdown_extensions:
   - toc:

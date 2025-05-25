@@ -51,7 +51,7 @@ Visit: [http://localhost:8000](http://localhost:8000)
 
 ## 📦 GitHub Deployment
 
-> 📄 For full release history, see the [CHANGELOG](./CHANGELOG.md).
+> 📄 For full release history, see the [CHANGELOG](CHANGELOG.md).
 
 GitHub Actions automatically deploys the site on push to `main`.
 
