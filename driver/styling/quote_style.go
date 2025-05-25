@@ -5,6 +5,8 @@
 
 package styling
 
+import "fmt"
+
 // QuoteStyle defines the quoting style used by a SQL dialect for identifiers
 // such as table names, column names, and aliases.
 type QuoteStyle string
@@ -25,3 +27,37 @@ const (
 	// Common in Microsoft SQL Server.
 	QuoteBracket QuoteStyle = "bracket"
 )
+
+// IsValid returns true if the QuoteStyle is one of the known quoting options.
+// Valid values include:
+//   - QuoteNone:       no quoting
+//   - QuoteDouble:     "identifier"
+//   - QuoteBacktick:   `identifier`
+//   - QuoteBracket:    [identifier]
+//
+// Ensures that identifier quoting is correctly set by the dialect.
+func (q QuoteStyle) IsValid() bool {
+	return q >= QuoteNone && q <= QuoteBracket
+}
+
+// Quote returns the quoted version of the given identifier,
+// based on the configured QuoteStyle.
+//
+// Examples:
+//
+//	QuoteDouble.Quote("id")   → `"id"`
+//	QuoteBacktick.Quote("id") → "`id"`
+//	QuoteBracket.Quote("id")  → `[id]`
+//	QuoteNone.Quote("id")     → `id`
+func (q QuoteStyle) Quote(identifier string) string {
+	switch q {
+	case QuoteDouble:
+		return fmt.Sprintf(`"%s"`, identifier)
+	case QuoteBacktick:
+		return fmt.Sprintf("`%s`", identifier)
+	case QuoteBracket:
+		return fmt.Sprintf("[%s]", identifier)
+	default:
+		return identifier
+	}
+}

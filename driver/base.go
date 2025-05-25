@@ -77,16 +77,7 @@ func (b *BaseDialect) QuoteType() styling.QuoteStyle {
 //
 // Updated: v1.4.0
 func (b *BaseDialect) QuoteIdentifier(identifier string) string {
-	switch b.Quotation {
-	case styling.QuoteDouble:
-		return `"` + identifier + `"`
-	case styling.QuoteBacktick:
-		return "`" + identifier + "`"
-	case styling.QuoteBracket:
-		return "[" + identifier + "]"
-	default:
-		return identifier
-	}
+	return b.Quotation.Quote(identifier)
 }
 
 // QuoteLiteral returns a printable literal string for debugging/logging purposes only.
@@ -112,14 +103,7 @@ func (b *BaseDialect) QuoteLiteral(value any) string {
 //
 // Updated: v1.4.0
 func (b *BaseDialect) Placeholder(index int) string {
-	if !b.PlaceholderStyle.IsValid() {
-		return "?"
-	}
-	if b.PlaceholderStyle == styling.PlaceholderQuestion {
-		return "?"
-	}
-	// Always fallback to dynamic prefix behavior
-	return fmt.Sprintf("%s%d", b.PlaceholderStyle, index)
+	return b.PlaceholderStyle.Format(index)
 }
 
 // BuildLimitOffset returns the dialect-compatible LIMIT and OFFSET clause.
@@ -192,7 +176,18 @@ func (b *BaseDialect) Validate() error {
 		return fmt.Errorf("BaseDialect: name is not set")
 	}
 	if !b.PlaceholderStyle.IsValid() {
-		return fmt.Errorf("BaseDialect: placeholder symbol is not set")
+		return fmt.Errorf("BaseDialect: placeholder style is not set or invalid")
 	}
+	if !b.Quotation.IsValid() {
+		return fmt.Errorf("BaseDialect: quote style is not set or invalid")
+	}
+	//if b.EnableAliasing {
+	//	if !b.TableAliasStyle.IsValid() {
+	//		return fmt.Errorf("BaseDialect: table alias style is invalid")
+	//	}
+	//	if !b.ColumnAliasStyle.IsValid() {
+	//		return fmt.Errorf("BaseDialect: column alias style is invalid")
+	//	}
+	//}
 	return nil
 }
