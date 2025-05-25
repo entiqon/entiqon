@@ -65,7 +65,7 @@ Build()
 
 ## 📦 Releases
 
-- [v1.5.0 - Without Sin](./releases/release_notes_v1.5.0.md)
+- [v1.6.0 - Keystone](./releases/release-notes-v1.6.0.md)
 - [CHANGELOG](./CHANGELOG.md)
 
 ---
