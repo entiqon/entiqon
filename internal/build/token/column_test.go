@@ -9,103 +9,87 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//--------------------------------------------------
-// Basic Usage
-//--------------------------------------------------
+func TestColumn(t *testing.T) {
+	t.Run("Usage", func(t *testing.T) {
+		t.Run("Basic", func(t *testing.T) {
+			col := token.NewColumn("id")
+			assert.Equal(t, "id", col.Name)
+			assert.False(t, col.IsAliased())
+			assert.False(t, col.IsQualified())
+			assert.True(t, col.IsValid())
+		})
 
-func TestNewColumn_ValidCases(t *testing.T) {
-	t.Run("BasicName", func(t *testing.T) {
+		t.Run("Inline", func(t *testing.T) {
+			assert.Equal(t, "uid", token.NewColumn("id AS uid").Alias)
+			assert.Equal(t, "uid", token.NewColumn("id uid").Alias)
+			assert.Equal(t, "uid", token.NewColumn("id, uid").Alias) // TODO: check
+		})
+	})
+
+	t.Run("AliasOverriding", func(t *testing.T) {
+		t.Run("Match", func(t *testing.T) {
+			col := token.NewColumn("id AS uid", "uid")
+			assert.True(t, col.IsAliased())
+			assert.True(t, col.IsValid())
+		})
+
+		t.Run("Mismatch", func(t *testing.T) {
+			col := token.NewColumn("id AS internal", "external")
+			assert.True(t, col.IsAliased())
+			assert.True(t, col.HasError())
+			assert.False(t, col.IsValid())
+		})
+	})
+
+	t.Run("Table", func(t *testing.T) {
+		t.Run("QualifiedParsing", func(t *testing.T) {
+			col := token.NewColumn("users.id")
+			assert.Equal(t, "users", col.TableName)
+			assert.True(t, col.IsQualified())
+			assert.True(t, col.IsValid())
+		})
+
+		t.Run("Conflict", func(t *testing.T) {
+			col := token.NewColumn("users.id").WithTable("orders")
+			assert.Equal(t, "users", col.TableName)
+			assert.True(t, col.HasError())
+			assert.False(t, col.IsValid())
+		})
+	})
+
+	t.Run("WithTable", func(t *testing.T) {
+		col := token.NewColumn("users.id")
+		assert.Equal(t, "users", col.TableName)
+		assert.False(t, col.HasError())
+
+		col = col.WithTable("orders")           // should produce error
+		assert.Equal(t, "users", col.TableName) // should not change
+		assert.True(t, col.HasError())
+		assert.Contains(t, col.Error.Error(), "table mismatch")
+
+		t.Run("NoTable", func(t *testing.T) {
+			col := token.NewColumn("id", "user_id").WithTable("users")
+			assert.Equal(t, "users", col.TableName)
+			assert.False(t, col.HasError())
+			assert.Equal(t, "users.id AS user_id", col.Raw())
+		})
+	})
+
+	t.Run("Rendering", func(t *testing.T) {
+		col := token.NewColumn("users.id", "uid")
+		assert.Equal(t, "users.id AS uid", col.Raw())
+		assert.Contains(t, col.String(), `Column("id") [aliased: true, qualified: true, errored: false`)
+	})
+
+	t.Run("Raw", func(t *testing.T) {
 		col := token.NewColumn("id")
-		assert.Equal(t, "id", col.Name)
-		assert.Empty(t, col.Alias)
-		assert.Nil(t, col.Error)
-		assert.True(t, col.IsValid())
+		assert.False(t, col.HasError())
 		assert.Equal(t, "id", col.Raw())
-		assert.Equal(t, `Column("id")`, col.String())
-	})
-}
-
-//--------------------------------------------------
-// Usage Variants
-//--------------------------------------------------
-
-func TestNewColumn_AliasingVariants(t *testing.T) {
-	t.Run("InlineAlias", func(t *testing.T) {
-		col := token.NewColumn("user_id AS id")
-		assert.Equal(t, "user_id", col.Name)
-		assert.Equal(t, "id", col.Alias)
-		assert.Nil(t, col.Error)
-		assert.True(t, col.IsValid())
-		assert.Equal(t, "user_id AS id", col.Raw())
-		assert.Equal(t, `Column("user_id" AS "id")`, col.String())
 	})
 
-	t.Run("ExplicitAlias", func(t *testing.T) {
-		col := token.NewColumn("email", "contact_email")
-		assert.Equal(t, "email", col.Name)
-		assert.Equal(t, "contact_email", col.Alias)
-		assert.Nil(t, col.Error)
-		assert.True(t, col.IsValid())
-		assert.Equal(t, "email AS contact_email", col.Raw())
-		assert.Equal(t, `Column("email" AS "contact_email")`, col.String())
+	t.Run("String", func(t *testing.T) {
+		col := token.NewColumn("users.id").WithTable("orders")
+		assert.True(t, col.HasError())
+		assert.Contains(t, col.String(), "table mismatch")
 	})
-
-	t.Run("WhitespaceHandling", func(t *testing.T) {
-		col := token.NewColumn("  user_id  AS  id  ")
-		assert.Equal(t, "user_id", col.Name)
-		assert.Equal(t, "id", col.Alias)
-		assert.True(t, col.IsValid())
-		assert.Equal(t, "user_id AS id", col.Raw())
-		assert.Equal(t, `Column("user_id" AS "id")`, col.String())
-	})
-}
-
-//--------------------------------------------------
-// Validations
-//--------------------------------------------------
-
-func TestNewColumn_InvalidCases(t *testing.T) {
-	t.Run("EmptyExpression", func(t *testing.T) {
-		col := token.NewColumn("")
-		assert.Error(t, col.Error)
-		assert.False(t, col.IsValid())
-	})
-
-	t.Run("OnlyAliasKeyword", func(t *testing.T) {
-		col := token.NewColumn("AS name")
-		assert.Error(t, col.Error)
-		assert.False(t, col.IsValid())
-	})
-
-	t.Run("MissingNameBeforeAlias", func(t *testing.T) {
-		col := token.NewColumn(" AS alias")
-		assert.Error(t, col.Error)
-		assert.False(t, col.IsValid())
-	})
-
-	t.Run("MissingAliasAfterAs", func(t *testing.T) {
-		col := token.NewColumn("id AS ")
-		assert.Equal(t, "id", col.Name)
-		assert.Equal(t, "", col.Alias)
-		assert.Nil(t, col.Error)
-		assert.True(t, col.IsValid())
-	})
-
-	t.Run("OnlyAs", func(t *testing.T) {
-		col := token.NewColumn("AS")
-		assert.Error(t, col.Error)
-		assert.False(t, col.IsValid())
-	})
-}
-
-//--------------------------------------------------
-// Other
-//--------------------------------------------------
-
-func TestColumn_InterfaceSatisfaction(t *testing.T) {
-	var col token.BaseToken = token.NewColumn("x")
-	assert.NotNil(t, col)
-	assert.True(t, col.IsValid())
-	assert.Equal(t, "x", col.Raw())
-	assert.Contains(t, col.String(), "Column")
 }

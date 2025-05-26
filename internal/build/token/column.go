@@ -2,103 +2,143 @@ package token
 
 import (
 	"fmt"
-	"strings"
 )
 
-// Column represents a SQL column token used in SELECT and other clauses.
+// Column represents a SQL column reference within a SELECT, WHERE, or ORDER BY clause.
 //
-// Fields:
-//   - Name:  the name or expression of the column (required)
-//   - Alias: an optional alias to rename the column in the result set
-//   - Error: if non-nil, indicates a validation or parsing error encountered during construction
+// It supports optional table qualification (e.g., "users.id") and aliasing (e.g., "id AS user_id").
+// The Column token embeds a BaseToken to handle naming, aliasing, and error tracking.
 //
-// Examples:
-//   Column{Name: "user_id"}                   → SELECT user_id
-//   Column{Name: "user_id", Alias: "id"}     → SELECT user_id AS id
-//   Column{Error: err}                         → represents an invalid column
-
+// It is designed to participate in query builders or token streams where SQL elements
+// need to be validated, introspected, and rendered dialect-neutrally.
+//
+// # Usage
+//
+//	c := NewColumn("users.id AS uid")
+//	fmt.Println(c.Raw())     // "users.id"
+//	fmt.Println(c.IsAliased()) // true
+//	fmt.Println(c.String())  // Column("users.id") [aliased: true, qualified: true]
+//
+// File: internal/build/token/column.go
+// Since: v1.6.0
 type Column struct {
-	Name  string // Name is the column identifier or expression (required).
-	Alias string // Alias is the optional column alias used in query output.
-	Error error  // Error indicates a problem encountered during parsing or validation.
+	BaseToken
+
+	// TableName holds the optional table or alias prefix for the column.
+	// It is extracted from expressions like "users.id" or may be set later via WithTable().
+	TableName string
 }
 
-// NewColumn creates and returns a new Column token instance with optional alias.
+// NewColumn constructs a Column token from a raw expression and optional alias.
 //
-// If no alias is explicitly passed, it attempts to parse inline aliasing from
-// the expression using the SQL "AS" keyword. For example:
+// If no alias is provided, it attempts to extract one inline using the SQL keyword "AS",
+// or through space/comma separation. If both an inline alias and an explicit alias
+// are provided and they conflict, an error is stored in the token.
 //
-//	NewColumn("id")
-//	  → Column{Name: "id"}
+// # Examples
 //
-//	NewColumn("id AS user_id")
-//	  → Column{Name: "id", Alias: "user_id"}
-//
-//	NewColumn("id", "user_id")
-//	  → Column{Name: "id", Alias: "user_id"} (explicit alias overrides inline parsing)
+//	NewColumn("id")                    → name: "id"
+//	NewColumn("id AS uid")             → name: "id", alias: "uid"
+//	NewColumn("users.id")              → name: "id", table: "users"
+//	NewColumn("id", "alias")           → name: "id", alias: "alias"
+//	NewColumn("id AS uid", "alias")    → alias mismatch error
 func NewColumn(expr string, alias ...string) Column {
-	expr = strings.TrimSpace(expr)
-	if expr == "" {
-		return Column{Error: fmt.Errorf("column name cannot be empty")}
-	}
+	base, parsedAlias := ParseAlias(expr)
+	table, column := ParseTableColumn(base)
 
-	if len(alias) == 0 {
-		parts := strings.SplitN(expr, "AS", 2)
-		if len(parts) == 2 {
-			name := strings.TrimSpace(parts[0])
-			aliasName := strings.TrimSpace(parts[1])
-			if name == "" {
-				return Column{Alias: aliasName, Error: fmt.Errorf("missing column name before alias")}
-			}
-			return Column{Name: name, Alias: aliasName}
-		}
-	}
-
-	c := Column{Name: expr}
+	var finalAlias string
+	var err error
 	if len(alias) > 0 {
-		c.Alias = alias[0]
+		finalAlias = alias[0]
+		if parsedAlias != "" && parsedAlias != finalAlias {
+			err = fmt.Errorf("alias mismatch: inline alias '%s' ≠ provided alias '%s'", parsedAlias, finalAlias)
+		}
+	} else {
+		finalAlias = parsedAlias
 	}
+
+	return Column{
+		TableName: table,
+		BaseToken: BaseToken{
+			Name:  column,
+			Alias: finalAlias,
+			Error: err,
+		},
+	}
+}
+
+// IsQualified reports whether the column has a table prefix.
+//
+// This is useful for distinguishing between "id" and "users.id" in query formatting.
+func (c Column) IsQualified() bool {
+	return c.TableName != ""
+}
+
+// WithTable assigns or checks the table prefix for the column.
+//
+// If the column was already parsed with a table name and a different table
+// is provided here, an error is recorded and the original table is retained.
+//
+// # Example
+//
+//	c := NewColumn("users.id")
+//	c = c.WithTable("orders") // sets error due to mismatch
+func (c Column) WithTable(name string) Column {
+	if c.TableName != "" && c.TableName != name {
+		c.Error = fmt.Errorf("table mismatch: cannot override '%s' with '%s'", c.TableName, name)
+		return c
+	}
+	c.TableName = name
 	return c
 }
 
-// IsValid performs a basic check to ensure the column name is not empty or just whitespace.
-// It returns false if any internal Error has been set.
+// Raw returns the SQL-safe, dialect-neutral representation of the column,
+// including table qualification and aliasing if applicable.
 //
-// Example:
+// If the column has a table prefix, it will be prepended (e.g., "users.id").
+// If the column is aliased, the result will follow SQL's "AS" convention
+// (e.g., "users.id AS uid").
 //
-//	col := NewColumn("id")
-//	valid := col.IsValid() // true
-func (c Column) IsValid() bool {
-	return c.Error == nil && strings.TrimSpace(c.Name) != ""
-}
-
-// Raw returns the raw SQL representation of the column, including aliasing via "AS" if set.
-// It does not apply any quoting or dialect-specific formatting.
+// # Examples
 //
-// Example:
-//
-//	col := NewColumn("id AS user_id")
-//	sql := col.Raw() // "id AS user_id"
+//	Column{Name: "id"}                            → "id"
+//	Column{Name: "id", Alias: "uid"}              → "id AS uid"
+//	Column{TableName: "users", Name: "id"}        → "users.id"
+//	Column{TableName: "users", Name: "id", Alias: "uid"} → "users.id AS uid"
 func (c Column) Raw() string {
-	if c.Alias != "" {
-		return fmt.Sprintf("%s AS %s", c.Name, c.Alias)
+	base := c.Name
+	if c.IsQualified() {
+		base = c.TableName + "." + c.Name
 	}
-	return c.Name
+	if c.IsAliased() {
+		return fmt.Sprintf("%s AS %s", base, c.Alias)
+	}
+	return base
 }
 
-// String returns a developer-friendly representation of the column for logging or debugging.
-// It includes quotes around names and aliases to make output unambiguous in logs.
+// String returns a structured diagnostic view of the column token.
 //
-// Example:
+// This method reports the internal state of the token using its base name,
+// and flags for aliasing, qualification, and error presence.
+// It is intended for developer inspection and debugging only.
 //
-//	col := NewColumn("id AS user_id")
-//	debug := col.String() // "Column(\"id\" AS \"user_id\")"
+// Unlike Raw(), this output is not suitable for SQL rendering.
+//
+// # Example Output:
+//
+//	Column("id") [aliased: false, qualified: false, errored: false]
+//	Column("id") [aliased: true, qualified: false, errored: true]
+//	Column("m3CUNO") [aliased: true, qualified: true, errored: false]
 func (c Column) String() string {
-	if c.Alias != "" {
-		return fmt.Sprintf("Column(%q AS %q)", c.Name, c.Alias)
+	s := fmt.Sprintf("Column(%q) [aliased: %v, qualified: %v, errored: %v",
+		c.Name, c.IsAliased(), c.IsQualified(), c.HasError(),
+	)
+	if c.HasError() {
+		s += fmt.Sprintf(", error: %s", c.Error.Error())
 	}
-	return fmt.Sprintf("Column(%q)", c.Name)
+	s += "]"
+	return s
 }
 
-// Compile-time interface satisfaction check
-var _ BaseToken = Column{}
+// Ensure Column satisfies the GenericToken interface.
+var _ GenericToken = Column{}
