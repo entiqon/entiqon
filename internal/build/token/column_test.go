@@ -3,6 +3,7 @@
 package token_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ialopezg/entiqon/internal/build/token"
@@ -92,4 +93,9 @@ func TestColumn(t *testing.T) {
 		assert.True(t, col.HasError())
 		assert.Contains(t, col.String(), "table mismatch")
 	})
+}
+
+func TestNewErroredColumn(t *testing.T) {
+	col := token.NewErroredColumn(fmt.Errorf("errored column"))
+	assert.ErrorContains(t, col.Error, "errored column")
 }
