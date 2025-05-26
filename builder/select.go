@@ -5,10 +5,13 @@ import (
 	"strings"
 
 	driver2 "github.com/ialopezg/entiqon/driver"
+	"github.com/ialopezg/entiqon/internal/build/render"
+	"github.com/ialopezg/entiqon/internal/build/token"
+	"github.com/ialopezg/entiqon/internal/build/util"
 	"github.com/ialopezg/entiqon/internal/core/builder"
 	"github.com/ialopezg/entiqon/internal/core/builder/bind"
 	core "github.com/ialopezg/entiqon/internal/core/error"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	internal "github.com/ialopezg/entiqon/internal/core/token"
 )
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.
@@ -16,9 +19,9 @@ import (
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
 	BaseBuilder
-	columns    []token.FieldToken
-	from       []token.Table
-	conditions []token.Condition
+	columns    []token.Column
+	sources    []internal.Table
+	conditions []internal.Condition
 	sorting    []string
 	take       *int
 	skip       *int
@@ -35,27 +38,68 @@ func NewSelect(dialect driver2.Dialect) *SelectBuilder {
 
 	return &SelectBuilder{
 		BaseBuilder: base,
-		columns:     make([]token.FieldToken, 0),
-		conditions:  make([]token.Condition, 0),
+		conditions:  make([]internal.Condition, 0),
 		sorting:     make([]string, 0),
 	}
 }
 
-// Select adds raw column strings (can include aliases like "id", "name AS n").
-// Select sets columns using FieldsFromExpr(...) and resets previous entries.
+// Select sets the list of columns to be used in the SELECT clause.
+//
+// Columns are parsed from strings using util.ParseColumns(...), and support
+// inline aliasing (e.g., "id AS uid", "user_id uid"). Any invalid column
+// is stored and its error tracked in the builder validator.
+//
+// # Examples
+//
+//	Select("id", "name AS customer")
+//	  → SELECT id, name AS customer
+//
+//	Select("users.id AS uid", "users.name")
+//	  → SELECT users.id AS uid, users.name
+//
+//	Select("id, name") // multiple in one string
+//	  → SELECT id, name
 func (b *SelectBuilder) Select(columns ...string) *SelectBuilder {
-	b.columns = []token.FieldToken{}
-	for _, expr := range columns {
-		b.columns = append(b.columns, token.FieldsFromExpr(expr)...)
-	}
+	b.columns = []token.Column{}
+	b.appendColumns(util.ParseColumns(columns...))
 	return b
 }
 
-// AddSelect appends more columns using FieldsFromExpr(...) without resetting.
+// AddSelect appends one or more columns to the SELECT clause of the query,
+// preserving any previously defined columns.
+//
+// This is complementary to Select(...), which replaces the column list entirely.
+// AddSelect should ideally be called after Select(...) to preserve the semantic
+// flow of query construction.
+//
+// Note: If AddSelect is called before Select, the internal column list will be
+// automatically initialized. However, this is not considered best practice.
+// It is recommended to follow a hierarchical flow — define the base columns with
+// Select(...) first, then extend with AddSelect(...) as needed.
+//
+// Each input string may contain a single column or a comma-separated list.
+// The method internally uses util.ParseColumns to handle splitting, trimming,
+// and inline aliasing (e.g., "id AS user_id").
+//
+// Invalid columns are included with their Error field populated and may be
+// filtered or logged by downstream logic.
+//
+// Examples:
+//
+//	Select("id")
+//	AddSelect("name")
+//	  → SELECT id, name
+//
+//	AddSelect("id, name")
+//	  → SELECT id, name
+//
+//	AddSelect("id", "name AS customer")
+//	  → SELECT id, name AS customer
 func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
-	for _, expr := range columns {
-		b.columns = append(b.columns, token.FieldsFromExpr(expr)...)
+	if b.columns == nil {
+		b.columns = make([]token.Column, 0)
 	}
+	b.appendColumns(util.ParseColumns(columns...))
 	return b
 }
 
@@ -68,9 +112,9 @@ func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
 		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
 	}
 	if len(alias) > 0 {
-		b.from = append(b.from, token.NewTableWithAlias(table, alias[0]))
+		b.sources = append(b.sources, internal.NewTableWithAlias(table, alias[0]))
 	} else {
-		b.from = append(b.from, token.NewTable(table))
+		b.sources = append(b.sources, internal.NewTable(table))
 	}
 	return b
 }
@@ -78,17 +122,17 @@ func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
 func (b *SelectBuilder) Where(condition string, values ...any) *SelectBuilder {
-	c := token.NewCondition(token.ConditionSimple, condition, values...)
+	c := internal.NewCondition(internal.ConditionSimple, condition, values...)
 	if !c.IsValid() {
 		b.AddStageError(core.StageWhere, c.Error)
 	}
-	b.conditions = []token.Condition{c}
+	b.conditions = []internal.Condition{c}
 	return b
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
 func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder {
-	c := token.NewCondition(token.ConditionAnd, condition, values...)
+	c := internal.NewCondition(internal.ConditionAnd, condition, values...)
 	if !c.IsValid() {
 		b.AddStageError(core.StageWhere, c.Error)
 	}
@@ -98,7 +142,7 @@ func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder
 
 // OrWhere adds an OR condition to the WHERE clause.
 func (b *SelectBuilder) OrWhere(condition string, values ...any) *SelectBuilder {
-	c := token.NewCondition(token.ConditionOr, condition, values...)
+	c := internal.NewCondition(internal.ConditionOr, condition, values...)
 	if !c.IsValid() {
 		b.AddStageError(core.StageWhere, c.Error)
 	}
@@ -135,42 +179,30 @@ func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
 // If the FROM clause is missing, an error is returned.
 // Dialect rules (quoting, pagination) are applied if configured.
 func (b *SelectBuilder) Build() (string, []any, error) {
-	if len(b.from) == 0 {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
-	}
-
-	if err := b.Validate(); err != nil {
-		return "", nil, err
+	if len(b.sources) == 0 {
+		b.AddStageError(core.StageFrom, fmt.Errorf("missing source; expected at least one table source"))
 	}
 
 	var tokens []string
-	// ─────────────────────────────────────────────────────────────
-	// Render SELECT columns
-	// ─────────────────────────────────────────────────────────────
+
+	// prepare columns
 	columns := "*"
 	if len(b.columns) > 0 {
 		var rendered []string
-		for _, col := range b.columns {
-			name := col.Name
-			if b.Dialect != nil && !col.IsRaw {
-				name = b.Dialect.QuoteIdentifier(col.Name)
+		for _, column := range b.columns {
+			if out := render.Column(b.Dialect, column); out != "" {
+				rendered = append(rendered, out)
 			}
-			if col.Alias != "" {
-				name = fmt.Sprintf("%s AS %s", name, col.Alias)
-			}
-			rendered = append(rendered, name)
 		}
 		columns = strings.Join(rendered, ", ")
 	}
 
 	tokens = append([]string{}, fmt.Sprintf("SELECT %s", columns))
 
-	// ─────────────────────────────────────────────────────────────
-	// Render FROM clause (quoted if dialect provided)
-	// ─────────────────────────────────────────────────────────────
-	if len(b.from) > 0 {
+	// prepare sources
+	if len(b.sources) > 0 {
 		var fromParts []string
-		for _, tbl := range b.from {
+		for _, tbl := range b.sources {
 			if tbl.IsValid() {
 				fromParts = append(fromParts, b.Dialect.RenderFrom(tbl.Name, tbl.Alias))
 			}
@@ -178,9 +210,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		tokens = append(tokens, "FROM "+strings.Join(fromParts, ", "))
 	}
 
-	// ─────────────────────────────────────────────────────────────
-	// Render WHERE conditions
-	// ─────────────────────────────────────────────────────────────
+	// prepare conditions
 	var args []any
 	if len(b.conditions) > 0 {
 		binder := bind.NewParamBinderWithPosition(b.Dialect, len(args)+1)
@@ -192,16 +222,12 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		args = append(args, clauseArgs...)
 	}
 
-	// ─────────────────────────────────────────────────────────────
-	// ORDER BY
-	// ─────────────────────────────────────────────────────────────
+	// prepare sorting
 	if len(b.sorting) > 0 {
 		tokens = append(tokens, "ORDER BY "+strings.Join(b.sorting, ", "))
 	}
 
-	// ─────────────────────────────────────────────────────────────
-	// LIMIT/OFFSET via dialect
-	// ─────────────────────────────────────────────────────────────
+	// prepare pagination, if applicable
 	limit, offset := -1, -1
 	if b.take != nil {
 		limit = *b.take
@@ -221,5 +247,21 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		}
 	}
 
+	// validate for errors
+	if err := b.Validate(); err != nil {
+		return "", nil, err
+	}
+
+	// render
 	return strings.Join(tokens, " "), args, nil
+}
+
+func (b *SelectBuilder) appendColumns(cols []token.Column) {
+	for _, col := range cols {
+		if !col.IsValid() {
+			b.Validator.AddStageError(core.StageSelect,
+				fmt.Errorf("invalid column: %s — %v", col.String(), col.Error))
+		}
+		b.columns = append(b.columns, col)
+	}
 }

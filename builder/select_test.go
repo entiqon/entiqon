@@ -6,6 +6,7 @@ import (
 
 	"github.com/ialopezg/entiqon/driver"
 	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -108,7 +109,7 @@ func (s *SelectBuilderTestSuite) TestFrom() {
 			Build()
 
 		s.Error(err)
-		s.ErrorContains(err, "requires a target table")
+		s.ErrorContains(err, "missing source")
 	})
 }
 
@@ -320,7 +321,7 @@ func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
 	s.Run("EmptyTable", func() {
 		_, _, err := NewSelect(nil).Build()
 		s.Error(err)
-		s.ErrorContains(err, "requires a target table")
+		s.ErrorContains(err, "missing source")
 	})
 	s.Run("HasDialect", func() {
 		b := NewSelect(nil)
@@ -335,6 +336,38 @@ func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
 		_, _, err := NewSelect(nil).Build()
 		s.Error(err)
 		s.Contains(err.Error(), "builder validation failed")
+	})
+}
+
+func TestSelectBuilder(t *testing.T) {
+	t.Run("Select", func(t *testing.T) {
+		_, _, err := NewSelect(nil).
+			Select("").
+			From("users").
+			Build()
+
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "invalid column")
+	})
+
+	t.Run("AddSelect", func(t *testing.T) {
+		sql, _, err := NewSelect(nil).
+			AddSelect("id", "created_at").
+			From("users").
+			Build()
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, sql)
+	})
+
+	t.Run("Where", func(t *testing.T) {
+		_, _, err := NewSelect(nil).
+			Where("status =").
+			From("users").
+			Build()
+
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "invalid condition")
 	})
 }
 

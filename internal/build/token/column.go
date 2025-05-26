@@ -67,6 +67,20 @@ func NewColumn(expr string, alias ...string) Column {
 	}
 }
 
+// NewErroredColumn constructs a column token with an explicit error.
+//
+// This is used when column input is structurally missing or invalid,
+// such as empty strings or parsing failures outside of NewColumn.
+//
+// Since: v1.6.0
+func NewErroredColumn(err error) Column {
+	return Column{
+		BaseToken: BaseToken{
+			Error: err,
+		},
+	}
+}
+
 // IsQualified reports whether the column has a table prefix.
 //
 // This is useful for distinguishing between "id" and "users.id" in query formatting.

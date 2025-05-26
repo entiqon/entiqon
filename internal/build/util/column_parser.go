@@ -3,6 +3,7 @@
 package util
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ialopezg/entiqon/internal/build/token"
@@ -32,7 +33,7 @@ func ParseColumns(input ...string) []token.Column {
 		for _, part := range parts {
 			trimmed := strings.TrimSpace(part)
 			if trimmed == "" {
-				fields = append(fields, token.Column{})
+				fields = append(fields, token.NewErroredColumn(fmt.Errorf("empty column expression")))
 				continue
 			}
 			col := token.NewColumn(strings.TrimSpace(part))
