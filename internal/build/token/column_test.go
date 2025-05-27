@@ -45,14 +45,14 @@ func TestColumn(t *testing.T) {
 	t.Run("Table", func(t *testing.T) {
 		t.Run("QualifiedParsing", func(t *testing.T) {
 			col := token.NewColumn("users.id")
-			assert.Equal(t, "users", col.TableName)
+			assert.Equal(t, "users", col.Table.Name)
 			assert.True(t, col.IsQualified())
 			assert.True(t, col.IsValid())
 		})
 
 		t.Run("Conflict", func(t *testing.T) {
-			col := token.NewColumn("users.id").WithTable("orders")
-			assert.Equal(t, "users", col.TableName)
+			col := token.NewColumn("users.id").WithTable(token.NewTable("orders"))
+			assert.Equal(t, "users", col.Table.Name)
 			assert.True(t, col.HasError())
 			assert.False(t, col.IsValid())
 		})
@@ -60,25 +60,25 @@ func TestColumn(t *testing.T) {
 
 	t.Run("WithTable", func(t *testing.T) {
 		col := token.NewColumn("users.id")
-		assert.Equal(t, "users", col.TableName)
+		assert.Equal(t, "users", col.Table.Name)
 		assert.False(t, col.HasError())
 
-		col = col.WithTable("orders")           // should produce error
-		assert.Equal(t, "users", col.TableName) // should not change
+		col = col.WithTable(token.NewTable("orders")) // should produce error
+		assert.Equal(t, "users", col.Table.Name)      // should not change
 		assert.True(t, col.HasError())
 		assert.Contains(t, col.Error.Error(), "table mismatch")
 
 		t.Run("NoTable", func(t *testing.T) {
-			col := token.NewColumn("id", "user_id").WithTable("users")
-			assert.Equal(t, "users", col.TableName)
+			col := token.NewColumn("id", "user_id").WithTable(token.NewTable("users"))
+			assert.Equal(t, "users", col.Table.Name)
 			assert.False(t, col.HasError())
-			assert.Equal(t, "users.id AS user_id", col.Raw())
+			assert.Equal(t, "users.user_id", col.Raw())
 		})
 	})
 
 	t.Run("Rendering", func(t *testing.T) {
 		col := token.NewColumn("users.id", "uid")
-		assert.Equal(t, "users.id AS uid", col.Raw())
+		assert.Equal(t, "users.uid", col.Raw())
 		assert.Contains(t, col.String(), `Column("id") [aliased: true, qualified: true, errored: false`)
 	})
 
@@ -89,9 +89,53 @@ func TestColumn(t *testing.T) {
 	})
 
 	t.Run("String", func(t *testing.T) {
-		col := token.NewColumn("users.id").WithTable("orders")
+		col := token.NewColumn("users.id").WithTable(token.NewTable("orders"))
 		assert.True(t, col.HasError())
 		assert.Contains(t, col.String(), "table mismatch")
+	})
+
+	t.Run("ColumnResolution", func(t *testing.T) {
+		cases := []struct {
+			columnExpr string
+			tableExpr  string
+			expectErr  bool
+			expectName string
+		}{
+			// Unqualified + alias → should resolve with alias
+			{"id", "users AS u", false, "u.id"},
+
+			// Qualified and table match → trusted
+			{"users.id", "users", false, "users.id"},
+
+			// Qualified and alias match → trusted
+			{"u.id", "users AS u", false, "u.id"},
+
+			// Qualified but table mismatch → error
+			{"orders.id", "users AS u", true, "orders.id"},
+
+			// Qualified but no table → error
+			{"users.id", "", false, "users.id"},
+		}
+
+		for _, tc := range cases {
+			col := token.NewColumn(tc.columnExpr)
+			if tc.tableExpr != "" {
+				col.WithTable(token.NewTable(tc.tableExpr))
+			}
+
+			if tc.expectErr && !col.HasError() {
+				t.Errorf("expected error for %q with table %q, but got none", tc.columnExpr, tc.tableExpr)
+			} else if !tc.expectErr && col.HasError() {
+				t.Errorf("unexpected error for %q with table %q: %v", tc.columnExpr, tc.tableExpr, col.Error)
+			}
+
+			if tc.expectName != "" {
+				got := col.Raw()
+				if got != tc.expectName {
+					t.Errorf("expected resolved name %q, got %q", tc.expectName, got)
+				}
+			}
+		}
 	})
 }
 
