@@ -54,15 +54,37 @@ type BaseToken struct {
 // # Example:
 //
 //	col := Column{BaseToken: NewErroredToken(fmt.Errorf("empty input"))}
-func NewErroredToken(err error) BaseToken {
-	return BaseToken{Error: err}
+func NewErroredToken(err error) *BaseToken {
+	return &BaseToken{Error: err}
+}
+
+// WithError returns a copy of the token with the provided error set.
+//
+// This method is used during validation or resolution phases when a token
+// (such as a Column or Table) is constructed successfully, but later fails
+// semantic checks (e.g., mismatched source or alias).
+//
+// It does not mutate the original token, but instead returns a new token
+// with the error embedded in the BaseToken.
+//
+// # Example
+//
+//	col := token.NewColumn("id")
+//	col.BaseToken = col.BaseToken.WithError(fmt.Errorf("column is deprecated"))
+//	fmt.Println(col.String())
+//
+//	// Output:
+//	Column("id") [aliased: false, qualified: false, errored: true, error: column is deprecated]
+func (b *BaseToken) WithError(err error) *BaseToken {
+	b.Error = err
+	return b
 }
 
 // HasError reports whether the token has encountered a semantic or structural error.
 //
 // Typical causes include alias mismatches, unresolved references, or conflicting
 // overrides detected during token construction or resolution.
-func (b BaseToken) HasError() bool {
+func (b *BaseToken) HasError() bool {
 	return b.Error != nil
 }
 
@@ -70,15 +92,15 @@ func (b BaseToken) HasError() bool {
 //
 // This method ensures that the token is structurally well-formed and ready
 // to be included in a generated SQL query.
-func (b BaseToken) IsValid() bool {
-	return b.Error == nil && strings.TrimSpace(b.Name) != ""
+func (b *BaseToken) IsValid() bool {
+	return b != nil && b.Error == nil && strings.TrimSpace(b.Name) != ""
 }
 
 // IsAliased reports whether the token has a defined alias.
 //
 // Returns true if the Alias field is non-empty, which indicates the token
 // should appear in SQL output with an AS clause or similar aliasing logic.
-func (b BaseToken) IsAliased() bool {
+func (b *BaseToken) IsAliased() bool {
 	return b.Alias != ""
 }
 
@@ -86,7 +108,7 @@ func (b BaseToken) IsAliased() bool {
 //
 // This is helpful in rendering column headers or result labels where aliases
 // take precedence, but a fallback is still required.
-func (b BaseToken) AliasOr() string {
+func (b *BaseToken) AliasOr() string {
 	if b.Alias != "" {
 		return b.Alias
 	}
@@ -105,7 +127,7 @@ func (b BaseToken) AliasOr() string {
 //
 //	BaseToken{Name: "id"}.Raw()                 → "id"
 //	BaseToken{Name: "id", Alias: "user_id"}.Raw() → "id AS user_id"
-func (b BaseToken) Raw() string {
+func (b *BaseToken) Raw() string {
 	if b.Alias != "" {
 		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
 	}
@@ -128,7 +150,7 @@ func (b BaseToken) Raw() string {
 //
 //	b = BaseToken{Name: "id", Alias: "uid", Error: fmt.Errorf("conflict")}
 //	fmt.Println(b.String(KindColumn)) → Column("id") [aliased: true, error: conflict]
-func (b BaseToken) String(kind Kind) string {
+func (b *BaseToken) String(kind Kind) string {
 	suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.HasError())
 	if b.HasError() {
 		suffix += fmt.Sprintf(", error: %s", b.Error.Error())

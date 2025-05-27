@@ -8,24 +8,41 @@ import (
 
 	"github.com/ialopezg/entiqon/internal/build/token"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBaseToken(t *testing.T) {
+	t.Run("AliasOr", func(t *testing.T) {
+		tok := token.BaseToken{Name: "id"}
+		assert.Equal(t, "id", tok.AliasOr())
+
+		tok = token.BaseToken{Name: "id", Alias: "uid"}
+		assert.Equal(t, "uid", tok.AliasOr())
+	})
+
 	t.Run("IsValid", func(t *testing.T) {
-		assert.True(t, token.BaseToken{Name: "id"}.IsValid())
-		assert.False(t, token.BaseToken{Name: ""}.IsValid())
-		assert.False(t, token.BaseToken{Name: "id", Error: assert.AnError}.IsValid())
+		valid := &token.BaseToken{Name: "id"}
+		assert.True(t, valid.IsValid())
+		invalid := &token.BaseToken{Name: ""}
+		assert.False(t, invalid.IsValid())
+		errored := &token.BaseToken{Name: "id", Error: assert.AnError}
+		assert.False(t, errored.IsValid())
 	})
 
 	t.Run("Raw", func(t *testing.T) {
-		assert.Equal(t, "name", token.BaseToken{Name: "name"}.Raw())
-		assert.Equal(t, "name AS alias", token.BaseToken{Name: "name", Alias: "alias"}.Raw())
+		base := &token.BaseToken{Name: "name"}
+		assert.Equal(t, "name", base.Raw())
+		raw := token.BaseToken{Name: "name", Alias: "alias"}
+		assert.Equal(t, "name AS alias", raw.Raw())
 	})
 
 	t.Run("String", func(t *testing.T) {
-		assert.Equal(t, `Column("id") [aliased: false, errored: false]`, token.BaseToken{Name: "id"}.String(token.KindColumn))
-		assert.Equal(t, `Column("id") [aliased: true, errored: false]`, token.BaseToken{Name: "id", Alias: "user_id"}.String(token.KindColumn))
-		assert.Equal(t, `Table("users") [aliased: true, errored: false]`, token.BaseToken{Name: "users", Alias: "u"}.String(token.KindTable))
+		singleCol := &token.BaseToken{Name: "id"}
+		assert.Equal(t, `Column("id") [aliased: false, errored: false]`, singleCol.String(token.KindColumn))
+		aliasedCol := &token.BaseToken{Name: "id", Alias: "user_id"}
+		assert.Equal(t, `Column("id") [aliased: true, errored: false]`, aliasedCol.String(token.KindColumn))
+		tblAliased := token.BaseToken{Name: "users", Alias: "u"}
+		assert.Equal(t, `Table("users") [aliased: true, errored: false]`, tblAliased.String(token.KindTable))
 
 		t.Run("Error", func(t *testing.T) {
 			tok := token.BaseToken{
@@ -39,11 +56,12 @@ func TestBaseToken(t *testing.T) {
 		})
 	})
 
-	t.Run("AliasOr", func(t *testing.T) {
-		tok := token.BaseToken{Name: "id"}
-		assert.Equal(t, "id", tok.AliasOr())
+	t.Run("WithError", func(t *testing.T) {
+		b := &token.BaseToken{Name: "x"}
+		res := b.WithError(fmt.Errorf("invalid"))
 
-		tok = token.BaseToken{Name: "id", Alias: "uid"}
-		assert.Equal(t, "uid", tok.AliasOr())
+		require.Same(t, b, res)
+		require.True(t, res.HasError())
+		require.EqualError(t, res.Error, "invalid")
 	})
 }
