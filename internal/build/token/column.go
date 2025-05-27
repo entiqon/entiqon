@@ -74,11 +74,7 @@ func NewColumn(expr string, alias ...string) Column {
 //
 // Since: v1.6.0
 func NewErroredColumn(err error) Column {
-	return Column{
-		BaseToken: BaseToken{
-			Error: err,
-		},
-	}
+	return Column{BaseToken: NewErroredToken(err)}
 }
 
 // IsQualified reports whether the column has a table prefix.
