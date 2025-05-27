@@ -18,7 +18,8 @@ coverage and modular design.
 
 ## ⚙️ Architecture & Shared Concepts
 
-- [Dialect Exposure Guide](dev/core/driver/dialect.md) *(WIP)* – Describes how custom dialects integrate with builders.
+- [Dialect Exposure Guide](dev/driver/dialect.md) *(WIP)* – Describes how custom dialects integrate with builders.
+- [Styling Guide](dev/driver/styling.md) – Details `QuoteStyle`, `AliasStyle`, and `PlaceholderStyle` configuration and behavior.
 - [Token System Guide](dev/build/token.md) – Covers how tokens like `Column` are parsed, validated, and consumed by
   builders.
 - [StageToken Usage](dev/builder/builder_guide.md#stagetoken) – Explains clause tagging and error traceability.

@@ -105,4 +105,4 @@ Args:
 * [SelectBuilder Guide](./select_builder.md)
 * [DeleteBuilder Guide](./delete_builder.md)
 * [UpsertBuilder Guide](./upsert_builder.md)
-* [Dialect Guide](./../core/driver/dialect.md)
+* [Dialect Guide](../driver/dialect.md)
