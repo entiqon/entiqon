@@ -201,7 +201,7 @@ func (s *UpsertBuilderTestSuite) TestBuild_BuildValidations() {
 	})
 }
 
-// helper to normalize sql from incomplete statements for inspection
+// helper to normalize sql sources incomplete statements for inspection
 func (s *UpsertBuilderTestSuite) normalizeSQL(q *UpsertBuilder) string {
 	sql, _, _ := q.Build()
 	return sql

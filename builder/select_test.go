@@ -73,28 +73,6 @@ func (s *SelectBuilderTestSuite) TestSelect_AddSelectAppends() {
 // 🧪 From
 // ─────────────────────────────────────────────
 func (s *SelectBuilderTestSuite) TestFrom() {
-	s.Run("SingleTable", func() {
-		sql, _, err := s.qb.
-			Select("id").
-			From("customers").
-			Build()
-
-		expected := "SELECT id FROM customers"
-
-		s.NoError(err)
-		s.Equal(expected, sql)
-	})
-
-	s.Run("WithAlias", func() {
-		sql, _, err := s.qb.
-			Select("id", "name").
-			From("users", "u").
-			Build()
-
-		s.NoError(err)
-		s.Contains(sql, "users")
-	})
-
 	s.Run("EmptyTable", func() {
 		s.qb.Select("*").From("")
 		_, _, err := s.qb.Build()
@@ -341,13 +319,25 @@ func (s *SelectBuilderTestSuite) TestBuild_BuildValidations() {
 
 func TestSelectBuilder(t *testing.T) {
 	t.Run("Select", func(t *testing.T) {
-		_, _, err := NewSelect(nil).
-			Select("").
-			From("users").
-			Build()
+		t.Run("Basic", func(t *testing.T) {
+			_, _, err := NewSelect(nil).
+				Select("").
+				From("users").
+				Build()
 
-		assert.Error(t, err)
-		assert.ErrorContains(t, err, "invalid column")
+			assert.Error(t, err)
+			assert.ErrorContains(t, err, "empty column expression")
+		})
+
+		t.Run("WithTable", func(t *testing.T) {
+			sql, _, err := NewSelect(nil).
+				From("users AS u").
+				AddSelect("id").
+				Build()
+
+			assert.NoError(t, err)
+			assert.Equal(t, "SELECT u.id FROM users AS u", sql)
+		})
 	})
 
 	t.Run("AddSelect", func(t *testing.T) {
@@ -358,6 +348,38 @@ func TestSelectBuilder(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotEmpty(t, sql)
+
+		t.Run("WithoutPriorColumns", func(t *testing.T) {
+			qb := SelectBuilder{BaseBuilder: BaseBuilder{Dialect: driver.NewGenericDialect()}}
+			sql, _, err := qb.AddSelect("id", "email").
+				From("users").
+				Build()
+
+			assert.NoError(t, err)
+			assert.NotEmpty(t, sql)
+		})
+	})
+
+	t.Run("From", func(t *testing.T) {
+		t.Run("SingleTable", func(t *testing.T) {
+			sql, _, err := NewSelect(nil).
+				Select("id").
+				From("customers").
+				Build()
+
+			assert.NoError(t, err)
+			assert.Contains(t, sql, "FROM customers")
+		})
+
+		t.Run("WithAlias", func(t *testing.T) {
+			sql, _, err := NewSelect(nil).
+				Select("id", "name").
+				From("users", "u").
+				Build()
+
+			assert.NoError(t, err)
+			assert.Contains(t, sql, "users")
+		})
 	})
 
 	t.Run("Where", func(t *testing.T) {
