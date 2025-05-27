@@ -33,7 +33,7 @@ func NewPostgresDialect() *PostgresDialect {
 	return &PostgresDialect{
 		BaseDialect: BaseDialect{
 			Name:             "postgres",
-			Quotation:        styling.QuoteDouble,
+			QuoteStyle:       styling.QuoteDouble,
 			PlaceholderStyle: styling.PlaceholderDollar,
 			EnableAliasing:   true,
 			EnableReturning:  true,
@@ -41,3 +41,5 @@ func NewPostgresDialect() *PostgresDialect {
 		},
 	}
 }
+
+var _ Dialect = &BaseDialect{}

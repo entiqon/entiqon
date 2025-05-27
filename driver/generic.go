@@ -26,10 +26,12 @@ import "github.com/ialopezg/entiqon/driver/styling"
 func NewGenericDialect() Dialect {
 	return &BaseDialect{
 		Name:             "generic",
-		Quotation:        styling.QuoteNone,
+		QuoteStyle:       styling.QuoteNone,
 		PlaceholderStyle: styling.PlaceholderQuestion,
 		EnableAliasing:   false,
 		EnableReturning:  false,
 		EnableUpsert:     false,
 	}
 }
+
+var _ Dialect = &BaseDialect{}

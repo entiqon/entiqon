@@ -33,7 +33,7 @@ func NewMySQLDialect() *MySQLDialect {
 	return &MySQLDialect{
 		BaseDialect: BaseDialect{
 			Name:             "mysql",
-			Quotation:        styling.QuoteBacktick,
+			QuoteStyle:       styling.QuoteBacktick,
 			PlaceholderStyle: styling.PlaceholderQuestion,
 			EnableAliasing:   true,
 			EnableReturning:  false,
@@ -41,3 +41,5 @@ func NewMySQLDialect() *MySQLDialect {
 		},
 	}
 }
+
+var _ Dialect = &BaseDialect{}

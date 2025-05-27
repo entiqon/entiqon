@@ -45,6 +45,7 @@ func TestStyleValidationCoverage(t *testing.T) {
 
 	t.Run("QuoteStyle", func(t *testing.T) {
 		t.Run("IsValid", func(t *testing.T) {
+			assert.False(t, styling.QuoteUnset.IsValid())
 			assert.True(t, styling.QuoteNone.IsValid())
 			assert.True(t, styling.QuoteDouble.IsValid())
 			assert.True(t, styling.QuoteBacktick.IsValid())
