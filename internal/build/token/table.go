@@ -15,7 +15,7 @@ import (
 //
 // Since: v1.6.0
 type Table struct {
-	BaseToken
+	*BaseToken
 }
 
 // NewErroredTable creates a Table token with an attached error.
@@ -34,8 +34,8 @@ type Table struct {
 //
 // This constructor allows builders and parsers to retain structurally invalid
 // tokens in the build stream while still reporting errors through validators.
-func NewErroredTable(err error) Table {
-	return Table{BaseToken: NewErroredToken(err)}
+func NewErroredTable(err error) *Table {
+	return &Table{BaseToken: NewErroredToken(err)}
 }
 
 // NewTable creates a Table token from an expression and optional alias.
@@ -56,7 +56,7 @@ func NewErroredTable(err error) Table {
 //	NewTable("users", "u")               → Table{Name: "users", Alias: "u"}
 //	NewTable("users AS x", "y")          → Table{Error: alias mismatch}
 //	NewTable("users, orders")            → Table{Error: comma-separated input not allowed}
-func NewTable(expr string, alias ...string) Table {
+func NewTable(expr string, alias ...string) *Table {
 	if strings.Contains(expr, ",") {
 		return NewErroredTable(fmt.Errorf("comma-separated input not allowed in NewTable: %q", expr))
 	}
@@ -77,8 +77,8 @@ func NewTable(expr string, alias ...string) Table {
 		finalAlias = parsedAlias
 	}
 
-	return Table{
-		BaseToken: BaseToken{
+	return &Table{
+		BaseToken: &BaseToken{
 			Name:  base,
 			Alias: finalAlias,
 			Error: err,

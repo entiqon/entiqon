@@ -26,8 +26,8 @@ import (
 //
 //	ParseColumns("id", "name AS customer")
 //	  → [Column{Name: "id"}, Column{Name: "name", Alias: "customer"}]
-func ParseColumns(input ...string) []token.Column {
-	var fields []token.Column
+func ParseColumns(input ...string) []*token.Column {
+	var fields []*token.Column
 	for _, arg := range input {
 		parts := strings.Split(arg, ",")
 		for _, part := range parts {
@@ -36,7 +36,7 @@ func ParseColumns(input ...string) []token.Column {
 				fields = append(fields, token.NewErroredColumn(fmt.Errorf("empty column expression")))
 				continue
 			}
-			col := token.NewColumn(strings.TrimSpace(part))
+			col := token.NewColumn(trimmed)
 			fields = append(fields, col)
 		}
 	}

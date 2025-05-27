@@ -37,10 +37,9 @@ func Column(d driver.Dialect, column token.Column) string {
 	}
 
 	name := d.QuoteIdentifier(column.Name)
-
 	if column.IsQualified() {
-		table := d.QuoteIdentifier(column.TableName)
-		name = table + "." + name
+		base := d.QuoteIdentifier(column.Table.AliasOr())
+		name = base + "." + name
 	}
 
 	if column.IsAliased() {
