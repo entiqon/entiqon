@@ -33,7 +33,7 @@ func NewMSSQLDialect() *MSSQLDialect {
 	return &MSSQLDialect{
 		BaseDialect{
 			Name:             "mssql",
-			Quotation:        styling.QuoteBracket,
+			QuoteStyle:       styling.QuoteBracket,
 			PlaceholderStyle: styling.PlaceholderQuestion,
 			EnableAliasing:   true,
 			EnableReturning:  false,
@@ -41,3 +41,5 @@ func NewMSSQLDialect() *MSSQLDialect {
 		},
 	}
 }
+
+var _ Dialect = &BaseDialect{}

@@ -7,25 +7,52 @@ package styling
 
 import "fmt"
 
-// QuoteStyle defines the quoting style used by a SQL dialect for identifiers
-// such as table names, column names, and aliases.
-type QuoteStyle int
+// QuoteStyle defines how SQL identifiers (e.g., table or column names) are quoted
+// by a dialect to prevent conflicts with reserved keywords or support case-sensitivity.
+//
+// Dialects use this enum to determine how to wrap identifiers during query generation.
+// For example, a column named "user" may be quoted as `"user"` or `[user]` depending
+// on the database engine.
+//
+// # Validation Behavior
+//
+// The zero value of QuoteStyle is `QuoteUnset`, which is considered invalid
+// during dialect validation. All dialects must explicitly set a valid quote style.
+//
+// # Example
+//
+//	func (d *MyDialect) QuoteIdentifier(s string) string {
+//	    switch d.Quote {
+//	    case QuoteDouble:
+//	        return `"` + s + `"`
+//	    case QuoteBacktick:
+//	        return "`" + s + "`"
+//	    case QuoteBracket:
+//	        return "[" + s + "]"
+//	    case QuoteNone:
+//	        return s
+//	    default:
+//	        panic("unsupported quote style")
+//	    }
+//	}
+type QuoteStyle uint8
 
 const (
-	// QuoteNone indicates that no quoting is applied to identifiers.
-	QuoteNone QuoteStyle = iota
+	// QuoteUnset represents the unset state.
+	// This is the default zero value and is considered invalid during dialect validation.
+	QuoteUnset QuoteStyle = iota // 0
 
-	// QuoteDouble uses standard double quotes: "identifier"
-	// Common in PostgreSQL, ANSI SQL.
-	QuoteDouble
+	// QuoteDouble uses double quotes (e.g., "column") — common in PostgreSQL, SQLite, etc.
+	QuoteDouble // 1
 
-	// QuoteBacktick uses backticks: `identifier`
-	// Common in MySQL and SQLite.
-	QuoteBacktick
+	// QuoteBacktick uses backticks (e.g., `column`) — used in MySQL and MariaDB.
+	QuoteBacktick // 2
 
-	// QuoteBracket uses square brackets: [identifier]
-	// Common in Microsoft SQL Server.
-	QuoteBracket
+	// QuoteBracket uses square brackets (e.g., [column]) — used in SQL Server.
+	QuoteBracket // 3
+
+	// QuoteNone applies no quoting to identifiers — useful for simple dialects like generic SQL.
+	QuoteNone // 4
 )
 
 // IsValid returns true if the QuoteStyle is one of the known quoting options.
@@ -37,7 +64,7 @@ const (
 //
 // Ensures that identifier quoting is correctly set by the dialect.
 func (q QuoteStyle) IsValid() bool {
-	return q >= QuoteNone && q <= QuoteBracket
+	return q > QuoteUnset && q <= QuoteNone
 }
 
 // Quote returns the quoted version of the given identifier,

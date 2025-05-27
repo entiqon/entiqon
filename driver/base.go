@@ -47,8 +47,8 @@ type BaseDialect struct {
 	// Name holds the dialect identifier (e.g., "postgres", "mysql").
 	Name string
 
-	// Quotation defines the quoting style used for identifiers.
-	Quotation styling.QuoteStyle
+	// QuoteStyle defines the quoting style used for identifiers.
+	QuoteStyle styling.QuoteStyle
 
 	// PlaceholderStyle is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
 	PlaceholderStyle styling.PlaceholderStyle
@@ -65,19 +65,19 @@ func (b *BaseDialect) GetName() string {
 	return b.Name
 }
 
-// QuoteType returns the configured identifier Quotation style.
+// QuoteType returns the configured identifier QuoteStyle style.
 //
 // Since: v1.4.0
 func (b *BaseDialect) QuoteType() styling.QuoteStyle {
-	return b.Quotation
+	return b.QuoteStyle
 }
 
 // QuoteIdentifier returns the given identifier with dialect-appropriate quoting.
-// Defaults to no quoting unless the Quotation style is configured.
+// Defaults to no quoting unless the QuoteStyle style is configured.
 //
 // Updated: v1.4.0
 func (b *BaseDialect) QuoteIdentifier(identifier string) string {
-	return b.Quotation.Quote(identifier)
+	return b.QuoteStyle.Quote(identifier)
 }
 
 // QuoteLiteral returns a printable literal string for debugging/logging purposes only.
@@ -164,7 +164,7 @@ func (b *BaseDialect) SupportsUpsert() bool {
 //   - PlaceholderStyle is set to a non-empty value
 //   - Name is not empty or whitespace
 //
-// The Quotation style is allowed to be QuoteNone if the dialect does not require identifier quoting.
+// The QuoteStyle style is allowed to be QuoteNone if the dialect does not require identifier quoting.
 //
 // Returns:
 //   - nil if the dialect is valid
@@ -173,13 +173,13 @@ func (b *BaseDialect) SupportsUpsert() bool {
 // Since: v1.4.0
 func (b *BaseDialect) Validate() error {
 	if strings.TrimSpace(b.Name) == "" {
-		return fmt.Errorf("BaseDialect: name is not set")
+		return fmt.Errorf("BaseDialect: dialect is not configured")
 	}
 	if !b.PlaceholderStyle.IsValid() {
-		return fmt.Errorf("BaseDialect: placeholder style is not set or invalid")
+		return fmt.Errorf("BaseDialect: placeholder style is not configured")
 	}
-	if !b.Quotation.IsValid() {
-		return fmt.Errorf("BaseDialect: quote style is not set or invalid")
+	if !b.QuoteStyle.IsValid() {
+		return fmt.Errorf("BaseDialect: quote style is not configured")
 	}
 	//if b.EnableAliasing {
 	//	if !b.TableAliasStyle.IsValid() {

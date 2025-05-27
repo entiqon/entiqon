@@ -2,21 +2,51 @@ package styling
 
 import "fmt"
 
-// PlaceholderStyle defines how SQL placeholders are rendered
-// in parameterized queries (e.g., ?, $1, :name).
+// PlaceholderStyle defines how SQL parameter placeholders are rendered
+// in parameterized queries. Each style corresponds to a different SQL dialect.
+//
+// It determines how values are substituted during query preparation,
+// e.g., using "?", "$1", or ":name" depending on the engine.
+//
+// The zero value is PlaceholderUnset, which indicates that the style
+// is not configured and must be explicitly set.
+//
+// # Example:
+//
+//	switch dialect.Placeholder {
+//	case PlaceholderQuestion:
+//	    return "?"
+//
+//	case PlaceholderDollar:
+//	    return fmt.Sprintf("$%d", index+1)
+//
+//	case PlaceholderNamed:
+//	    return fmt.Sprintf(":%s", name)
+//
+//	case PlaceholderAt:
+//	    return fmt.Sprintf("@%s", name)
+//	}
 type PlaceholderStyle int
 
 const (
-	// PlaceholderQuestion uses "?" — unnumbered positional (e.g., MySQL, SQLite).
-	PlaceholderQuestion PlaceholderStyle = iota
+	// PlaceholderUnset indicates the placeholder style is not configured.
+	// This is the default zero value and is invalid during dialect validation.
+	PlaceholderUnset PlaceholderStyle = iota
 
-	// PlaceholderDollar uses "$1", "$2", ... — numbered positional (e.g., PostgreSQL).
+	// PlaceholderQuestion uses "?" — unnumbered positional.
+	// Common in MySQL, SQLite, and other lightweight engines.
+	PlaceholderQuestion
+
+	// PlaceholderDollar uses "$1", "$2", etc. — numbered positional.
+	// Used in PostgreSQL.
 	PlaceholderDollar
 
-	// PlaceholderNamed uses ":name" — named style (e.g., Oracle).
+	// PlaceholderNamed uses ":name" — named parameters.
+	// Typical for Oracle, older DB2, and various ORM interfaces.
 	PlaceholderNamed
 
-	// PlaceholderAt uses "@name" — named style (e.g., SQL Server).
+	// PlaceholderAt uses "@name" — alternate named parameter style.
+	// Used in SQL Server, Sybase, and some ADO-based engines.
 	PlaceholderAt
 )
 
@@ -65,5 +95,5 @@ func (p PlaceholderStyle) FormatNamed(name string) string {
 //
 // Used in BaseDialect.Validate to ensure placeholder formatting is configured.
 func (p PlaceholderStyle) IsValid() bool {
-	return p >= PlaceholderQuestion && p <= PlaceholderAt
+	return p > PlaceholderUnset && p <= PlaceholderAt
 }
