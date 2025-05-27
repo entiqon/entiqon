@@ -8,17 +8,17 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/ialopezg/entiqon/driver"
+	"github.com/ialopezg/entiqon/driver"
 	core "github.com/ialopezg/entiqon/internal/core/error"
 )
 
 // BaseBuilder provides shared dialect behavior and error handling for all query builders.
 type BaseBuilder struct {
-	Dialect   driver2.Dialect
+	Dialect   driver.Dialect
 	Name      string
 	Validator core.StageErrorCollector
 
-	dialect driver2.Dialect
+	dialect driver.Dialect
 	// Stage-tagged error collector
 	errors core.StageErrorCollector
 }
@@ -36,9 +36,9 @@ type BaseBuilder struct {
 //	b := NewBaseBuilder("select", driver.NewPostgresDialect())
 //
 // Since: v1.4.0
-func NewBaseBuilder(name string, dialect driver2.Dialect) BaseBuilder {
+func NewBaseBuilder(name string, dialect driver.Dialect) BaseBuilder {
 	if dialect == nil {
-		dialect = driver2.NewGenericDialect()
+		dialect = driver.NewGenericDialect()
 	}
 	return BaseBuilder{
 		Name:      strings.ToLower(name),
@@ -63,9 +63,9 @@ func (b *BaseBuilder) ErrorsByStage() map[string][]error {
 }
 
 // GetDialect returns the resolved dialect, falling back to the generic default if unset.
-func (b *BaseBuilder) GetDialect() driver2.Dialect {
+func (b *BaseBuilder) GetDialect() driver.Dialect {
 	if b.Dialect == nil {
-		b.Dialect = driver2.NewGenericDialect()
+		b.Dialect = driver.NewGenericDialect()
 	}
 	return b.Dialect
 }
@@ -92,7 +92,7 @@ func (b *BaseBuilder) UseDialect(name string) *BaseBuilder {
 	if name == "" || (b.Dialect != nil && b.Dialect.GetName() == name) {
 		return b
 	}
-	if d := driver2.ResolveDialect(name); d != nil {
+	if d := driver.ResolveDialect(name); d != nil {
 		b.Dialect = d
 	}
 	return b

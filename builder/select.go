@@ -19,8 +19,8 @@ import (
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
 	BaseBuilder
-	columns    []token.Column
-	sources    []internal.Table
+	columns    []*token.Column
+	sources    []*token.Table
 	conditions []internal.Condition
 	sorting    []string
 	take       *int
@@ -38,6 +38,8 @@ func NewSelect(dialect driver2.Dialect) *SelectBuilder {
 
 	return &SelectBuilder{
 		BaseBuilder: base,
+		columns:     make([]*token.Column, 0),
+		sources:     make([]*token.Table, 0),
 		conditions:  make([]internal.Condition, 0),
 		sorting:     make([]string, 0),
 	}
@@ -60,9 +62,7 @@ func NewSelect(dialect driver2.Dialect) *SelectBuilder {
 //	Select("id, name") // multiple in one string
 //	  → SELECT id, name
 func (b *SelectBuilder) Select(columns ...string) *SelectBuilder {
-	b.columns = []token.Column{}
-	b.appendColumns(util.ParseColumns(columns...))
-	return b
+	return b.ClearSelect().addColumns(columns...)
 }
 
 // AddSelect appends one or more columns to the SELECT clause of the query,
@@ -97,10 +97,9 @@ func (b *SelectBuilder) Select(columns ...string) *SelectBuilder {
 //	  → SELECT id, name AS customer
 func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 	if b.columns == nil {
-		b.columns = make([]token.Column, 0)
+		b.columns = make([]*token.Column, 0)
 	}
-	b.appendColumns(util.ParseColumns(columns...))
-	return b
+	return b.addColumns(columns...)
 }
 
 // From sets the target table for the SELECT statement.
@@ -108,14 +107,12 @@ func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 // Since: v0.0.1
 // Updated: v1.5.0
 func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
-	if table == "" {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
+	source := token.NewTable(table, alias...)
+	if !source.IsValid() {
+		b.Validator.AddStageError(core.StageFrom,
+			fmt.Errorf("invalid column: %s — %v", source.String(), source.Error))
 	}
-	if len(alias) > 0 {
-		b.sources = append(b.sources, internal.NewTableWithAlias(table, alias[0]))
-	} else {
-		b.sources = append(b.sources, internal.NewTable(table))
-	}
+	b.sources = append(b.sources, token.NewTable(table, alias...))
 	return b
 }
 
@@ -190,7 +187,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	if len(b.columns) > 0 {
 		var rendered []string
 		for _, column := range b.columns {
-			if out := render.Column(b.Dialect, column); out != "" {
+			if out := render.Column(b.Dialect, *column); out != "" {
 				rendered = append(rendered, out)
 			}
 		}
@@ -203,11 +200,13 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	if len(b.sources) > 0 {
 		var fromParts []string
 		for _, tbl := range b.sources {
-			if tbl.IsValid() {
-				fromParts = append(fromParts, b.Dialect.RenderFrom(tbl.Name, tbl.Alias))
+			if out := render.Table(b.Dialect, *tbl); out != "" {
+				fromParts = append(fromParts, out)
 			}
 		}
-		tokens = append(tokens, "FROM "+strings.Join(fromParts, ", "))
+		if len(fromParts) > 0 {
+			tokens = append(tokens, "FROM", strings.Join(fromParts, ", "))
+		}
 	}
 
 	// prepare conditions
@@ -256,12 +255,62 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	return strings.Join(tokens, " "), args, nil
 }
 
-func (b *SelectBuilder) appendColumns(cols []token.Column) {
+// ClearSelect removes all previously selected columns.
+//
+// This is used internally by Select(...) to ensure the SELECT clause
+// reflects only the explicitly provided columns.
+func (b *SelectBuilder) ClearSelect() *SelectBuilder {
+	b.columns = make([]*token.Column, 0)
+	return b
+}
+
+// addColumns parses and appends the given column expressions,
+// optionally associating them with a table token if there is
+// exactly one valid source defined.
+//
+// This is a shared internal method between Select(...) and AddSelect(...).
+// It delegates token creation to util.ParseColumns(...) and
+// passes any applicable source token for column qualification.
+func (b *SelectBuilder) addColumns(columns ...string) *SelectBuilder {
+	var table *token.Table
+	if len(b.sources) == 1 && b.sources[0].IsValid() {
+		table = b.sources[0]
+	}
+	b.appendColumns(util.ParseColumns(columns...), table)
+	return b
+}
+
+// appendColumns stores a list of Column tokens into the builder,
+// applying optional source resolution from a provided table token.
+//
+// Each column is validated for structural correctness. If a column
+// is invalid, a StageSelect error is recorded in the builder's validator.
+// If a table token is provided and valid, it is assigned to each column
+// via WithTable, allowing later rendering to reference the table alias.
+//
+// This method is used internally by addColumns(...), which handles
+// source detection and expression parsing.
+//
+// # Example
+//
+//	users := token.NewTable("users AS u")
+//	cols := util.ParseColumns("id", "email")
+//
+//	b.appendColumns(cols, &users)
+//
+//	// Rendered: SELECT u.id, u.email FROM users AS u
+func (b *SelectBuilder) appendColumns(cols []*token.Column, table *token.Table) {
 	for _, col := range cols {
 		if !col.IsValid() {
 			b.Validator.AddStageError(core.StageSelect,
 				fmt.Errorf("invalid column: %s — %v", col.String(), col.Error))
 		}
+
+		// Assign table for qualification and rendering
+		if table != nil && table.IsValid() {
+			col.WithTable(table)
+		}
+
 		b.columns = append(b.columns, col)
 	}
 }
