@@ -46,6 +46,18 @@ type BaseToken struct {
 	Error error
 }
 
+// NewErroredToken creates a BaseToken containing the provided error.
+//
+// This is used when a token (e.g., Column, Table) cannot be parsed or resolved
+// and must be retained in the token stream for error reporting and validation.
+//
+// # Example:
+//
+//	col := Column{BaseToken: NewErroredToken(fmt.Errorf("empty input"))}
+func NewErroredToken(err error) BaseToken {
+	return BaseToken{Error: err}
+}
+
 // HasError reports whether the token has encountered a semantic or structural error.
 //
 // Typical causes include alias mismatches, unresolved references, or conflicting
