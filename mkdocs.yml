@@ -23,6 +23,8 @@ nav:
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
       - Infrastructure: documentation-infra.md
+      - Dialect: dev/driver/dialect.md
+      - Styling: dev/driver/styling.md
   - 🧱 Builders:
       - SelectBuilder: dev/builder/select_builder.md
       - InsertBuilder: dev/builder/insert_builder.md

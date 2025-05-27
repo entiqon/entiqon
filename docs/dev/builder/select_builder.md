@@ -69,6 +69,30 @@ Aliases set in column definitions (e.g., `AS something`) are passed through as-i
 
 ---
 
+
+---
+
+## 🔍 Column–Table Resolution Matrix
+
+When columns are added via `Select(...)` or `AddSelect(...)`, `SelectBuilder` performs automatic resolution when exactly one valid source table is defined using `From(...)` or `FromToken(...)`.
+
+The following rules apply:
+
+| Column Expression | Table Provided              | Outcome                 | Example Output |
+|-------------------|-----------------------------|-------------------------|----------------|
+| `"id"`            | `nil`                       | ✅ Render as-is          | `"id"`         |
+| `"users.id"`      | `Name: "orders"`            | ❌ Error: name mismatch  | —              |
+| `"users.id"`      | `Name: "users", Alias: "u"` | ✅ Renders with alias    | `"u.id"`       |
+| `"id"`            | `Alias: "u"`                | ✅ Use alias as prefix   | `"u.id"`       |
+| `"u.id"`          | `Alias: "u"`                | ✅ Remains as-is         | `"u.id"`       |
+| `"u.id"`          | `Alias: "x"`                | ❌ Error: alias mismatch | —              |
+
+> Columns with inline qualification (e.g., `"users.id"` or `"u.id"`) always take priority.
+> If their qualification does not match the resolved source, a validation error is registered.
+
+This mechanism enables intelligent column rendering without requiring repeated table prefixes.
+
+
 ## 🧪 Validation Rules
 
 * `.From()` is required — `Build()` returns an error if missing
