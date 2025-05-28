@@ -26,6 +26,10 @@ type Dialect interface {
 	// Example: $1 (PostgreSQL), ? (MySQL), :1 (Oracle)
 	Placeholder(index int) string
 
+	// PlaceholderNamed returns the dialect-specific placeholder string for a given parameter name.
+	// Example: :id (Oracle)
+	PlaceholderNamed(name string) string
+
 	// RenderFrom renders a FROM clause reference using dialect-specific quoting and aliasing.
 	RenderFrom(table string, alias string) string
 

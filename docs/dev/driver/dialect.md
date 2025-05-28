@@ -80,12 +80,20 @@ Expressions containing multiple logical parts (e.g. `AND`, `OR`) are not yet par
 
 ---
 
+
 ## 🛠️ Provided Dialects
 
-| Dialect   | Placeholder | Quotes      | Supports RETURNING/UPSERT |
-|-----------|-------------|-------------|----------------------------|
-| `generic` | `?`         | none        | ❌                         |
-| `postgres`| `$1`, `$2`  | `"column"`  | ✅                         |
+| DB Engine  | Dialect Name | Placeholder Style | Quote Style | Alias Style   | RETURNING Support | UPSERT Support | Since  |
+|------------|--------------|-------------------|-------------|---------------|-------------------|----------------|--------|
+| Generic    | `generic`    | `?`               | *(none)*    | ❌ Unsupported | ❌ None            | ❌ None         | v1.4.0 |
+| PostgreSQL | `postgres`   | `$1, $2...`       | `"`         | `AS`          | ✅ Full            | ✅ Full         | v1.4.0 |
+| MySQL      | `mysql`      | `?`               | `` ` ``     | `AS`          | ❌ None            | 🚫 Limited     | v1.4.0 |
+| SQLite     | `sqlite`     | `?`, `:name`      | `"`         | Optional `AS` | ✅ v3.35+          | ✅ v3.24+       | v1.5.0 |
+| SQL Server | `mssql`      | `@param`          | `[` `]`     | Optional `AS` | ✅ via OUTPUT      | 🚫 via MERGE   | v1.4.0 |
+| Oracle     | `oracle`     | `:param`          | `"`         | Optional `AS` | ✅ Full            | ✅ via MERGE    | v1.6.0 |
+| IBM DB2    | `db2`        | `:param`          | `"`         | Optional `AS` | ✅ Partial         | ✅ via MERGE    | v1.6.0 |
+| Firebird   | `firebird`   | `?`, `:param`     | `"`         | Optional `AS` | ✅ Supported       | ✅ Limited      | v1.6.0 |
+| Informix   | `informix`   | `?`               | `"`         | Optional `AS` | ✅ Supported       | ❌ Not native   | v1.6.0 |
 
 Use:
 
@@ -93,8 +101,6 @@ Use:
 ResolveDialect("postgres") // returns PostgresDialect
 ResolveDialect("unknown")  // returns BaseDialect named "generic"
 ```
-
----
 
 ## 🔗 Integration with ParamBinder
 

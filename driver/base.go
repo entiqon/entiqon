@@ -106,6 +106,15 @@ func (b *BaseDialect) Placeholder(index int) string {
 	return b.PlaceholderStyle.Format(index)
 }
 
+// PlaceholderNamed returns a name argument placeholder string.
+// If a placeholder function is set, it delegates to that.
+// Otherwise, returns a generic "?".
+//
+// Updated: v1.6.0
+func (b *BaseDialect) PlaceholderNamed(name string) string {
+	return b.PlaceholderStyle.FormatNamed(name)
+}
+
 // BuildLimitOffset returns the dialect-compatible LIMIT and OFFSET clause.
 // Supports any combination of positive limit/offset values.
 // Returns an empty string if neither is defined.

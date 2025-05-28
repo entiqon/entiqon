@@ -59,13 +59,24 @@ func TestBaseDialect(t *testing.T) {
 				require.NoError(t, err)
 			})
 
-			t.Run("NotIsValid", func(t *testing.T) {
+			t.Run("InvalidPlaceholder", func(t *testing.T) {
 				d := &driver.BaseDialect{
 					Name:       "test",
-					QuoteStyle: styling.QuoteStyle(10),
+					QuoteStyle: styling.QuoteDouble,
 				}
 
-				assert.Error(t, d.Validate())
+				err := d.Validate()
+				assert.ErrorContains(t, err, "placeholder style is not configured")
+			})
+
+			t.Run("InvalidQuote", func(t *testing.T) {
+				d := &driver.BaseDialect{
+					Name:             "test",
+					PlaceholderStyle: styling.PlaceholderQuestion,
+				}
+
+				err := d.Validate()
+				assert.ErrorContains(t, err, "quote style is not configured")
 			})
 		})
 	})
