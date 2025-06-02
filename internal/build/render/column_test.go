@@ -3,9 +3,9 @@ package render_test
 import (
 	"testing"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/build/render"
-	"github.com/ialopezg/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/build/render"
+	"github.com/entiqon/entiqon/internal/build/token"
 	"github.com/stretchr/testify/assert"
 )
 

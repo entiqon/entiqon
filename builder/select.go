@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/build/render"
-	"github.com/ialopezg/entiqon/internal/build/token"
-	"github.com/ialopezg/entiqon/internal/build/util"
-	"github.com/ialopezg/entiqon/internal/core/builder"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	core "github.com/ialopezg/entiqon/internal/core/error"
-	internal "github.com/ialopezg/entiqon/internal/core/token"
+	driver2 "github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/build/render"
+	"github.com/entiqon/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/internal/build/util"
+	"github.com/entiqon/entiqon/internal/core/builder"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
+	core "github.com/entiqon/entiqon/internal/core/error"
+	internal "github.com/entiqon/entiqon/internal/core/token"
 )
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.

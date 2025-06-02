@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	core "github.com/ialopezg/entiqon/internal/core/error"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
+	core "github.com/entiqon/entiqon/internal/core/error"
+	"github.com/entiqon/entiqon/internal/core/token"
 )
 
 // InsertBuilder builds a SQL INSERT statement.

@@ -3,8 +3,8 @@ package bind_test
 import (
 	"testing"
 
-	driver2 "github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
+	driver2 "github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
 	"github.com/stretchr/testify/suite"
 )
 

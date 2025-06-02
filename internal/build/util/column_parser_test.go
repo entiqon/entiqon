@@ -5,7 +5,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/build/util"
+	"github.com/entiqon/entiqon/internal/build/util"
 	"github.com/stretchr/testify/assert"
 )
 

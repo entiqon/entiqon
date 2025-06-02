@@ -3,8 +3,8 @@ package builder_test
 import (
 	"testing"
 
-	"github.com/ialopezg/entiqon/builder"
-	"github.com/ialopezg/entiqon/driver"
+	"github.com/entiqon/entiqon/builder"
+	"github.com/entiqon/entiqon/driver"
 	"github.com/stretchr/testify/suite"
 )
 

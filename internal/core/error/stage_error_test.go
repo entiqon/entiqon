@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	core "github.com/ialopezg/entiqon/internal/core/error"
+	core "github.com/entiqon/entiqon/internal/core/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

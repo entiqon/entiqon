@@ -1,18 +1,23 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/ialopezg/entiqon/main/assets/entiqon_black.png" alt="Entiqon Logo" width="200"/>
+    <img src="https://raw.githubusercontent.com/entiqon/entiqon/main/assets/entiqon_black.png" alt="Entiqon Logo" width="200"/>
 </p>
 
 <p align="center">
-  <a href="https://pkg.go.dev/github.com/ialopezg/entiqon"><img src="https://pkg.go.dev/badge/github.com/ialopezg/entiqon.svg" alt="Go Reference" /></a>
-  <a href="https://goreportcard.com/report/github.com/ialopezg/entiqon"><img src="https://goreportcard.com/badge/github.com/ialopezg/entiqon" alt="Go Report Card" /></a>
-  <a href="https://github.com/ialopezg/entiqon/actions/workflows/ci.yml"><img src="https://github.com/ialopezg/entiqon/actions/workflows/ci.yml/badge.svg" alt="Build Status" /></a>
-  <a href="https://codecov.io/gh/ialopezg/entiqon"><img src="https://codecov.io/gh/ialopezg/entiqon/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
-  <a href="https://github.com/ialopezg/entiqon/releases"><img src="https://img.shields.io/github/v/release/ialopezg/entiqon" alt="Latest Release" /></a>
-  <a href="https://ialopezg.github.io/entiqon/"><img src="https://img.shields.io/badge/docs-online-blue?logo=github" alt="Documentation" /></a>
-  <a href="https://github.com/ialopezg/entiqon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ialopezg/entiqon" alt="License" /></a>
+  <a href="https://pkg.go.dev/github.com/entiqon/entiqon"><img src="https://pkg.go.dev/badge/github.com/entiqon/entiqon.svg" alt="Go Reference" /></a>
+  <a href="https://goreportcard.com/report/github.com/entiqon/entiqon"><img src="https://goreportcard.com/badge/github.com/entiqon/entiqon" alt="Go Report Card" /></a>
+  <a href="https://github.com/entiqon/entiqon/actions/workflows/ci.yml"><img src="https://github.com/entiqon/entiqon/actions/workflows/ci.yml/badge.svg" alt="Build Status" /></a>
+  <a href="https://codecov.io/gh/entiqon/entiqon"><img src="https://codecov.io/gh/entiqon/entiqon/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
+  <a href="https://github.com/entiqon/entiqon/releases"><img src="https://img.shields.io/github/v/release/entiqon/entiqon" alt="Latest Release" /></a>
+  <a href="https://entiqon.github.io/entiqon/"><img src="https://img.shields.io/badge/docs-online-blue?logo=github" alt="Documentation" /></a>
+  <a href="https://github.com/entiqon/entiqon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/entiqon/entiqon" alt="License" /></a>
 </p>
 
 > ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems.
+
+---
+
+💡 Originally created by [Isidro Lopez](https://github.com/ialopezg)  
+🏢 Maintained by the [Entiqon Organization](https://github.com/entiqon)
 
 ---
 
@@ -30,14 +35,14 @@ Entiqon is a modular SQL query engine for Go focused on:
 ## 🚀 Quick Start
 
 ```bash
-go get github.com/ialopezg/entiqon
+go get github.com/entiqon/entiqon
 ```
 
 ```go
 sql, args, err := builder.NewSelect().
-From("users").
-Where("email = ?", "test@entiqon.dev").
-Build()
+  From("users").
+  Where("email = ?", "test@entiqon.dev").
+  Build()
 ```
 
 ---
@@ -50,16 +55,15 @@ Build()
 
 ### Builders
 
-- [SelectBuilder](docs/dev/builder/select_builder.md) — Fluent SELECT with WHERE, AND, OR, LIMIT, and ordering
-- [InsertBuilder](docs/dev/builder/insert_builder.md) — Multi-row inserts and dialect-aware RETURNING
-- [UpdateBuilder](docs/dev/builder/update_builder.md) — No-alias column assignment and safe clause enforcement
-- [DeleteBuilder](docs/dev/builder/delete_builder.md) — DELETE with WHERE and optional RETURNING
-- [UpsertBuilder](docs/dev/builder/upsert_builder.md) — Full INSERT ... ON CONFLICT DO UPDATE/NOTHING support
+- [SelectBuilder](docs/dev/builder/select_builder.md)
+- [InsertBuilder](docs/dev/builder/insert_builder.md)
+- [UpdateBuilder](docs/dev/builder/update_builder.md)
+- [DeleteBuilder](docs/dev/builder/delete_builder.md)
+- [UpsertBuilder](docs/dev/builder/upsert_builder.md)
 
 ### Extensions
 
-- [Custom Driver Guide](docs/dev/core/driver/custom_driver_guide.md) — How to implement dialects and understand
-  quoting policies
+- [Custom Driver Guide](docs/dev/core/driver/custom_driver_guide.md)
 
 ---
 

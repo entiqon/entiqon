@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/builder"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	core "github.com/ialopezg/entiqon/internal/core/error"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/builder"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
+	core "github.com/entiqon/entiqon/internal/core/error"
+	"github.com/entiqon/entiqon/internal/core/token"
 )
 
 // UpdateBuilder builds a SQL UPDATE query with fluent syntax and dialect_engine.md support.

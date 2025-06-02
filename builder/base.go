@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/driver"
-	core "github.com/ialopezg/entiqon/internal/core/error"
+	"github.com/entiqon/entiqon/driver"
+	core "github.com/entiqon/entiqon/internal/core/error"
 )
 
 // BaseBuilder provides shared dialect behavior and error handling for all query builders.

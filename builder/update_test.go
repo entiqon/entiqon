@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	core "github.com/ialopezg/entiqon/internal/core/error"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	core "github.com/entiqon/entiqon/internal/core/error"
+	"github.com/entiqon/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -3,8 +3,8 @@ package driver_test
 import (
 	"testing"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/driver/styling"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/driver/styling"
 	"github.com/stretchr/testify/suite"
 )
 
