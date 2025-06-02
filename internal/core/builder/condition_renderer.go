@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
+	"github.com/entiqon/entiqon/internal/core/token"
 )
 
 // AppendCondition appends a valid condition to a slice and returns the result.

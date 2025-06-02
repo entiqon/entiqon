@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ialopezg/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/internal/build/token"
 )
 
 // ParseColumns receives one or more column strings, each of which may contain

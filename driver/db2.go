@@ -5,7 +5,7 @@
 
 package driver
 
-import "github.com/ialopezg/entiqon/driver/styling"
+import "github.com/entiqon/entiqon/driver/styling"
 
 // DB2Dialect implements the Dialect interface for IBM DB2 databases.
 //

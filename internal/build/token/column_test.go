@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/internal/build/token"
 	"github.com/stretchr/testify/assert"
 )
 

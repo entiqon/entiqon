@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

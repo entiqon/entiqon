@@ -5,7 +5,7 @@
 
 package driver
 
-import "github.com/ialopezg/entiqon/driver/styling"
+import "github.com/entiqon/entiqon/driver/styling"
 
 // NewGenericDialect returns a BaseDialect instance representing a neutral,
 // non-engine-specific SQL dialect.

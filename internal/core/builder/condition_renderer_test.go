@@ -3,10 +3,10 @@ package builder_test
 import (
 	"testing"
 
-	driver2 "github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/builder"
-	"github.com/ialopezg/entiqon/internal/core/builder/bind"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	driver2 "github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/builder"
+	"github.com/entiqon/entiqon/internal/core/builder/bind"
+	"github.com/entiqon/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -5,7 +5,7 @@
 
 package driver
 
-import "github.com/ialopezg/entiqon/driver/styling"
+import "github.com/entiqon/entiqon/driver/styling"
 
 // NewSQLiteDialect returns a new Dialect implementation for SQLite,
 // using the default behaviors appropriate for SQLite version >= 3.35.

@@ -3,8 +3,8 @@ package render
 import (
 	"fmt"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/build/token"
 )
 
 // Table renders a dialect-safe SQL representation of a table reference,

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ialopezg/entiqon/internal/core/builder"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/internal/core/builder"
+	"github.com/entiqon/entiqon/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

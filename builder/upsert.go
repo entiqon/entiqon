@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/ialopezg/entiqon/driver"
+	driver2 "github.com/entiqon/entiqon/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ialopezg/entiqon/driver"
-	"github.com/ialopezg/entiqon/internal/core/token"
+	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

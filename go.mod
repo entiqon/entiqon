@@ -1,4 +1,4 @@
-module github.com/ialopezg/entiqon
+module github.com/entiqon/entiqon
 
 go 1.23
 

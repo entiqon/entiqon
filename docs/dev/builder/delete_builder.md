@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ialopezg/entiqon/internal/core/builder"
+	"github.com/entiqon/entiqon/internal/core/builder"
 )
 
 func main() {
