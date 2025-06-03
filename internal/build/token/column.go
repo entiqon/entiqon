@@ -27,10 +27,6 @@ import (
 type Column struct {
 	*BaseToken
 
-	// Source holds the original input string used to construct the column.
-	// Unlike Raw(), this is not formatted or rendered — it's used for diagnostics only.
-	Source string
-
 	// Table holds the attached table token for qualification and rendering.
 	// It is automatically parsed or explicitly set using WithTable().
 	// When non-nil and valid, the column is considered qualified.
@@ -70,21 +66,13 @@ type Column struct {
 func NewColumn(expr string, alias ...string) *Column {
 	trimmed := strings.TrimSpace(expr)
 	if trimmed == "" {
-		return &Column{
-			Source: expr,
-			BaseToken: &BaseToken{
-				Error: fmt.Errorf("column expression is empty"),
-			},
-		}
+		return (&Column{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("column expression is empty"))
 	}
 
 	if strings.Contains(expr, ",") {
-		return &Column{
-			Source: expr,
-			BaseToken: &BaseToken{
-				Error: fmt.Errorf("invalid column expression: aliases must not be comma-separated"),
-			},
-		}
+		return (&Column{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("invalid column expression: aliases must not be comma-separated"))
 	}
 
 	upper := strings.ToUpper(trimmed)
@@ -101,9 +89,9 @@ func NewColumn(expr string, alias ...string) *Column {
 	}
 
 	col := &Column{
-		Source: expr,
 		BaseToken: &BaseToken{
-			Name: column,
+			Source: expr,
+			Name:   column,
 		},
 	}
 
@@ -246,12 +234,21 @@ func (c *Column) Render(d driver.Dialect) string {
 	return c.RenderAlias(d, qualified)
 }
 
-// SetErrorWith sets the error on the column and assigns the raw expression if not already set.
-func (c *Column) SetErrorWith(source string, err error) *Column {
-	c.Error = err
-	if c.Source == "" {
-		c.Source = source
-	}
+// SetErrorWith records an error and source expression on the column token.
+//
+// This method delegates to BaseToken.SetErrorWith and returns the updated *Column,
+// enabling fluent usage during parsing or resolution failures.
+//
+// # Example
+//
+//	c := NewColumn("id AS uid", "user_id")
+//	c.SetErrorWith("id AS uid", fmt.Errorf("alias conflict"))
+//	fmt.Println(c.String())
+//
+//	// Output:
+//	Column("id") [aliased: true, qualified: false, errored: true, error: alias conflict]
+func (c *Column) SetErrorWith(expr string, err error) *Column {
+	c.BaseToken.SetErrorWith(expr, err)
 	return c
 }
 

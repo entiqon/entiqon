@@ -35,6 +35,10 @@ import (
 // File: internal/build/token/base.go
 // Since: v1.6.0
 type BaseToken struct {
+	// Source holds the original input string used to construct the column.
+	// Unlike Raw(), this is not formatted or rendered — it's used for diagnostics only.
+	Source string
+
 	// Name represents the core identifier of the token (e.g., column or table name).
 	// It should be a raw, unquoted SQL-safe identifier.
 	Name string
@@ -161,6 +165,36 @@ func (b *BaseToken) RenderAlias(d driver.Dialect, qualifiedName string) string {
 //	fmt.Println(b.RenderName(postgres)) 	→ `"email"`
 func (b *BaseToken) RenderName(d driver.Dialect) string {
 	return d.QuoteIdentifier(b.Name)
+}
+
+// SetErrorWith assigns a semantic or structural error to the token,
+// along with the original expression that triggered the failure.
+//
+// This method sets both the Error and Source fields if they are not already set,
+// and returns the updated *BaseToken. It is typically called during parsing
+// or validation when an invalid or unsupported expression is encountered.
+//
+// This method does not return a new token, but mutates the existing one
+// in place. It is intended to be called by higher-level tokens such as
+// Column or Table, which may wrap the result and return themselves for
+// fluent chaining.
+//
+// # Example
+//
+//	b := &BaseToken{Name: "id", Alias: "uid"}
+//	b.SetErrorWith("id AS uid", fmt.Errorf("alias conflict"))
+//	fmt.Println(b.Error)  // alias conflict
+//	fmt.Println(b.Source) // id AS uid
+//
+//	// Output:
+//	alias conflict
+//	id AS uid
+func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
+	b.Error = err
+	if b.Source == "" {
+		b.Source = source
+	}
+	return b
 }
 
 // String returns a diagnostic string representation of the token,
