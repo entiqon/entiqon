@@ -99,12 +99,14 @@ func NewColumn(expr string, alias ...string) *Column {
 		col.Alias = alias[0]
 		if parsedAlias != "" && alias[0] != parsedAlias {
 			return col.SetErrorWith(expr, fmt.Errorf(
-				"alias conflict: explicit alias %q does not match inline alias %q", alias[0], parsedAlias),
-			)
+				"alias conflict: explicit alias %q does not match inline alias %q",
+				parsedAlias,
+				alias[0],
+			))
 		}
-		parsedAlias = alias[0]
+	} else {
+		col.Alias = parsedAlias
 	}
-	col.BaseToken.Alias = parsedAlias
 
 	if tableName != "" {
 		return col.WithTable(NewTable(tableName))
