@@ -3,6 +3,8 @@ package token
 import (
 	"fmt"
 	"strings"
+
+	"github.com/entiqon/entiqon/driver"
 )
 
 // Column represents a SQL column reference within a SELECT, WHERE, or ORDER BY clause.
@@ -204,6 +206,44 @@ func (c *Column) Raw() string {
 		return fmt.Sprintf("%s.%s", prefix, c.Name)
 	}
 	return c.Name
+}
+
+// Render returns the dialect-aware SQL string for the column,
+// using proper quoting for table prefixes and aliasing if applicable.
+//
+// This method replaces Raw() when generating SQL that must be
+// dialect-specific, such as for PostgreSQL, MySQL, or SQLite.
+//
+// It uses the table alias (if available) for qualified output,
+// and falls back to the table name if not.
+//
+// # Examples
+//
+//	NewColumn("id").Render(postgres)                   		→ `"id"`
+//	NewColumn("id AS uid").Render(postgres)            		→ `"id" AS "uid"`
+//	NewColumn("users.id").WithTable(t("users")).Render(postgres) 	→ `"users"."id"`
+//	NewColumn("id AS uid").WithTable(t("users u")).Render(postgres)	→ `"u"."id" AS "uid"`
+func (c *Column) Render(d driver.Dialect) string {
+	if c == nil || !c.IsValid() {
+		return ""
+	}
+
+	prefix := ""
+	if c.IsQualified() && c.Table != nil {
+		prefix = c.Table.Alias
+		if prefix == "" {
+			prefix = c.Table.Name
+		}
+	}
+
+	qualified := c.Name
+	if prefix != "" {
+		qualified = fmt.Sprintf("%s.%s", d.QuoteIdentifier(prefix), d.QuoteIdentifier(qualified))
+	} else {
+		qualified = d.QuoteIdentifier(c.Name)
+	}
+
+	return c.RenderAlias(d, qualified)
 }
 
 // SetErrorWith sets the error on the column and assigns the raw expression if not already set.
