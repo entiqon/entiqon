@@ -7,7 +7,6 @@ import (
 	driver2 "github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/build/render"
 	"github.com/entiqon/entiqon/internal/build/token"
-	"github.com/entiqon/entiqon/internal/build/util"
 	"github.com/entiqon/entiqon/internal/core/builder"
 	"github.com/entiqon/entiqon/internal/core/builder/bind"
 	core "github.com/entiqon/entiqon/internal/core/error"
@@ -276,7 +275,7 @@ func (b *SelectBuilder) addColumns(columns ...string) *SelectBuilder {
 	if len(b.sources) == 1 && b.sources[0].IsValid() {
 		table = b.sources[0]
 	}
-	b.appendColumns(util.ParseColumns(columns...), table)
+	b.appendColumns(token.NewColumnsFrom(columns...), table)
 	return b
 }
 
