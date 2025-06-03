@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Column represents a SQL column reference within a SELECT, WHERE, or ORDER BY clause.
@@ -23,6 +24,10 @@ import (
 // Since: v1.6.0
 type Column struct {
 	*BaseToken
+
+	// Source holds the original input string used to construct the column.
+	// Unlike Raw(), this is not formatted or rendered — it's used for diagnostics only.
+	Source string
 
 	// Table holds the attached table token for qualification and rendering.
 	// It is automatically parsed or explicitly set using WithTable().
@@ -61,62 +66,61 @@ type Column struct {
 //	NewColumn("id", "alias")           → name: "id", alias: "alias"
 //	NewColumn("users.id", "alias")     → name: "id", table: "users", alias: "alias"
 func NewColumn(expr string, alias ...string) *Column {
+	trimmed := strings.TrimSpace(expr)
+	if trimmed == "" {
+		return &Column{
+			Source: expr,
+			BaseToken: &BaseToken{
+				Error: fmt.Errorf("column expression is empty"),
+			},
+		}
+	}
+
+	if strings.Contains(expr, ",") {
+		return &Column{
+			Source: expr,
+			BaseToken: &BaseToken{
+				Error: fmt.Errorf("invalid column expression: aliases must not be comma-separated"),
+			},
+		}
+	}
+
+	upper := strings.ToUpper(trimmed)
+	if strings.HasPrefix(upper, "AS ") {
+		return (&Column{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("invalid column expression: cannot start with 'AS'"))
+	}
+
 	base, parsedAlias := ParseAlias(expr)
 	tableName, column := ParseTableColumn(base)
-
-	var finalAlias string
-	var err error
-	if len(alias) > 0 {
-		finalAlias = alias[0]
-		if parsedAlias != "" && parsedAlias != finalAlias {
-			err = fmt.Errorf("alias mismatch: inline alias '%s' ≠ provided alias '%s'", parsedAlias, finalAlias)
-		}
-	} else {
-		finalAlias = parsedAlias
+	if column == "" {
+		return (&Column{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("column name is required"))
 	}
 
 	col := &Column{
-		TableName: tableName,
+		Source: expr,
 		BaseToken: &BaseToken{
-			Name:  column,
-			Alias: finalAlias,
-			Error: err,
+			Name: column,
 		},
 	}
+
+	if len(alias) > 0 && alias[0] != "" {
+		col.Alias = alias[0]
+		if parsedAlias != "" && alias[0] != parsedAlias {
+			return col.SetErrorWith(expr, fmt.Errorf(
+				"alias conflict: explicit alias %q does not match inline alias %q", alias[0], parsedAlias),
+			)
+		}
+		parsedAlias = alias[0]
+	}
+	col.BaseToken.Alias = parsedAlias
+
 	if tableName != "" {
 		return col.WithTable(NewTable(tableName))
 	}
 
 	return col
-}
-
-// NewColumnWith creates a Column and links it to a Table token.
-//
-// This is useful when constructing aliased or qualified columns
-// from known table sources. The alias is optional. Rendering will
-// use the table's alias if available, otherwise its name.
-//
-// # Examples
-//
-//	users := token.NewTable("users AS u")
-//	col := token.NewColumnWith(users, "id")
-//	fmt.Println(col.Raw()) 	// "u.id"
-//
-//	c1 := token.NewColumn("users.id").WithTable(token.NewTable("orders"))
-//	fmt.Println(c1.HasError()) 	// true
-func NewColumnWith(tbl *Table, name string, alias ...string) *Column {
-	col := NewColumn(name, alias...)
-	return col.WithTable(tbl)
-}
-
-// NewErroredColumn constructs a column token with an explicit error.
-//
-// This is used when column input is structurally missing or invalid,
-// such as empty strings or parsing failures outside of NewColumn.
-//
-// Since: v1.6.0
-func NewErroredColumn(err error) *Column {
-	return &Column{BaseToken: NewErroredToken(err)}
 }
 
 // IsQualified reports whether the column is considered qualified.
@@ -200,6 +204,15 @@ func (c *Column) Raw() string {
 		return fmt.Sprintf("%s.%s", prefix, c.Name)
 	}
 	return c.Name
+}
+
+// SetErrorWith sets the error on the column and assigns the raw expression if not already set.
+func (c *Column) SetErrorWith(source string, err error) *Column {
+	c.Error = err
+	if c.Source == "" {
+		c.Source = source
+	}
+	return c
 }
 
 // String returns a structured diagnostic view of the column token.
