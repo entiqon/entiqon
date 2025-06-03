@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/build/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -210,6 +211,69 @@ func TestColumn(t *testing.T) {
 					t.Errorf("Raw mismatch: got %q, want %q", got, "users.user_id")
 				}
 			})
+		})
+	})
+
+	t.Run("Render", func(t *testing.T) {
+		postgres := driver.NewPostgresDialect()
+
+		t.Run("Basic", func(t *testing.T) {
+			col := token.NewColumn("email")
+			got := col.Render(postgres)
+			want := `"email"`
+
+			if got != want {
+				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			}
+		})
+
+		t.Run("Aliased", func(t *testing.T) {
+			col := token.NewColumn("email AS user_email")
+			got := col.Render(postgres)
+			want := `"email" AS "user_email"`
+
+			if got != want {
+				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			}
+		})
+
+		t.Run("Qualified", func(t *testing.T) {
+			col := token.NewColumn("users.email").WithTable(token.NewTable("users"))
+			got := col.Render(postgres)
+			want := `"users"."email"`
+
+			if got != want {
+				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			}
+		})
+
+		t.Run("Full", func(t *testing.T) {
+			col := token.NewColumn("u.email AS mail").WithTable(token.NewTable("users u"))
+			got := col.Render(postgres)
+			want := `"u"."email" AS "mail"`
+
+			if got != want {
+				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			}
+		})
+
+		t.Run("NoTableAliased", func(t *testing.T) {
+			col := token.NewColumn("users.email AS mail").WithTable(token.NewTable("users"))
+			got := col.Render(postgres)
+			want := `"users"."email" AS "mail"`
+
+			if got != want {
+				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			}
+		})
+
+		t.Run("InvalidColumn", func(t *testing.T) {
+			col := token.NewColumn("") // invalid
+			got := col.Render(postgres)
+
+			if got != "" {
+				t.Errorf("Expected empty render for invalid column, got %q", got)
+			}
 		})
 	})
 

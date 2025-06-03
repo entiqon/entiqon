@@ -3,6 +3,8 @@ package token
 import (
 	"fmt"
 	"strings"
+
+	"github.com/entiqon/entiqon/driver"
 )
 
 // BaseToken provides a reusable building block for SQL token types that
@@ -132,6 +134,33 @@ func (b *BaseToken) Raw() string {
 		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
 	}
 	return b.Name
+}
+
+// RenderAlias returns a dialect-quoted alias expression if an alias is set,
+// otherwise returns the qualified name unchanged.
+//
+// # Example
+//
+//	qualified := "u.id"
+//	b := &BaseToken{Alias: "user_id"}
+//	postgres := driver.NewPostgresDialect()
+//	fmt.Println(b.RenderAlias(postgres, qualified)) → `"u"."email" AS "mail"`
+func (b *BaseToken) RenderAlias(d driver.Dialect, qualifiedName string) string {
+	if b.Alias != "" {
+		return fmt.Sprintf("%s AS %s", qualifiedName, d.QuoteIdentifier(b.Alias))
+	}
+	return qualifiedName
+}
+
+// RenderName returns the dialect-quoted name of the token.
+//
+// # Example
+//
+//	b := &BaseToken{Name: "email"}
+//	postgres := driver.NewPostgresDialect()
+//	fmt.Println(b.RenderName(postgres)) 	→ `"email"`
+func (b *BaseToken) RenderName(d driver.Dialect) string {
+	return d.QuoteIdentifier(b.Name)
 }
 
 // String returns a diagnostic string representation of the token,
