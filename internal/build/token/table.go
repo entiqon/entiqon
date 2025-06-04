@@ -57,33 +57,49 @@ func NewErroredTable(err error) *Table {
 //	NewTable("users AS x", "y")          → Table{Error: alias mismatch}
 //	NewTable("users, orders")            → Table{Error: comma-separated input not allowed}
 func NewTable(expr string, alias ...string) *Table {
-	if strings.Contains(expr, ",") {
-		return NewErroredTable(fmt.Errorf("comma-separated input not allowed in NewTable: %q", expr))
+	trimmed := strings.TrimSpace(expr)
+	if trimmed == "" {
+		return (&Table{BaseToken: &BaseToken{}}).SetErrorWith(expr, fmt.Errorf("table expression is empty"))
 	}
 
-	var err error
+	if strings.Contains(expr, ",") {
+		return (&Table{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("invalid table expression: aliases must not be comma-separated"))
+	}
+
+	upper := strings.ToUpper(trimmed)
+	if strings.HasPrefix(upper, "AS ") {
+		return (&Table{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("invalid table expression: cannot start with 'AS'"))
+	}
+
 	base, parsedAlias := ParseAlias(expr)
 	if base == "" {
-		return NewErroredTable(fmt.Errorf("source table is empty"))
+		return (&Table{BaseToken: &BaseToken{}}).
+			SetErrorWith(expr, fmt.Errorf("source table is empty"))
 	}
 
-	var finalAlias string
-	if len(alias) > 0 {
-		finalAlias = alias[0]
-		if parsedAlias != "" && parsedAlias != finalAlias {
-			err = fmt.Errorf("alias mismatch: inline alias '%s' ≠ provided alias '%s'", parsedAlias, finalAlias)
-		}
-	} else {
-		finalAlias = parsedAlias
-	}
-
-	return &Table{
+	source := &Table{
 		BaseToken: &BaseToken{
-			Name:  base,
-			Alias: finalAlias,
-			Error: err,
+			Source: expr,
+			Name:   base,
 		},
 	}
+
+	if len(alias) > 0 && alias[0] != "" {
+		source.Alias = alias[0]
+		if parsedAlias != "" && alias[0] != parsedAlias {
+			return source.SetErrorWith(expr, fmt.Errorf(
+				"alias conflict: explicit alias %q does not match inline alias %q",
+				alias[0],
+				parsedAlias,
+			))
+		}
+	} else {
+		source.Alias = parsedAlias
+	}
+
+	return source
 }
 
 // Raw returns the SQL-safe table reference, including alias if present.
@@ -94,7 +110,7 @@ func NewTable(expr string, alias ...string) *Table {
 //
 //	Table{Name: "users"} → "users"
 //	Table{Name: "users", Alias: "u"} → "users AS u"
-func (t Table) Raw() string {
+func (t *Table) Raw() string {
 	if t.IsAliased() {
 		return fmt.Sprintf("%s AS %s", t.Name, t.Alias)
 	}
@@ -110,7 +126,7 @@ func (t Table) Raw() string {
 //
 //	Table("users") [aliased: false, errored: false]
 //	Table("users") [aliased: true, errored: true, error: alias mismatch]
-func (t Table) String() string {
+func (t *Table) String() string {
 	s := fmt.Sprintf("Table(%q) [aliased: %v, errored: %v", t.Name, t.IsAliased(), t.HasError())
 	if t.HasError() {
 		s += fmt.Sprintf(", error: %s", t.Error.Error())
@@ -119,5 +135,23 @@ func (t Table) String() string {
 	return s
 }
 
+// SetErrorWith records an error and source expression on the table token.
+//
+// This method delegates to BaseToken.SetErrorWith and returns the updated *Table,
+// allowing fluent chaining in constructors or resolution logic.
+//
+// # Example
+//
+//	t := NewTable("users AS u")
+//	t.SetErrorWith("users AS u", fmt.Errorf("alias not allowed"))
+//	fmt.Println(t.String())
+//
+//	// Output:
+//	Table("users") [aliased: true, errored: true, error: alias not allowed]
+func (t *Table) SetErrorWith(expr string, err error) *Table {
+	t.BaseToken.SetErrorWith(expr, err)
+	return t
+}
+
 // Ensure Table satisfies the GenericToken interface.
-var _ GenericToken = Table{}
+var _ GenericToken = &Table{}
