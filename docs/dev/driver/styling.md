@@ -26,7 +26,7 @@ Each style has both basic and dialect-aware rendering support.
 ### PlaceholderStyle
 
 - `Format(index)` — for positional placeholders
-- `FormatNamed(name)` — for named placeholders
+- `FormatNamed(expr)` — for named placeholders
 
 ## Integration
 

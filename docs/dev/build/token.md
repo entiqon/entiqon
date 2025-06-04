@@ -13,7 +13,7 @@ This guide explains how internal tokens like `Column` are structured, parsed, va
 ### Construction
 
 Use `NewColumn(expr string, alias ...string)`. Supports:
-- `"id"` → name only
+- `"id"` → expr only
 - `"user_id AS uid"` → inline alias
 - `NewColumn("email", "primary_email")` → explicit alias
 
@@ -21,7 +21,7 @@ Use `NewColumn(expr string, alias ...string)`. Supports:
 
 | Field | Description                     |
 |-------|---------------------------------|
-| Name  | The column name                 |
+| Name  | The column expr                 |
 | Alias | Optional alias                  |
 | Error | Non-nil if the input is invalid |
 
@@ -45,7 +45,7 @@ Use `ParseColumns(...)` to convert one or more inputs into `Column` tokens.
 - Ideal for builder-stage filtering
 
 ```go
-cols := ParseColumns("id, name", "user_id AS uid")
+cols := ParseColumns("id, expr", "user_id AS uid")
 ```
 
 ## Recommended Usage in Builders
@@ -66,14 +66,14 @@ Columns support both inline qualification (e.g., `"users.id"`) and table-based a
   - Or a table is attached via `.WithTable()` or `NewColumnWith(...)`
 
 - A column is **invalid** if:
-  - Its inline qualifier does not match the attached table’s name or alias
+  - Its inline qualifier does not match the attached table’s expr or alias
   - It is qualified but has no table context
 
 ### Field Overview
 
 | Field     | Description                                                  |
 |-----------|--------------------------------------------------------------|
-| `Name`    | The column name                                              |
+| `Name`    | The column expr                                              |
 | `Alias`   | Optional alias (used in `AS`)                                |
 | `Table`   | Attached `Table` token (used for alias-aware rendering)      |
 | `TableName` | Inline qualifier parsed from input (e.g., `"users"` in `"users.id"`) |

@@ -12,7 +12,7 @@ All dialects implement the following:
 type Dialect interface {
 	Name() string
 	Placeholder(position int) string
-	QuoteTable(name string) string
+	QuoteTable(expr string) string
 }
 ```
 
@@ -24,7 +24,7 @@ type Dialect interface {
 
 Provides default behaviors:
 
-- `Name()` → dialect name
+- `Name()` → dialect expr
 - `Placeholder()` → returns `"?"`
 - `QuoteIdentifier()` → returns identifier without quoting
 - `QuoteLiteral(value)` → handles:
@@ -88,7 +88,7 @@ Expressions containing multiple logical parts (e.g. `AND`, `OR`) are not yet par
 | Generic    | `generic`    | `?`               | *(none)*    | ❌ Unsupported | ❌ None            | ❌ None         | v1.4.0 |
 | PostgreSQL | `postgres`   | `$1, $2...`       | `"`         | `AS`          | ✅ Full            | ✅ Full         | v1.4.0 |
 | MySQL      | `mysql`      | `?`               | `` ` ``     | `AS`          | ❌ None            | 🚫 Limited     | v1.4.0 |
-| SQLite     | `sqlite`     | `?`, `:name`      | `"`         | Optional `AS` | ✅ v3.35+          | ✅ v3.24+       | v1.5.0 |
+| SQLite     | `sqlite`     | `?`, `:expr`      | `"`         | Optional `AS` | ✅ v3.35+          | ✅ v3.24+       | v1.5.0 |
 | SQL Server | `mssql`      | `@param`          | `[` `]`     | Optional `AS` | ✅ via OUTPUT      | 🚫 via MERGE   | v1.4.0 |
 | Oracle     | `oracle`     | `:param`          | `"`         | Optional `AS` | ✅ Full            | ✅ via MERGE    | v1.6.0 |
 | IBM DB2    | `db2`        | `:param`          | `"`         | Optional `AS` | ✅ Partial         | ✅ via MERGE    | v1.6.0 |
