@@ -78,7 +78,7 @@ func (s *SelectBuilderTestSuite) TestFrom() {
 		_, _, err := s.qb.Build()
 
 		s.Error(err)
-		s.Contains(err.Error(), "table is empty")
+		s.Contains(err.Error(), "table expression is empty")
 	})
 
 	s.Run("MissingFromClause", func() {
