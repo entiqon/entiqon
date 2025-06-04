@@ -8,7 +8,7 @@ This document defines how to use and construct `Condition` objects for SQL query
 
 The `Condition` struct represents a normalized WHERE/AND/OR clause used across all query builders. It encapsulates:
 
-- The **field name**
+- The **field expr**
 - The **SQL operator**
 - A **slice of values**
 - A **dialect-safe raw expression**
@@ -51,7 +51,7 @@ Or use specialized constructors:
 ```go
 NewConditionIn(ConditionSimple, "id", 1, 2, 3)
 NewConditionBetween(ConditionAnd, "created_at", start, end)
-NewConditionLike(ConditionOr, "name", "Joh%")
+NewConditionLike(ConditionOr, "expr", "Joh%")
 ```
 
 ---

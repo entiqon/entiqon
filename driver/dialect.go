@@ -10,8 +10,13 @@ import "github.com/entiqon/entiqon/driver/styling"
 // Dialect defines the behavior of a SQL dialect.
 // Implementations may embed BaseDialect and override specific methods as needed.
 type Dialect interface {
+	// BuildLimitOffset generates the full dialect-specific LIMIT/OFFSET clause.
+	BuildLimitOffset(limit, offset int) string
+
 	// GetName returns the dialect name (e.g., "postgres", "mysql").
 	GetName() string
+
+	NextPlaceholder() string
 
 	// QuoteType returns the quoting style used for identifiers.
 	QuoteType() styling.QuoteStyle
@@ -33,8 +38,7 @@ type Dialect interface {
 	// RenderFrom renders a FROM clause reference using dialect-specific quoting and aliasing.
 	RenderFrom(table string, alias string) string
 
-	// BuildLimitOffset generates the full dialect-specific LIMIT/OFFSET clause.
-	BuildLimitOffset(limit, offset int) string
+	ResetPlaceholders()
 
 	// SupportsReturning returns true if the dialect supports RETURNING clauses,
 	// such as `INSERT ... RETURNING id`. Common in PostgreSQL.

@@ -52,6 +52,8 @@ type BaseDialect struct {
 
 	// PlaceholderStyle is an optional function that generates argument placeholders (e.g., $1, ?, :GetName).
 	PlaceholderStyle styling.PlaceholderStyle
+
+	counter int // used for sequential placeholder tracking
 }
 
 // GetName returns the dialect Name.
@@ -63,6 +65,15 @@ func (b *BaseDialect) GetName() string {
 		return "base"
 	}
 	return b.Name
+}
+
+// NextPlaceholder returns the next sequential placeholder for the dialect.
+// For example: $1, $2 for Postgres or ? for MySQL.
+//
+// Since: v1.6.0
+func (b *BaseDialect) NextPlaceholder() string {
+	b.counter++
+	return b.Placeholder(b.counter)
 }
 
 // QuoteType returns the configured identifier QuoteStyle style.
@@ -145,6 +156,14 @@ func (b *BaseDialect) RenderFrom(table string, alias string) string {
 		return fmt.Sprintf("%s %s", quoted, alias)
 	}
 	return quoted
+}
+
+// ResetPlaceholders resets the internal placeholder counter.
+// Should be called before rendering each new SQL statement.
+//
+// Since: v1.6.0
+func (b *BaseDialect) ResetPlaceholders() {
+	b.counter = 0
 }
 
 // SupportsReturning returns true if the dialect supports RETURNING clauses.
