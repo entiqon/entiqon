@@ -5,6 +5,8 @@ package token
 import (
 	"fmt"
 	"strings"
+
+	"github.com/entiqon/entiqon/driver"
 )
 
 // Table represents a SQL table reference, typically used in FROM, INTO, or JOIN clauses.
@@ -115,6 +117,22 @@ func (t *Table) Raw() string {
 		return fmt.Sprintf("%s AS %s", t.Name, t.Alias)
 	}
 	return t.Name
+}
+
+// Render returns the dialect-quoted table name and alias (if present).
+//
+// # Example
+//
+//	tbl := NewTable("users u")
+//	fmt.Println(tbl.Render(postgres)) → `"users" AS "u"`
+func (t *Table) Render(d driver.Dialect) string {
+	if t == nil || t.Name == "" {
+		return ""
+	}
+	if t.IsAliased() {
+		return fmt.Sprintf("%s AS %s", d.QuoteIdentifier(t.Name), d.QuoteIdentifier(t.Alias))
+	}
+	return d.QuoteIdentifier(t.Name)
 }
 
 // String returns a debug-friendly view of the Table token.
