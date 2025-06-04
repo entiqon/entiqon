@@ -268,6 +268,10 @@ func (c *Column) SetErrorWith(expr string, err error) *Column {
 //	Column("id") [aliased: true, qualified: false, errored: true]
 //	Column("m3CUNO") [aliased: true, qualified: true, errored: false]
 func (c *Column) String() string {
+	if c == nil {
+		return "Column(nil)"
+	}
+
 	s := fmt.Sprintf("Column(%q) [aliased: %v, qualified: %v, errored: %v",
 		c.Name, c.IsAliased(), c.IsQualified(), c.HasError(),
 	)

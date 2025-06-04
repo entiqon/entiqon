@@ -27,7 +27,8 @@ func TestRenderTable(t *testing.T) {
 	t.Run("ValidCases", func(t *testing.T) {
 		d := driver.NewGenericDialect()
 
-		tbl := token.NewErroredTable(fmt.Errorf("invalid"))
+		tbl := (&token.Table{BaseToken: &token.BaseToken{}}).
+			SetErrorWith("", fmt.Errorf("invalid"))
 		assert.Equal(t, "", render.Table(d, *tbl))
 
 		tbl = token.NewTable("users AS x", "y") // alias mismatch
