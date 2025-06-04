@@ -26,7 +26,7 @@ import (
 //	fmt.Println(cond.IsValid()) // true
 type Condition struct {
 	Type     ConditionType     // Clause type: Simple (WHERE), AND, OR
-	Column   string            // Raw column name
+	Column   *Column           // Column definition
 	Operator ConditionOperator // SQL operator (e.g. "=", "IN")
 	Value    any               // Value(s) to compare against
 	Error    error             // Validation error, if any
@@ -77,7 +77,7 @@ func NewConditionOr(column string, args ...any) *Condition {
 //	c := NewConditionWith(ConditionTypeSimple, "created_at", GreaterThan, "2024-01-01")
 //	fmt.Println(c.Type)     // ConditionTypeSimple
 //	fmt.Println(c.Operator) // ">"
-func NewConditionWith(kind ConditionType, column string, operator ConditionOperator, values ...any) *Condition {
+func NewConditionWith(kind ConditionType, name string, operator ConditionOperator, values ...any) *Condition {
 	var value any
 	if len(values) == 1 {
 		value = values[0]
@@ -87,7 +87,7 @@ func NewConditionWith(kind ConditionType, column string, operator ConditionOpera
 
 	return &Condition{
 		Type:     kind,
-		Column:   column,
+		Column:   NewColumn(name),
 		Operator: operator,
 		Value:    value,
 	}
@@ -106,8 +106,9 @@ func (c *Condition) IsValid() bool {
 	if c.Error != nil {
 		return false
 	}
-	if c.Column == "" {
-		c.SetError(fmt.Errorf("column name is required"))
+
+	if c.Column == nil || !c.Column.IsValid() {
+		c.SetError(fmt.Errorf("column definition is required"))
 		return false
 	}
 	if !c.Operator.IsValid() {
@@ -129,12 +130,12 @@ func (c *Condition) IsValid() bool {
 //	// sql  = "status IN ($1, $2)"
 //	// args = ["active", "banned"]
 func (c *Condition) Render(d driver.Dialect) (string, []any) {
-	if c == nil || c.Column == "" {
+	if c == nil || c.Column == nil || !c.Column.IsValid() {
 		return "", nil
 	}
 
 	d.ResetPlaceholders()
-	col := d.QuoteIdentifier(c.Column)
+	col := c.Column.Render(d)
 
 	switch c.Operator {
 	case IsNull, IsNotNull:
@@ -186,7 +187,28 @@ func (c *Condition) SetError(err error) *Condition {
 //	"created BETWEEN ? AND ?"
 //	"id IN (?)"
 func (c *Condition) String() string {
-	return fmt.Sprintf("Condition{%s %s %s}", c.Column, c.Operator, c.Value)
+	if c == nil {
+		return "Condition(nil)"
+	}
+
+	name := "<nil>"
+	qualified := false
+	valid := false
+
+	if c.Column != nil {
+		qualified = c.Column.IsQualified()
+		name = c.Column.Name
+		valid = c.Column.IsValid()
+	}
+
+	return fmt.Sprintf(
+		`Condition(%q) [qualified: %v, column: %v, value: %v, errored: %v]`,
+		name,
+		qualified,
+		valid,
+		c.Value,
+		c.Error != nil,
+	)
 }
 
 func resolveCondition(kind ConditionType, column string, args ...any) *Condition {
@@ -212,7 +234,7 @@ func resolveCondition(kind ConditionType, column string, args ...any) *Condition
 func invalidCondition(kind ConditionType, column string, err error) *Condition {
 	c := &Condition{
 		Type:   kind,
-		Column: column,
+		Column: NewColumn(column),
 	}
 	return c.SetError(err)
 }

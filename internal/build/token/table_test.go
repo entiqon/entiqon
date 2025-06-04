@@ -35,6 +35,24 @@ func TestTable(t *testing.T) {
 			})
 		})
 
+		t.Run("Raw", func(t *testing.T) {
+			t.Run("Aliased", func(t *testing.T) {
+				tbl := token.NewTable("users")
+				got := tbl.Raw()
+				if got != "users" {
+					t.Errorf("expected 'users', got %q", got)
+				}
+			})
+
+			t.Run("Unaliased", func(t *testing.T) {
+				tbl := token.NewTable("users AS u")
+				got := tbl.Raw()
+				if got != "users AS u" {
+					t.Errorf("expected 'users AS u', got %q", got)
+				}
+			})
+		})
+
 		t.Run("Render", func(t *testing.T) {
 			d := driver.NewPostgresDialect()
 
@@ -60,6 +78,46 @@ func TestTable(t *testing.T) {
 				var tbl *token.Table
 				if got := tbl.Render(d); got != "" {
 					t.Errorf("expected empty render for nil table, got %q", got)
+				}
+			})
+		})
+
+		t.Run("String", func(t *testing.T) {
+			t.Run("Unaliased", func(t *testing.T) {
+				tbl := token.NewTable("users")
+				want := `Table("users") [aliased: false, errored: false]`
+				if got := tbl.String(); got != want {
+					t.Errorf("expected %q, got %q", want, got)
+				}
+			})
+
+			t.Run("Aliased", func(t *testing.T) {
+				tbl := token.NewTable("users AS u")
+				want := `Table("users") [aliased: true, errored: false]`
+				if got := tbl.String(); got != want {
+					t.Errorf("expected %q, got %q", want, got)
+				}
+			})
+
+			t.Run("Errored", func(t *testing.T) {
+				tbl := token.NewTable("users AS u", "x") // mismatch triggers alias conflict
+				if !tbl.HasError() {
+					t.Fatal("expected alias conflict error")
+				}
+
+				out := tbl.String()
+				if !strings.Contains(out, `errored: true`) {
+					t.Errorf("expected 'errored: true' in output, got %q", out)
+				}
+				if !strings.Contains(out, `error: alias conflict`) {
+					t.Errorf("expected alias conflict in output, got %q", out)
+				}
+			})
+
+			t.Run("NilTable", func(t *testing.T) {
+				var tbl *token.Table
+				if got := tbl.String(); got != "Table(nil)" {
+					t.Errorf("expected 'Table(nil)', got %q", got)
 				}
 			})
 		})

@@ -20,26 +20,6 @@ type Table struct {
 	*BaseToken
 }
 
-// NewErroredTable creates a Table token with an attached error.
-//
-// This is used when a table reference fails parsing, validation, or resolution.
-// The resulting Table will have its Name and Alias unset, and the provided
-// error will be stored in its BaseToken for tracking and diagnostics.
-//
-// # Example
-//
-//	tbl := token.NewErroredTable(fmt.Errorf("empty table reference"))
-//	fmt.Println(tbl.String())
-//
-//	// Output:
-//	Table("") [aliased: false, errored: true, error: empty table reference]
-//
-// This constructor allows builders and parsers to retain structurally invalid
-// tokens in the build stream while still reporting errors through validators.
-func NewErroredTable(err error) *Table {
-	return &Table{BaseToken: NewErroredToken(err)}
-}
-
 // NewTable creates a Table token from an expression and optional alias.
 //
 // Supports aliasing via:
@@ -76,11 +56,6 @@ func NewTable(expr string, alias ...string) *Table {
 	}
 
 	base, parsedAlias := ParseAlias(expr)
-	if base == "" {
-		return (&Table{BaseToken: &BaseToken{}}).
-			SetErrorWith(expr, fmt.Errorf("source table is empty"))
-	}
-
 	source := &Table{
 		BaseToken: &BaseToken{
 			Source: expr,
@@ -145,6 +120,10 @@ func (t *Table) Render(d driver.Dialect) string {
 //	Table("users") [aliased: false, errored: false]
 //	Table("users") [aliased: true, errored: true, error: alias mismatch]
 func (t *Table) String() string {
+	if t == nil {
+		return "Table(nil)"
+	}
+
 	s := fmt.Sprintf("Table(%q) [aliased: %v, errored: %v", t.Name, t.IsAliased(), t.HasError())
 	if t.HasError() {
 		s += fmt.Sprintf(", error: %s", t.Error.Error())

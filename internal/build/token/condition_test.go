@@ -157,7 +157,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("InInvalidType", func(t *testing.T) {
-			c := &token.Condition{Column: "role", Operator: token.In, Value: "admin"}
+			c := &token.Condition{Column: token.NewColumn("role"), Operator: token.In, Value: "admin"}
 			sql, args := c.Render(d)
 
 			if !strings.Contains(sql, "IN ()") || args != nil {
@@ -166,7 +166,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("InEmptySlice", func(t *testing.T) {
-			c := &token.Condition{Column: "role", Operator: token.In, Value: []any{}}
+			c := &token.Condition{Column: token.NewColumn("role"), Operator: token.In, Value: []any{}}
 			sql, args := c.Render(d)
 
 			if sql != `"role" IN ()` || args != nil {
@@ -175,7 +175,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("BetweenInvalidType", func(t *testing.T) {
-			c := &token.Condition{Column: "created", Operator: token.Between, Value: "not a slice"}
+			c := &token.Condition{Column: token.NewColumn("created"), Operator: token.Between, Value: "not a slice"}
 			sql, args := c.Render(d)
 
 			if sql != `"created" BETWEEN ? AND ?` || args != nil {
@@ -184,7 +184,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("BetweenWrongLength", func(t *testing.T) {
-			c := &token.Condition{Column: "created", Operator: token.Between, Value: []any{"only-one"}}
+			c := &token.Condition{Column: token.NewColumn("created"), Operator: token.Between, Value: []any{"only-one"}}
 			sql, args := c.Render(d)
 
 			if sql != `"created" BETWEEN ? AND ?` || args != nil {
@@ -194,13 +194,24 @@ func TestNewCondition(t *testing.T) {
 	})
 
 	t.Run("String", func(t *testing.T) {
-		c := token.NewCondition("status", token.Equal, "active")
-		str := c.String()
+		t.Run("Valid", func(t *testing.T) {
+			c := token.NewCondition("status", token.Equal, "active")
+			str := c.String()
 
-		expected := "Condition{status = active}"
-		if str != expected {
-			t.Errorf("String() mismatch: got %q, want %q", str, expected)
-		}
+			expected := `Condition("status") [qualified: false, column: true, value: active, errored: false]`
+			if str != expected {
+				t.Errorf("String() mismatch: got %q, want %q", str, expected)
+			}
+		})
+
+		t.Run("NilCondition", func(t *testing.T) {
+			var c *token.Condition
+			got := c.String()
+			want := "Condition(nil)"
+			if got != want {
+				t.Errorf("expected %q, got %q", want, got)
+			}
+		})
 	})
 
 	t.Run("Validation", func(t *testing.T) {
@@ -216,9 +227,9 @@ func TestNewCondition(t *testing.T) {
 				Operator: token.Equal,
 			}
 			if c.IsValid() {
-				t.Error("expected condition to be invalid due to missing column")
+				t.Error("expected condition to be invalid due to missing column definition")
 			}
-			if c.Error == nil || !strings.Contains(c.Error.Error(), "column name is required") {
+			if c.Error == nil || !strings.Contains(c.Error.Error(), "column definition is required") {
 				t.Errorf("unexpected error: %v", c.Error)
 			}
 		})
@@ -252,7 +263,7 @@ func TestNewCondition(t *testing.T) {
 
 		t.Run("InvalidOperator", func(t *testing.T) {
 			c := &token.Condition{
-				Column:   "status",
+				Column:   token.NewColumn("status"),
 				Operator: "🤡", // invalid operator
 			}
 			if c.IsValid() {
@@ -265,7 +276,7 @@ func TestNewCondition(t *testing.T) {
 
 		t.Run("PreexistingError", func(t *testing.T) {
 			c := &token.Condition{
-				Column:   "status",
+				Column:   token.NewColumn("status"),
 				Operator: token.Equal,
 				Error:    fmt.Errorf("some prior error"),
 			}
