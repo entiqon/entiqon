@@ -28,13 +28,13 @@ func NewColumnsFrom(input ...string) []*Column {
 		for _, part := range parts {
 			trimmed := strings.TrimSpace(part)
 			if trimmed == "" {
-				fields = append(fields, (&Column{BaseToken: &BaseToken{}}).
+				fields = append(fields, (&Column{BaseToken: NewBaseToken(part)}).
 					SetErrorWith(arg, fmt.Errorf("empty column expression")))
 				continue
 			}
 
 			if strings.HasPrefix(strings.ToUpper(trimmed), "AS ") {
-				fields = append(fields, (&Column{BaseToken: &BaseToken{}}).
+				fields = append(fields, (&Column{BaseToken: NewBaseToken(part)}).
 					SetErrorWith(arg, fmt.Errorf("invalid expression: column name is missing before 'AS'")))
 				continue
 			}

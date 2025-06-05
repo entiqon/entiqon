@@ -70,34 +70,30 @@ type Column struct {
 func NewColumn(expr string, alias ...string) *Column {
 	trimmed := strings.TrimSpace(expr)
 	if trimmed == "" {
-		return (&Column{BaseToken: &BaseToken{}}).
+		return (&Column{BaseToken: NewBaseToken(expr)}).
 			SetErrorWith(expr, fmt.Errorf("column expression is empty"))
 	}
 
 	if strings.Contains(expr, ",") {
-		return (&Column{BaseToken: &BaseToken{}}).
+		return (&Column{BaseToken: NewBaseToken(expr)}).
 			SetErrorWith(expr, fmt.Errorf("invalid column expression: aliases must not be comma-separated"))
 	}
 
 	upper := strings.ToUpper(trimmed)
 	if strings.HasPrefix(upper, "AS ") {
-		return (&Column{BaseToken: &BaseToken{}}).
+		return (&Column{BaseToken: NewBaseToken(expr)}).
 			SetErrorWith(expr, fmt.Errorf("invalid column expression: cannot start with 'AS'"))
 	}
 
 	base, parsedAlias := ParseAlias(expr)
 	tableName, column := ParseTableColumn(base)
 	if column == "" {
-		return (&Column{BaseToken: &BaseToken{}}).
+		return (&Column{BaseToken: NewBaseToken(expr)}).
 			SetErrorWith(expr, fmt.Errorf("column name is required"))
 	}
 
-	col := &Column{
-		BaseToken: &BaseToken{
-			Source: expr,
-			Name:   column,
-		},
-	}
+	col := &Column{BaseToken: NewBaseToken(expr)}
+	col.Name = column
 
 	if len(alias) > 0 && alias[0] != "" {
 		col.Alias = alias[0]

@@ -41,27 +41,23 @@ type Table struct {
 func NewTable(expr string, alias ...string) *Table {
 	trimmed := strings.TrimSpace(expr)
 	if trimmed == "" {
-		return (&Table{BaseToken: &BaseToken{}}).SetErrorWith(expr, fmt.Errorf("table expression is empty"))
+		return (&Table{BaseToken: NewBaseToken(expr)}).SetErrorWith(expr, fmt.Errorf("table expression is empty"))
 	}
 
 	if strings.Contains(expr, ",") {
-		return (&Table{BaseToken: &BaseToken{}}).
-			SetErrorWith(expr, fmt.Errorf("invalid table expression: aliases must not be comma-separated"))
+		return (&Table{BaseToken: NewBaseToken(expr)}).
+			SetErrorWith(expr, fmt.Errorf("invalid table expression: unexpected comma — aliases must not be comma-separated"))
 	}
 
 	upper := strings.ToUpper(trimmed)
 	if strings.HasPrefix(upper, "AS ") {
-		return (&Table{BaseToken: &BaseToken{}}).
+		return (&Table{BaseToken: NewBaseToken(expr)}).
 			SetErrorWith(expr, fmt.Errorf("invalid table expression: cannot start with 'AS'"))
 	}
 
 	base, parsedAlias := ParseAlias(expr)
-	source := &Table{
-		BaseToken: &BaseToken{
-			Source: expr,
-			Name:   base,
-		},
-	}
+	source := &Table{BaseToken: NewBaseToken(expr)}
+	source.Name = base
 
 	if len(alias) > 0 && alias[0] != "" {
 		source.Alias = alias[0]
