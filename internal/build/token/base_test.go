@@ -61,6 +61,29 @@ func TestBaseToken(t *testing.T) {
 				})
 			})
 
+			t.Run("GetSource", func(t *testing.T) {
+				t.Run("NilToken", func(t *testing.T) {
+					var b *token.BaseToken
+					if b.GetSource() != "" {
+						t.Errorf("expected empty string from nil receiver, got %q", b.GetSource())
+					}
+				})
+
+				t.Run("ValidToken", func(t *testing.T) {
+					b := token.NewBaseToken("users.id")
+					if b.GetSource() != "users.id" {
+						t.Errorf("expected 'users.id', got %q", b.GetSource())
+					}
+				})
+
+				t.Run("InvalidSource", func(t *testing.T) {
+					b := token.NewBaseToken("")
+					if b.GetSource() != "" {
+						t.Errorf("expected empty string from token without source, got %q", b.GetSource())
+					}
+				})
+			})
+
 			t.Run("IsValid", func(t *testing.T) {
 				t.Run("ValidToken", func(t *testing.T) {
 					b := &token.BaseToken{Name: "id"}

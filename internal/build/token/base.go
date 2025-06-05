@@ -115,6 +115,31 @@ func (b *BaseToken) GetName() string {
 	return b.Name
 }
 
+// GetSource returns the original input string associated with the token.
+//
+// This method safely retrieves the `input` field of the BaseToken, which was
+// previously known as `Source`. The `input` typically represents the raw
+// expression string used to construct the token (e.g., "users.id AS user_id").
+//
+// If the BaseToken is nil, this method returns an empty string.
+//
+// This accessor ensures safe and consistent use of the underlying expression,
+// and helps decouple the internal representation (`input`) from external usage.
+//
+// Example:
+//
+//	b := token.NewBaseToken("id", "users.id AS user_id", "user_id")
+//	raw := b.GetSource() // returns "users.id AS user_id"
+//
+//	var b2 *token.BaseToken
+//	raw = b2.GetSource() // safely returns ""
+func (b *BaseToken) GetSource() string {
+	if b == nil {
+		return ""
+	}
+	return b.Source
+}
+
 // HasError reports whether the token has encountered a semantic or structural error.
 //
 // Typical causes include alias mismatches, unresolved references, or conflicting
