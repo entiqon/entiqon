@@ -63,6 +63,39 @@ func (b *BaseToken) AliasOr() string {
 	return b.Name
 }
 
+// GetName safely returns the Name of the BaseToken.
+//
+// This method is a defensive accessor used to avoid nil pointer dereference
+// when accessing the Name field of a potential nil *BaseToken.
+//
+// It is commonly used in higher-level tokens (e.g., Column, Table) to extract
+// the logical identifier associated with the token, while maintaining stability
+// when BaseToken may not have been initialized.
+//
+// Returns:
+//   - The Name string if BaseToken is non-nil
+//   - An empty string ("") if BaseToken is nil
+//
+// Example:
+//
+//	var b *BaseToken = nil
+//	name := b.GetName() // safely returns ""
+//
+//	b = &BaseToken{Name: "id"}
+//	name = b.GetName() // returns "id"
+//
+// Usage in Column:
+//
+//	if col.BaseToken.GetName() == "id" {
+//	    // Perform logic using column name
+//	}
+func (b *BaseToken) GetName() string {
+	if b == nil {
+		return ""
+	}
+	return b.Name
+}
+
 // HasError reports whether the token has encountered a semantic or structural error.
 //
 // Typical causes include alias mismatches, unresolved references, or conflicting
