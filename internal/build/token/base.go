@@ -52,6 +52,25 @@ type BaseToken struct {
 	Error error
 }
 
+// NewBaseToken creates a new BaseToken using only the raw input string.
+//
+// This constructor is intended for cases where the input (e.g., "users.id AS user_id")
+// will be parsed later to extract the logical name and alias.
+//
+// It stores the input internally and leaves Name and Alias empty.
+// These fields should be populated by the higher-level token constructors.
+//
+// Example:
+//
+//	b := NewBaseToken("users.id AS user_id")
+//	fmt.Println(b.GetSource()) // "users.id AS user_id"
+//	// b.Name and b.Alias must be set later
+func NewBaseToken(input string) *BaseToken {
+	return &BaseToken{
+		Source: input,
+	}
+}
+
 // AliasOr returns the alias if defined, or falls back to the Name.
 //
 // This is helpful in rendering column headers or result labels where aliases
@@ -81,7 +100,7 @@ func (b *BaseToken) AliasOr() string {
 //	var b *BaseToken = nil
 //	name := b.GetName() // safely returns ""
 //
-//	b = &BaseToken{Name: "id"}
+//	b = NewBaseToken("id")
 //	name = b.GetName() // returns "id"
 //
 // Usage in Column:
@@ -142,16 +161,26 @@ func (b *BaseToken) Raw() string {
 // RenderAlias returns a dialect-quoted alias expression if an alias is set,
 // otherwise returns the qualified name unchanged.
 //
-// If dialect is nil, it returns an unquoted fallback format.
+// If the alias is empty or the qualified name is empty, aliasing is skipped
+// and the qualified name is returned as-is. This avoids emitting invalid SQL
+// like `AS ""` or aliasing blank expressions.
 //
-// If the qualified name is empty, aliasing is suppressed entirely and an
-// empty string is returned, as aliasing an empty expression produces invalid SQL.
+// If the dialect is nil, a basic unquoted alias is used.
+// Otherwise, the alias will be quoted using the dialect’s identifier rules.
 //
 // # Example
 //
-//	qualified := "u.id"
-//	b := &BaseToken{Alias: "user_id"}
-//	fmt.Println(b.RenderAlias(postgres, qualified)) // → u.id AS "user_id"
+//	input := "u.id AS user_id"
+//	b := NewBaseToken(input)
+//	b.Alias = "user_id"
+//
+//	fmt.Println(b.RenderAlias(postgres, "u.id")) // → u.id AS "user_id"
+//
+//	b = NewBaseToken(input)
+//	fmt.Println(b.RenderAlias(postgres, "u.id")) // → u.id
+//
+//	b = NewBaseToken("")
+//	fmt.Println(b.RenderAlias(postgres, ""))     // → ""
 func (b *BaseToken) RenderAlias(d driver.Dialect, qualified string) string {
 	if b == nil || qualified == "" {
 		return qualified
@@ -169,13 +198,23 @@ func (b *BaseToken) RenderAlias(d driver.Dialect, qualified string) string {
 }
 
 // RenderName returns the dialect-quoted name of the token.
-// If the token is nil or the name is empty, it returns an empty string.
-// If the dialect is nil, the name is returned unquoted.
+//
+// If the token is nil or the Name field is empty, it returns an empty string.
+// If the dialect is nil, the name is returned as-is without quoting.
+// Otherwise, it applies the dialect's identifier quoting rules.
+//
+// This is commonly used for rendering column or table names in
+// SELECT, FROM, or JOIN clauses.
 //
 // # Example
 //
-//	b := &BaseToken{Name: "id"}
-//	fmt.Println(b.RenderName(driver.NewPostgresDialect())) → `"id"`
+//	b := NewBaseToken("id")
+//	b.Name = "id"
+//
+//	fmt.Println(b.RenderName(driver.NewPostgresDialect())) // → "id"
+//
+//	b = NewBaseToken("")
+//	fmt.Println(b.RenderName(nil))                         // → ""
 func (b *BaseToken) RenderName(d driver.Dialect) string {
 	if b == nil || b.Name == "" {
 		return ""
@@ -187,27 +226,29 @@ func (b *BaseToken) RenderName(d driver.Dialect) string {
 }
 
 // SetErrorWith assigns a semantic or structural error to the token,
-// along with the original expression that triggered the failure.
+// along with the original input string that triggered the failure.
 //
-// This method sets both the Error and Source fields if they are not already set,
-// and returns the updated *BaseToken. It is typically called during parsing
-// or validation when an invalid or unsupported expression is encountered.
+// This method sets the Error and internal input fields (if unset),
+// preserving the original expression for diagnostic purposes.
 //
-// This method does not return a new token, but mutates the existing one
-// in place. It is intended to be called by higher-level tokens such as
-// Column or Table, which may wrap the result and return themselves for
-// fluent chaining.
+// It returns the same *BaseToken instance, allowing fluent chaining
+// from higher-level token wrappers such as Column or Table.
+//
+// This method does not attempt to parse or correct the input — it is
+// purely used for marking invalid or unsupported expressions during
+// token construction or validation.
 //
 // # Example
 //
-//	b := &BaseToken{Name: "id", Alias: "uid"}
-//	b.SetErrorWith("id AS uid", fmt.Errorf("alias conflict"))
-//	fmt.Println(b.Error)  // alias conflict
-//	fmt.Println(b.Source) // id AS uid
+//	b := NewBaseToken("AS uid") // Invalid: missing name before 'AS'
+//	b.SetErrorWith("AS uid", fmt.Errorf("name is missing before 'AS'"))
+//
+//	fmt.Println(b.Error)        // name is missing before 'AS'
+//	fmt.Println(b.GetSource())  // AS uid
 //
 //	// Output:
-//	alias conflict
-//	id AS uid
+//	name is missing before 'AS'
+//	AS uid
 func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
 	b.Error = err
 	if b.Source == "" {
