@@ -21,7 +21,7 @@ import (
 //
 //	type Column struct {
 //	    BaseToken
-//	    TableName string
+//	    Qualified string
 //	}
 //
 //	c := Column{
