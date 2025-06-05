@@ -66,8 +66,41 @@ type BaseToken struct {
 //	fmt.Println(b.GetSource()) // "users.id AS user_id"
 //	// b.Name and b.Alias must be set later
 func NewBaseToken(input string) *BaseToken {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return &BaseToken{
+			Source: input,
+			Error:  fmt.Errorf("invalid input expression: expression is empty"),
+		}
+	}
+
+	if strings.Contains(input, ",") {
+		return &BaseToken{
+			Source: input,
+			Error:  fmt.Errorf("invalid input expression: aliases must not be comma-separated"),
+		}
+	}
+
+	upper := strings.ToUpper(trimmed)
+	if strings.HasPrefix(upper, "AS ") {
+		return &BaseToken{
+			Source: input,
+			Error:  fmt.Errorf("invalid input expression: cannot start with 'AS'"),
+		}
+	}
+
+	base, parsedAlias := ParseAlias(input)
+	if strings.TrimSpace(base) == "AS" {
+		return &BaseToken{
+			Source: input,
+			Error:  fmt.Errorf("invalid input expression: name cannot be AS keyword"),
+		}
+	}
+
 	return &BaseToken{
 		Source: input,
+		Name:   base,
+		Alias:  parsedAlias,
 	}
 }
 

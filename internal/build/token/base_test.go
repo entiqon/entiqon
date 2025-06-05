@@ -265,5 +265,46 @@ func TestBaseToken(t *testing.T) {
 				})
 			})
 		})
+
+		t.Run("Validations", func(t *testing.T) {
+			t.Run("EmptyInput", func(t *testing.T) {
+				b := token.NewBaseToken("")
+				if b.Error == nil {
+					t.Errorf("expected error for empty input, got nil")
+				} else if b.Error.Error() != "invalid input expression: expression is empty" {
+					t.Errorf("unexpected error message: %s", b.Error)
+				}
+				if b.Source != "" {
+					t.Errorf("expected Source to be empty, got %q", b.Source)
+				}
+			})
+
+			t.Run("InvalidInput", func(t *testing.T) {
+				b := token.NewBaseToken("id, name")
+				if b.Error == nil {
+					t.Errorf("expected error, got nil")
+				} else if b.Error.Error() != "invalid input expression: aliases must not be comma-separated" {
+					t.Errorf("unexpected error message: %s", b.Error)
+				}
+			})
+
+			t.Run("InputStartsWithAS", func(t *testing.T) {
+				b := token.NewBaseToken("AS uid")
+				if b.Error == nil {
+					t.Errorf("expected error, got nil")
+				} else if b.Error.Error() != "invalid input expression: cannot start with 'AS'" {
+					t.Errorf("unexpected error message: %s", b.Error)
+				}
+			})
+
+			t.Run("ReservedWordASOnly", func(t *testing.T) {
+				b := token.NewBaseToken("AS")
+				if b.Error == nil {
+					t.Errorf("expected error for reserved word 'AS', got nil")
+				} else if b.Error.Error() != "invalid input expression: name cannot be AS keyword" {
+					t.Errorf("unexpected error message: %s", b.Error)
+				}
+			})
+		})
 	})
 }
