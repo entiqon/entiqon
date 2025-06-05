@@ -25,8 +25,8 @@ import (
 //
 //	Column(driver, Column{Name: "id"})                     → "id"
 //	Column(driver, Column{Name: "id", Alias: "uid"})       → "id AS uid"
-//	Column(driver, Column{Name: "id", TableName: "u"})     → "u.id"
-//	Column(driver, Column{..., TableName: "u", Alias: "uid"}) → "u.id AS uid"
+//	Column(driver, Column{Name: "id", Qualified: "u"})     → "u.id"
+//	Column(driver, Column{..., Qualified: "u", Alias: "uid"}) → "u.id AS uid"
 func Column(d driver.Dialect, column token.Column) string {
 	if !column.IsValid() || column.HasError() {
 		return ""
