@@ -294,7 +294,7 @@ func TestBaseToken(t *testing.T) {
 					}
 				})
 
-				t.Run("Source", func(t *testing.T) {
+				t.Run("input", func(t *testing.T) {
 					b := &token.BaseToken{Name: "id", Alias: "uid"}
 					err := fmt.Errorf("alias conflict")
 					b.SetError("id AS uid", err)
@@ -302,8 +302,8 @@ func TestBaseToken(t *testing.T) {
 					if b.Error == nil || b.Error.Error() != "alias conflict" {
 						t.Errorf("expected error 'alias conflict', got %v", b.Error)
 					}
-					if b.Source != "id AS uid" {
-						t.Errorf("expected source to be 'id AS uid', got %q", b.Source)
+					if b.GetInput() != "id AS uid" {
+						t.Errorf("expected source to be 'id AS uid', got %q", b.GetInput())
 					}
 				})
 
@@ -311,14 +311,14 @@ func TestBaseToken(t *testing.T) {
 					b := token.NewBaseToken("users.id")
 					b.SetError("ignored", fmt.Errorf("structural error"))
 
-					if b.Source != "ignored" {
-						t.Errorf("expected source to remain 'ignored', got %q", b.Source)
+					if b.GetInput() != "ignored" {
+						t.Errorf("expected source to remain 'ignored', got %q", b.GetInput())
 					}
 				})
 			})
 
 			t.Run("SetErrorWith", func(t *testing.T) {
-				t.Run("Source", func(t *testing.T) {
+				t.Run("input", func(t *testing.T) {
 					b := token.NewBaseToken("id", "uid")
 					err := fmt.Errorf("alias conflict")
 					b.SetErrorWith("id AS uid", err)
@@ -326,8 +326,8 @@ func TestBaseToken(t *testing.T) {
 					if b.GetError() == nil || b.GetError().Error() != "alias conflict" {
 						t.Errorf("expected error 'alias conflict', got %v", b.Error)
 					}
-					if b.Source != "id AS uid" {
-						t.Errorf("expected source to be 'id AS uid', got %q", b.Source)
+					if b.GetInput() != "id AS uid" {
+						t.Errorf("expected source to be 'id AS uid', got %q", b.GetInput())
 					}
 				})
 			})
@@ -390,13 +390,9 @@ func TestBaseToken(t *testing.T) {
 				})
 
 				t.Run("WithError", func(t *testing.T) {
-					b := &token.BaseToken{
-						Name:  "id",
-						Alias: "uid",
-						Error: fmt.Errorf("conflict"),
-					}
+					b := token.NewBaseToken("id AS uid", "user_id")
 					out := b.String()
-					if !strings.Contains(out, "errored: true") || !strings.Contains(out, "error: conflict") {
+					if !strings.Contains(out, "errored: true") || !strings.Contains(out, "error: alias conflict") {
 						t.Errorf("expected error details, got %q", out)
 					}
 				})
@@ -411,8 +407,8 @@ func TestBaseToken(t *testing.T) {
 				} else if b.Error.Error() != "invalid input expression: expression is empty" {
 					t.Errorf("unexpected error message: %s", b.Error)
 				}
-				if b.Source != "" {
-					t.Errorf("expected Source to be empty, got %q", b.Source)
+				if b.GetInput() != "" {
+					t.Errorf("expected input to be empty, got %q", b.GetInput())
 				}
 			})
 
