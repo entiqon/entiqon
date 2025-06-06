@@ -184,6 +184,26 @@ func (b *BaseToken) AliasOr() string {
 	return b.Name
 }
 
+// GetAlias returns the alias if it is non-empty, or else returns the Name.
+// If the receiver is nil, it returns an empty string.
+//
+// This method is useful when rendering column headers or result labels
+// where aliases take precedence, but a fallback to Name is still required.
+//
+// # Example
+//
+//	var b *BaseToken
+//	fmt.Println(b.AliasOr()) // → ""
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.AliasOr()) // → "uid"
+func (b *BaseToken) GetAlias() string {
+	if b == nil {
+		return ""
+	}
+	return b.Alias
+}
+
 // GetError returns the underlying error associated with the token.
 // If the receiver is nil or no error has been set, it returns nil.
 //
@@ -260,6 +280,29 @@ func (b *BaseToken) GetKind() contract.Kind {
 func (b *BaseToken) GetName() string {
 	if b == nil {
 		return ""
+	}
+	return b.Name
+}
+
+// Raw returns the SQL raw expression representation: "name" or "name AS alias".
+// If the receiver is nil, returns an empty string.
+//
+// This method does not perform any quoting or validation—it simply concatenates
+// Name and Alias as provided.
+//
+// # Example
+//
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.Raw()) // → "users.id"
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.Raw()) // → "users.id AS uid"
+func (b *BaseToken) GetRaw() string {
+	if b == nil {
+		return ""
+	}
+	if b.Alias != "" {
+		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
 	}
 	return b.Name
 }
@@ -352,13 +395,7 @@ func (b *BaseToken) IsValid() bool {
 //	b = NewBaseToken("users.id AS uid")
 //	fmt.Println(b.Raw()) // → "users.id AS uid"
 func (b *BaseToken) Raw() string {
-	if b == nil {
-		return ""
-	}
-	if b.Alias != "" {
-		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
-	}
-	return b.Name
+	return b.GetRaw()
 }
 
 // RenderAlias returns a dialect-quoted alias expression if an Alias is set,

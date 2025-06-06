@@ -57,16 +57,40 @@ func TestBaseToken(t *testing.T) {
 					}
 				})
 
-				t.Run("Name", func(t *testing.T) {
-					tok := token.BaseToken{Name: "id"}
+				t.Run("EmptyAlias", func(t *testing.T) {
+					tok := token.NewBaseToken("id")
 					if got := tok.AliasOr(); got != "id" {
 						t.Errorf("expected 'id', got %q", got)
 					}
 				})
 
 				t.Run("Aliased", func(t *testing.T) {
-					tok := token.BaseToken{Name: "id", Alias: "uid"}
+					tok := token.NewBaseToken("id", "uid")
 					if got := tok.AliasOr(); got != "uid" {
+						t.Errorf("expected 'uid', got %q", got)
+					}
+				})
+			})
+
+			t.Run("GetAlias", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var b *token.BaseToken = nil
+					b.SetError("ignored", fmt.Errorf("structural error"))
+					if got := b.GetAlias(); got != "" {
+						t.Errorf("expected nil error, got %v", got)
+					}
+				})
+
+				t.Run("EmptyAlias", func(t *testing.T) {
+					tok := token.NewBaseToken("id")
+					if got := tok.GetAlias(); got != "" {
+						t.Errorf("expected 'id', got %q", got)
+					}
+				})
+
+				t.Run("Aliased", func(t *testing.T) {
+					tok := token.NewBaseToken("id", "uid")
+					if got := tok.GetAlias(); got != "uid" {
 						t.Errorf("expected 'uid', got %q", got)
 					}
 				})
@@ -115,6 +139,30 @@ func TestBaseToken(t *testing.T) {
 					b := &token.BaseToken{}
 					if b.GetName() != "" {
 						t.Errorf("expected empty string from token without name, got %q", b.GetName())
+					}
+				})
+			})
+
+			t.Run("GetRaw", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var b *token.BaseToken = nil
+					b.SetError("ignored", fmt.Errorf("structural error"))
+					if got := b.Raw(); got != "" {
+						t.Errorf("expected nil error, got %v", got)
+					}
+				})
+
+				t.Run("Name", func(t *testing.T) {
+					base := &token.BaseToken{Name: "name"}
+					if got := base.Raw(); got != "name" {
+						t.Errorf("expected 'name', got %q", got)
+					}
+				})
+
+				t.Run("Aliased", func(t *testing.T) {
+					raw := token.BaseToken{Name: "name", Alias: "alias"}
+					if got := raw.Raw(); got != "name AS alias" {
+						t.Errorf("expected 'name AS alias', got %q", got)
 					}
 				})
 			})
@@ -204,20 +252,6 @@ func TestBaseToken(t *testing.T) {
 					b.SetError("ignored", fmt.Errorf("structural error"))
 					if got := b.Raw(); got != "" {
 						t.Errorf("expected nil error, got %v", got)
-					}
-				})
-
-				t.Run("Name", func(t *testing.T) {
-					base := &token.BaseToken{Name: "name"}
-					if got := base.Raw(); got != "name" {
-						t.Errorf("expected 'name', got %q", got)
-					}
-				})
-
-				t.Run("Aliased", func(t *testing.T) {
-					raw := token.BaseToken{Name: "name", Alias: "alias"}
-					if got := raw.Raw(); got != "name AS alias" {
-						t.Errorf("expected 'name AS alias', got %q", got)
 					}
 				})
 			})
