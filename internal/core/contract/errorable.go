@@ -3,7 +3,7 @@
 // Description: Defines the Errorable interface, representing any component that can expose an internal error state.
 // Since: v1.6.0
 
-package contracts
+package contract
 
 // Errorable represents any construct that may expose an internal error state.
 // It is typically implemented by token types (Column, Table, Condition) or by builders

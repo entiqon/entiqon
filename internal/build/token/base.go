@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/contract"
 )
 
 // BaseToken provides a normalized representation of a raw SQL-like expression,
@@ -66,7 +67,7 @@ type BaseToken struct {
 	//   - TableKind
 	//   - ConditionKind
 	//   - UnknownKind (default)
-	kind Kind
+	kind contract.Kind
 }
 
 // NewBaseToken constructs a new BaseToken by parsing the input string and optional explicit alias.
@@ -212,6 +213,23 @@ func (b *BaseToken) GetError() error {
 		return nil
 	}
 	return b.Error
+}
+
+// GetKind returns the Kind classification assigned to this token.
+// If the receiver is nil or no kind has been set, it returns UnknownKind.
+//
+// # Example
+//
+//	b := &BaseToken{}
+//	fmt.Println(b.GetKind()) // → UnknownKind
+//
+//	b.SetKind(TableKind)
+//	fmt.Println(b.GetKind()) // → TableKind
+func (b *BaseToken) GetKind() contract.Kind {
+	if b == nil {
+		return contract.UnknownKind
+	}
+	return b.kind
 }
 
 // GetName returns the parsed Name of the token in a nil-safe way.
@@ -436,36 +454,23 @@ func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
 }
 
 // SetKind assigns the internal Kind classification (e.g., ColumnKind, TableKind) to this token.
-// If the receiver is nil, this does nothing.
+// It is nil-safe: if the receiver is nil, this method does nothing.
 //
 // This should be called by higher-level token constructors (e.g., NewColumn, NewTable).
 //
 // # Example
 //
-//	b := NewBaseToken("id")
-//	b.SetKind(ColumnKind)
-//	fmt.Println(b.GetKind()) // → ColumnKind
-func (b *BaseToken) SetKind(k Kind) {
-	if b != nil {
-		b.kind = k
-	}
-}
-
-// GetKind returns the Kind classification assigned to this token.
-// If the receiver is nil or no kind has been set, it returns UnknownKind.
+//	    var b *BaseToken
+//	    b.SetKind(ColumnKind)	// no panic; b remains nil
 //
-// # Example
-//
-//	b := &BaseToken{}
-//	fmt.Println(b.GetKind()) // → UnknownKind
-//
-//	b.SetKind(TableKind)
-//	fmt.Println(b.GetKind()) // → TableKind
-func (b *BaseToken) GetKind() Kind {
+//		b := NewBaseToken("id")
+//		b.SetKind(ColumnKind)
+//		fmt.Println(b.GetKind()) 	// → ColumnKind
+func (b *BaseToken) SetKind(k contract.Kind) {
 	if b == nil {
-		return UnknownKind
+		return
 	}
-	return b.kind
+	b.kind = k
 }
 
 // String returns a diagnostic string representation of the token, including its Kind, Name,

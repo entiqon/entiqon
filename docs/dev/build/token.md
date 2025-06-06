@@ -1,116 +1,63 @@
 # Token System Guide
 
-This guide explains how internal tokens like `Column` are structured, parsed, validated, and consumed by query builders.
+This guide explains how internal tokens like `token` are structured, parsed, validated, and consumed by query builders.
 
-## Principles
-
-- Tokens are internal, immutable, and self-validating.
-- Each token may carry an `Error`, which must be checked by the builder.
-- Tokens do not handle dialect quoting, SQL rendering, or validation logic beyond structural correctness.
-
-## Column
-
-### Construction
-
-Use `NewColumn(expr string, alias ...string)`. Supports:
-- `"id"` → expr only
-- `"user_id AS uid"` → inline alias
-- `NewColumn("email", "primary_email")` → explicit alias
-
-### Fields
-
-| Field | Description                     |
-|-------|---------------------------------|
-| Name  | The column expr                 |
-| Alias | Optional alias                  |
-| Error | Non-nil if the input is invalid |
-
-### Validation
-
-Call `IsValid()` or check `Error != nil`.
-
-```go
-col := NewColumn(" AS uid")
-if col.Error != nil {
-	log.Warnf("Invalid column: %s — %v", col.String(), col.Error)
-}
-```
-
-## Parser: ParseColumns
-
-Use `ParseColumns(...)` to convert one or more inputs into `Column` tokens.
-
-- Handles comma-separated values
-- Keeps invalid tokens in-place with `Error` set
-- Ideal for builder-stage filtering
-
-```go
-cols := ParseColumns("id, expr", "user_id AS uid")
-```
-
-## Recommended Usage in Builders
-
-1. Parse using `ParseColumns(...)`
-2. Validate with `IsValid()` or `Error`
-3. Add valid columns to builder
-4. Record or skip invalid ones
-
-## 🧠 Column Resolution Behavior
-
-Columns support both inline qualification (e.g., `"users.id"`) and table-based attachment via `.WithTable()`.
-
-### Qualification Rules
-
-- A column is **qualified** if:
-  - It includes an inline table prefix (`"users.id"`)
-  - Or a table is attached via `.WithTable()` or `NewColumnWith(...)`
-
-- A column is **invalid** if:
-  - Its inline qualifier does not match the attached table’s expr or alias
-  - It is qualified but has no table context
-
-### Field Overview
-
-| Field     | Description                                                  |
-|-----------|--------------------------------------------------------------|
-| `Name`    | The column expr                                              |
-| `Alias`   | Optional alias (used in `AS`)                                |
-| `Table`   | Attached `Table` token (used for alias-aware rendering)      |
-| `TableName` | Inline qualifier parsed from input (e.g., `"users"` in `"users.id"`) |
-| `Error`   | Non-nil if validation fails                                  |
+> All tokens (e.g., `token`, `Table`, `Condition`) embed `BaseToken`, making them both **`Errorable`** (via
+> `GetError/IsErrored/SetError`) and **`Kindable`** (via `GetKind/SetKind`). All these methods are nil‐safe: calling any
+> of them on a `nil` token will not panic and returns a safe default (e.g., `IsErrored()` → `false`, `GetKind()` →
+> `UnknownKind`).
 
 ---
 
-### Examples
+## 📜 Principles
 
-```go
-users := NewTable("users AS u")
+- Tokens are internal, immutable, and self‐validating.
+- Each token may carry an `Error` (via the **Errorable** contract).
+    - Calling `IsErrored()` on a token with no error (or on a `nil` token) returns `false`.
+    - Calling `GetError()` on a token with no error (or on a `nil` token) returns `nil`.
+- Tokens also expose a `Kind` (via the **Kindable** contract).
+    - Calling `GetKind()` on a token with no kind set (or on a `nil` token) returns `UnknownKind`.
+    - Calling `SetKind(...)` on a `nil` token is a no‐op (nil‐safe).
+- Tokens do not handle dialect quoting or full SQL rendering beyond their own `RenderName()` / `RenderAlias()`.
+- `BaseToken` provides name, alias, error, and kind logic for all tokens, ensuring it is reusable and consistent.
 
-// Unqualified column, resolved using table alias
-col := NewColumn("id", "user_id").WithTable(users)
-fmt.Println(col.Raw()) // u.user_id
+## 🧩 Core Behaviors
 
-// Qualified column with match
-col2 := NewColumn("users.id").WithTable(users)
-fmt.Println(col2.Raw()) // u.id
-
-// Qualified column with mismatch
-bad := NewColumn("orders.id").WithTable(users)
-fmt.Println(bad.Error) // column qualifier "orders" does not match table "users" (alias: "u")
-```
-
----
-
-## 🧱 BaseToken
-
-`BaseToken` is the abstract foundational structure used by all SQL tokens in Entiqon (such as Column, Table, and Condition).
-
-It handles:
 - Input normalization
 - Alias resolution
 - Error tracking
 - Dialect-safe rendering
 
-📄 **See [BaseToken](base_token.md) full guide**
+## 🔍 Qualification & Validation
+
+A generic token may become invalid under any of the following scenarios. All tokens embed `BaseToken`, so these apply
+universally (token, Table, Condition, etc.):
+
+- **Empty input**: An input string that is blank or only whitespace sets an error.
+- **Comma-separated expression**: Inputs containing commas (`,`) are rejected (aliases must not be comma-separated).
+- **Starts with `AS`**: Inputs beginning with `AS ` or whose base resolves to `AS` only are invalid (missing identifier
+  before `AS`).
+- **Alias conflict**: When both inline and explicit aliases are provided but do not match (e.g.,
+  `"users.id AS uid", "other_uid"`), an error is set.
+- **Qualifier conflict**: For tokens that parse qualifiers (e.g., `users.id`), if the qualifier does not match an
+  attached context (e.g., a mismatched table alias), the token becomes invalid.
+- **Reserved word misuse**: If the parsed base identifier itself is a reserved word (e.g., `"AS"` only), the token is
+  invalid.
+
+All of the above conditions will cause `IsErrored()` to return `true`, with details accessible via `GetError()`. You can
+check `IsValid()` (equivalent to `!IsErrored() && Name != ""`) before including a token in any generated SQL.
+
+---
+
+## 🧱 Related Tokens
+
+The following core token is the base for all SQL tokens in Entiqon:
+
+|                         | Name          | Description                                                                                                          | Access    |
+|-------------------------|:--------------|----------------------------------------------------------------------------------------------------------------------|-----------|
+| **[📄](base_token.md)** | **BaseToken** | Is the abstract foundational structure used by all SQL tokens in Entiqon (such as `token`, `Table`, and `Condition`) | `Private` |
 
 This modular reference allows isolated testing and future reuse for other token types.
+
+---
+2025 — **© Entiqon Project**
