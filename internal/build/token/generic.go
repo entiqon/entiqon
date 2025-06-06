@@ -50,18 +50,4 @@ type GenericToken interface {
 	// A token is considered valid if it has a resolvable identifier
 	// (e.g., non-empty Name) and no internal Error state.
 	IsValid() bool
-
-	// Raw returns the dialect-neutral, unquoted SQL expression that
-	// represents the token (e.g., "id", "users.name").
-	//
-	// This value should not include aliases or dialect-specific formatting.
-	Raw() string
-
-	// String returns a developer-facing representation of the token,
-	// suitable for logging, test diffs, or debug output.
-	//
-	// Example output:
-	//   Column("id") [aliased: false, qualified: false]
-	//   Column("users.id") [aliased: true, qualified: true]
-	String() string
 }

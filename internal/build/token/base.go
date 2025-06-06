@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/core/contract"
 )
 
@@ -39,9 +38,11 @@ import (
 //	fmt.Println(b.String())
 //	// Output: Column("id") [aliased: true, errored: false]
 type BaseToken struct {
-	// Source holds the original raw input string used to construct this token.
-	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
 	Source string
+
+	// input holds the original raw input string used to construct this token.
+	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
+	input string
 
 	// Name represents the core identifier of the token (e.g., column or table name).
 	// It should be a raw, unquoted SQL-safe identifier.
@@ -77,9 +78,9 @@ type BaseToken struct {
 //  3. Reject inputs that start with "AS " or whose base parses to "AS" alone.
 //  4. Parse an inline alias (e.g., "users.id AS uid") if present.
 //  5. Apply an explicit alias override if provided, detecting conflicts with inline alias.
-//  6. Populate Name, Alias, Source, and Error as needed.
+//  6. Populate Name, Alias, input, and Error as needed.
 //
-// If any validation step fails, Error will be non-nil, and Source will remain set to the original input.
+// If any validation step fails, Error will be non-nil, and input will remain set to the original input.
 //
 // # Examples
 //
@@ -119,54 +120,45 @@ type BaseToken struct {
 //	b = NewBaseToken("id, name")
 //	fmt.Println(b.GetError()) // → invalid input expression: aliases must not be comma-separated
 func NewBaseToken(input string, alias ...string) *BaseToken {
+	t := &BaseToken{input: input, Source: input}
+
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
-		return &BaseToken{
-			Source: input,
-			Error:  fmt.Errorf("invalid input expression: expression is empty"),
-		}
+		t.SetError(input, fmt.Errorf("invalid input expression: expression is empty"))
+		return t
 	}
 
 	if strings.Contains(input, ",") {
-		return &BaseToken{
-			Source: input,
-			Error:  fmt.Errorf("invalid input expression: aliases must not be comma-separated"),
-		}
+		t.SetError(input, fmt.Errorf("invalid input expression: aliases must not be comma-separated"))
+		return t
 	}
 
 	upper := strings.ToUpper(trimmed)
 	if strings.HasPrefix(upper, "AS ") {
-		return &BaseToken{
-			Source: input,
-			Error:  fmt.Errorf("invalid input expression: cannot start with 'AS'"),
-		}
+		t.SetError(input, fmt.Errorf("invalid input expression: cannot start with 'AS'"))
+		return t
 	}
 
 	base, parsedAlias := ParseAlias(input)
 	if strings.TrimSpace(base) == "AS" {
-		return &BaseToken{
-			Source: input,
-			Error:  fmt.Errorf("invalid input expression: name cannot be AS keyword"),
-		}
+		t.SetError(input, fmt.Errorf("invalid input expression: name cannot be AS keyword"))
+		return t
 	}
 
-	b := &BaseToken{
-		Source: input,
-		Name:   base,
-		Alias:  parsedAlias,
-	}
+	t.Name = base
+	t.Alias = parsedAlias
 
 	if len(alias) > 0 && alias[0] != "" {
 		if parsedAlias != "" && alias[0] != parsedAlias {
-			b.Error = fmt.Errorf(
+			t.SetError(input, fmt.Errorf(
 				"alias conflict: explicit alias %q does not match inline alias %q",
 				alias[0], parsedAlias,
-			)
+			))
 		}
-		b.Alias = alias[0]
+		t.Alias = alias[0]
 	}
 
-	return b
+	return t
 }
 
 // AliasOr returns the alias if it is non-empty, or else returns the Name.
@@ -213,6 +205,26 @@ func (b *BaseToken) GetError() error {
 		return nil
 	}
 	return b.Error
+}
+
+// GetInput returns the original raw input expression used to construct the token in a nil-safe way.
+// If the receiver is nil, it returns an empty string.
+//
+// This accessor helps decouple the internal representation from external usage,
+// and is useful for diagnostic or error-reporting routines.
+//
+// # Example
+//
+//	var b *BaseToken
+//	fmt.Println(b.GetSource()) // → ""
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.GetSource()) // → "users.id AS uid"
+func (b *BaseToken) GetInput() string {
+	if b == nil {
+		return ""
+	}
+	return b.input
 }
 
 // GetKind returns the Kind classification assigned to this token.
@@ -266,10 +278,7 @@ func (b *BaseToken) GetName() string {
 //	b = NewBaseToken("users.id AS uid")
 //	fmt.Println(b.GetSource()) // → "users.id AS uid"
 func (b *BaseToken) GetSource() string {
-	if b == nil {
-		return ""
-	}
-	return b.Source
+	return b.GetInput()
 }
 
 // HasError reports whether the token has encountered a semantic or structural error.
@@ -372,17 +381,17 @@ func (b *BaseToken) Raw() string {
 //	b = NewBaseToken("")
 //	fmt.Println(b.RenderAlias(driver.NewPostgresDialect(), "u.id"))
 //	// → u.id
-func (b *BaseToken) RenderAlias(d driver.Dialect, qualified string) string {
+func (b *BaseToken) RenderAlias(q contract.Quoter, qualified string) string {
 	if b == nil || qualified == "" {
 		return qualified
 	}
 	if b.Alias == "" {
 		return qualified
 	}
-	if d == nil {
+	if q == nil {
 		return fmt.Sprintf("%s AS %s", qualified, b.Alias)
 	}
-	return fmt.Sprintf("%s AS %s", qualified, d.QuoteIdentifier(b.Alias))
+	return fmt.Sprintf("%s AS %s", qualified, q.QuoteIdentifier(b.Alias))
 }
 
 // RenderName returns the dialect-quoted Name of the token if non-empty.
@@ -401,14 +410,14 @@ func (b *BaseToken) RenderAlias(d driver.Dialect, qualified string) string {
 //
 //	b = NewBaseToken("id")
 //	fmt.Println(b.RenderName(nil)) // → "id"
-func (b *BaseToken) RenderName(d driver.Dialect) string {
+func (b *BaseToken) RenderName(q contract.Quoter) string {
 	if b == nil || b.Name == "" {
 		return ""
 	}
-	if d == nil {
+	if q == nil {
 		return b.Name
 	}
-	return d.QuoteIdentifier(b.Name)
+	return q.QuoteIdentifier(b.Name)
 }
 
 // SetError assigns a semantic or structural error to this token,
@@ -431,8 +440,8 @@ func (b *BaseToken) SetError(source string, err error) {
 		return
 	}
 	b.Error = err
-	if b.Source != source {
-		b.Source = source
+	if b.input != source {
+		b.input = source
 	}
 }
 
@@ -500,9 +509,10 @@ func (b *BaseToken) String() string {
 	if b == nil {
 		return "nil"
 	}
-	suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.IsErrored())
+
+	suffix := fmt.Sprintf("[aliased: %t, errored: %t]", b.IsAliased(), b.IsErrored())
 	if b.IsErrored() {
-		suffix += fmt.Sprintf(", error: %s", b.Error.Error())
+		suffix += fmt.Sprintf(", error: %s", b.GetError())
 	}
-	return fmt.Sprintf("%s(\"%s\") [%s]", b.kind.String(), b.Name, suffix)
+	return fmt.Sprintf("%s(\"%s\") %s", b.kind.String(), b.GetName(), suffix)
 }
