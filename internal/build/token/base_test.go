@@ -21,6 +21,31 @@ func TestBaseToken(t *testing.T) {
 			}
 		})
 
+		t.Run("ExplicitAlias", func(t *testing.T) {
+			t.Run("NoConflict", func(t *testing.T) {
+				b := token.NewBaseToken("users.id", "uid")
+				if b.Name != "users.id" {
+					t.Errorf("expected name 'users.id', got %q", b.Name)
+				}
+				if b.Alias != "uid" {
+					t.Errorf("expected alias 'uid', got %q", b.Alias)
+				}
+				if b.Error != nil {
+					t.Errorf("unexpected error: %v", b.Error)
+				}
+			})
+
+			t.Run("AliasConflict", func(t *testing.T) {
+				b := token.NewBaseToken("users.id AS user_id", "uid")
+				if b.Alias != "uid" {
+					t.Errorf("expected alias to be overridden to 'uid', got %q", b.Alias)
+				}
+				if b.Error == nil || b.Error.Error() != `alias conflict: explicit alias "uid" does not match inline alias "user_id"` {
+					t.Errorf("expected alias conflict error, got %v", b.Error)
+				}
+			})
+		})
+
 		t.Run("Members", func(t *testing.T) {
 			t.Run("AliasOr", func(t *testing.T) {
 				t.Run("Name", func(t *testing.T) {
