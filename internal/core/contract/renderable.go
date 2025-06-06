@@ -37,16 +37,6 @@ type Quoter interface {
 // accept a Quoter to apply dialect-specific quoting. If the Quoter argument is nil,
 // implementations must return unquoted results.
 type Renderable interface {
-	// Raw returns the token in its raw SQL form, for example:
-	//   - "users.id"           (no alias)
-	//   - "users.id AS u"      (with alias)
-	// If the receiver is nil, Raw must return an empty string.
-	//
-	// Raw does not apply any quoting; it simply reconstructs the original
-	// representation of Name and Alias, suitable for embedding in SQL
-	// without further transformation.
-	Raw() string
-
 	// RenderName returns the token’s identifier (alias if present, or name otherwise),
 	// applying quoting only if the provided Quoter is non-nil. If Quoter is nil,
 	// it returns the raw identifier (alias or name) without quotes. If the receiver
