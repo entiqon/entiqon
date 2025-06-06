@@ -9,6 +9,7 @@ import (
 
 	"github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/build/token"
+	"github.com/entiqon/entiqon/internal/core/contract"
 )
 
 func TestBaseToken(t *testing.T) {
@@ -197,30 +198,6 @@ func TestBaseToken(t *testing.T) {
 				})
 			})
 
-			t.Run("Kind", func(t *testing.T) {
-				t.Run("NilReceiver", func(t *testing.T) {
-					var b *token.BaseToken = nil
-					if got := b.GetKind(); got != token.UnknownKind {
-						t.Errorf("expected UnknownKind for nil receiver, got %v", got)
-					}
-				})
-
-				t.Run("UnknownKind", func(t *testing.T) {
-					b := &token.BaseToken{}
-					if got := b.GetKind(); got != token.UnknownKind {
-						t.Errorf("expected UnknownKind, got %v", got)
-					}
-				})
-
-				t.Run("Full", func(t *testing.T) {
-					b := &token.BaseToken{}
-					b.SetKind(token.ColumnKind)
-					if got := b.GetKind(); got != token.ColumnKind {
-						t.Errorf("expected ColumnKind, got %v", got)
-					}
-				})
-			})
-
 			t.Run("Raw", func(t *testing.T) {
 				t.Run("NilReceiver", func(t *testing.T) {
 					var b *token.BaseToken = nil
@@ -309,30 +286,6 @@ func TestBaseToken(t *testing.T) {
 			})
 
 			t.Run("SetError", func(t *testing.T) {
-				t.Run("Source", func(t *testing.T) {
-					b := &token.BaseToken{Name: "id", Alias: "uid"}
-					err := fmt.Errorf("alias conflict")
-					b.SetError("id AS uid", err)
-
-					if b.Error == nil || b.Error.Error() != "alias conflict" {
-						t.Errorf("expected error 'alias conflict', got %v", b.Error)
-					}
-					if b.Source != "id AS uid" {
-						t.Errorf("expected source to be 'id AS uid', got %q", b.Source)
-					}
-				})
-
-				t.Run("TokenErrored", func(t *testing.T) {
-					b := token.NewBaseToken("users.id")
-					b.SetError("ignored", fmt.Errorf("structural error"))
-
-					if b.Source != "ignored" {
-						t.Errorf("expected source to remain 'ignored', got %q", b.Source)
-					}
-				})
-			})
-
-			t.Run("SetError", func(t *testing.T) {
 				t.Run("NilReceiver", func(t *testing.T) {
 					var b *token.BaseToken = nil
 					b.SetError("ignored", fmt.Errorf("structural error"))
@@ -379,6 +332,31 @@ func TestBaseToken(t *testing.T) {
 				})
 			})
 
+			t.Run("SetKind", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var b *token.BaseToken = nil
+					b.SetKind(contract.ColumnKind)
+					if got := b.GetKind(); got != contract.UnknownKind {
+						t.Errorf("expected UnknownKind for nil receiver, got %v", got)
+					}
+				})
+
+				t.Run("UnknownKind", func(t *testing.T) {
+					b := &token.BaseToken{}
+					if got := b.GetKind(); got != contract.UnknownKind {
+						t.Errorf("expected UnknownKind, got %v", got)
+					}
+				})
+
+				t.Run("Full", func(t *testing.T) {
+					b := &token.BaseToken{}
+					b.SetKind(contract.ColumnKind)
+					if got := b.GetKind(); got != contract.ColumnKind {
+						t.Errorf("expected ColumnKind, got %v", got)
+					}
+				})
+			})
+
 			t.Run("String", func(t *testing.T) {
 				t.Run("NilReceiver", func(t *testing.T) {
 					var b *token.BaseToken = nil
@@ -395,7 +373,7 @@ func TestBaseToken(t *testing.T) {
 
 				t.Run("WithAliasedColumn", func(t *testing.T) {
 					b := &token.BaseToken{Name: "id", Alias: "user_id"}
-					b.SetKind(token.ColumnKind)
+					b.SetKind(contract.ColumnKind)
 					want := `Column("id") [aliased: true, errored: false]`
 					if got := b.String(); got != want {
 						t.Errorf("got %q, want %q", got, want)
@@ -404,7 +382,7 @@ func TestBaseToken(t *testing.T) {
 
 				t.Run("WithAliasedTable", func(t *testing.T) {
 					b := &token.BaseToken{Name: "users", Alias: "u"}
-					b.SetKind(token.TableKind)
+					b.SetKind(contract.TableKind)
 					want := `Table("users") [aliased: true, errored: false]`
 					if got := b.String(); got != want {
 						t.Errorf("got %q, want %q", got, want)
