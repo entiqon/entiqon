@@ -126,8 +126,8 @@ func (b *BaseToken) String() string {
         return "nil" // defensive fallback — not assertable in tests
     }
 
-    suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.HasError())
-    if b.HasError() {
+    suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.IsErrored())
+    if b.IsErrored() {
         suffix += fmt.Sprintf(", error: %s", b.Error.Error())
     }
 
@@ -331,8 +331,8 @@ func (b *BaseToken) String() string {
         return "nil"
     }
 
-    suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.HasError())
-    if b.HasError() {
+    suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.IsErrored())
+    if b.IsErrored() {
         suffix += fmt.Sprintf(", error: %s", b.Error.Error())
     }
 

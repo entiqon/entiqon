@@ -9,47 +9,37 @@ import (
 
 // BaseToken provides a normalized representation of a raw SQL-like expression,
 // including name and optional alias parsing. It acts as a foundational structure
-// shared across tokens like Column and Table.
+// shared across tokens like Column, Table, Join, or Condition.
 //
-// It is designed to be embedded in higher-level tokens such as Column,
-// Table, Join, or Condition, offering unified handling of identifier
-// semantics, alias resolution, and error reporting.
+// It is designed to be embedded in higher-level tokens, offering unified handling
+// of identifier semantics, alias resolution, error reporting, and type classification.
 //
 // BaseToken performs *general* validation (e.g., empty input, malformed aliases),
 // but does not resolve context-specific semantics such as:
-//
 //   - Table qualification (e.g., "users.id")
 //   - Ownership or binding to other sources
 //   - Dialect rendering preferences
 //
-// Qualification logic — like parsing "table.column" — is the responsibility of
-// higher-level tokens such as Column, since only some SQL expressions are validly qualified.
-//
+// Qualification logic—like parsing "table.column"—is the responsibility of higher-level tokens.
 // This keeps BaseToken adaptable, non-opinionated, and reusable across different token types.
 //
-// This struct should not be used standalone to represent SQL elements,
-// but is intended as an internal abstraction to simplify composition.
+// This struct should not be used standalone for generating SQL. It serves as an internal
+// abstraction to simplify composition.
 //
-// # Usage
+// # Example
 //
 //	type Column struct {
-//	    BaseToken
+//	    *BaseToken
 //	    Qualified string
 //	}
 //
-//	c := Column{
-//	    BaseToken: BaseToken{Name: "id", Alias: "user_id"},
-//	}
-//
-//	fmt.Println(c.Raw())      // "id"
-//	fmt.Println(c.IsAliased()) // true
-//	fmt.Println(c.String())   // BaseToken("id") [aliased: true]
-//
-// File: internal/build/token/base.go
-// Since: v1.6.0
+//	b := NewBaseToken("users.id AS uid")
+//	b.SetKind(ColumnKind)
+//	fmt.Println(b.String())
+//	// Output: Column("id") [aliased: true, errored: false]
 type BaseToken struct {
-	// Source holds the original input string used to construct the column.
-	// Unlike Raw(), this is not formatted or rendered — it's used for diagnostics only.
+	// Source holds the original raw input string used to construct this token.
+	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
 	Source string
 
 	// Name represents the core identifier of the token (e.g., column or table name).
@@ -65,11 +55,11 @@ type BaseToken struct {
 	Error error
 
 	// kind classifies the token according to its role in a SQL query,
-	// such as Column, Table, or Condition.
+	// such as ColumnKind, TableKind, or ConditionKind.
 	//
 	// This field is assigned internally during token construction and is not exported,
-	// preventing unintended modifications. It is used by the Kind() method to support
-	// type-safe introspection and rendering logic.
+	// preventing unintended modifications. It is used by GetKind() and String()
+	// to support type-safe introspection and diagnostic output.
 	//
 	// Valid values include:
 	//   - ColumnKind
@@ -79,48 +69,54 @@ type BaseToken struct {
 	kind Kind
 }
 
-// NewBaseToken constructs a new BaseToken by parsing the input string.
-// It supports optional aliasing, both inline (e.g., "field AS alias") and explicit via variadic arguments.
+// NewBaseToken constructs a new BaseToken by parsing the input string and optional explicit alias.
+// It performs the following steps:
+//  1. Trim whitespace and ensure the input is non-empty.
+//  2. Reject comma-separated inputs (commas not allowed in single token expressions).
+//  3. Reject inputs that start with "AS " or whose base parses to "AS" alone.
+//  4. Parse an inline alias (e.g., "users.id AS uid") if present.
+//  5. Apply an explicit alias override if provided, detecting conflicts with inline alias.
+//  6. Populate Name, Alias, Source, and Error as needed.
 //
-// If the input expression is malformed, empty, or structurally invalid (e.g., starts with "AS" or uses commas),
-// the returned BaseToken will carry an appropriate error.
-//
-// If both inline and explicit aliases are provided and conflict, the explicit one takes precedence,
-// and an alias conflict error is assigned.
-//
-// This function is intended to centralize alias parsing and validation logic used by higher-level
-// tokens such as Column or Table.
+// If any validation step fails, Error will be non-nil, and Source will remain set to the original input.
 //
 // # Examples
 //
+//	// Valid simple input
 //	b := NewBaseToken("users.id")
-//	fmt.Println(b.Name)   // "users.id"
-//	fmt.Println(b.Alias)  // ""
-//	fmt.Println(b.Error)  // <nil>
+//	fmt.Println(b.Name)  // → "users.id"
+//	fmt.Println(b.Alias) // → ""
+//	fmt.Println(b.Error) // → <nil>
 //
+//	// Inline alias
 //	b = NewBaseToken("users.id AS uid")
-//	fmt.Println(b.Name)   // "users.id"
-//	fmt.Println(b.Alias)  // "uid"
-//	fmt.Println(b.Error)  // <nil>
+//	fmt.Println(b.Name)  // → "users.id"
+//	fmt.Println(b.Alias) // → "uid"
+//	fmt.Println(b.Error) // → <nil>
 //
+//	// Explicit alias override
 //	b = NewBaseToken("users.id", "uid")
-//	fmt.Println(b.Name)   // "users.id"
-//	fmt.Println(b.Alias)  // "uid"
-//	fmt.Println(b.Error)  // <nil>
+//	fmt.Println(b.Name)  // → "users.id"
+//	fmt.Println(b.Alias) // → "uid"
+//	fmt.Println(b.Error) // → <nil>
 //
+//	// Alias conflict: inline "user_id" vs. explicit "uid"
 //	b = NewBaseToken("users.id AS user_id", "uid")
-//	fmt.Println(b.Name)   // "users.id"
-//	fmt.Println(b.Alias)  // "uid"
-//	fmt.Println(b.Error)  // alias conflict: explicit alias "uid" does not match inline alias "user_id"
+//	fmt.Println(b.Name)  // → "users.id"
+//	fmt.Println(b.Alias) // → "uid"
+//	fmt.Println(b.Error) // → alias conflict: explicit alias "uid" does not match inline alias "user_id"
 //
+//	// Invalid: starts with AS
 //	b = NewBaseToken("AS uid")
-//	fmt.Println(b.Error)  // invalid input expression: cannot start with 'AS'
+//	fmt.Println(b.GetError()) // → invalid input expression: cannot start with 'AS'
 //
+//	// Invalid: empty input
 //	b = NewBaseToken("")
-//	fmt.Println(b.Error)  // invalid input expression: expression is empty
+//	fmt.Println(b.GetError()) // → invalid input expression: expression is empty
 //
+//	// Invalid: comma-separated fields
 //	b = NewBaseToken("id, name")
-//	fmt.Println(b.Error)  // invalid input expression: aliases must not be comma-separated
+//	fmt.Println(b.GetError()) // → invalid input expression: aliases must not be comma-separated
 func NewBaseToken(input string, alias ...string) *BaseToken {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
@@ -172,43 +168,65 @@ func NewBaseToken(input string, alias ...string) *BaseToken {
 	return b
 }
 
-// AliasOr returns the alias if defined, or falls back to the Name.
+// AliasOr returns the alias if it is non-empty, or else returns the Name.
+// If the receiver is nil, it returns an empty string.
 //
-// This is helpful in rendering column headers or result labels where aliases
-// take precedence, but a fallback is still required.
+// This method is useful when rendering column headers or result labels
+// where aliases take precedence, but a fallback to Name is still required.
+//
+// # Example
+//
+//	var b *BaseToken
+//	fmt.Println(b.AliasOr()) // → ""
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.AliasOr()) // → "uid"
 func (b *BaseToken) AliasOr() string {
+	if b == nil {
+		return ""
+	}
 	if b.Alias != "" {
 		return b.Alias
 	}
 	return b.Name
 }
 
-// GetName safely returns the Name of the BaseToken.
+// GetError returns the underlying error associated with the token.
+// If the receiver is nil or no error has been set, it returns nil.
 //
-// This method is a defensive accessor used to avoid nil pointer dereference
-// when accessing the Name field of a potential nil *BaseToken.
+// This allows callers to inspect the exact error message or type
+// without risking a nil-pointer panic.
 //
-// It is commonly used in higher-level tokens (e.g., Column, Table) to extract
-// the logical identifier associated with the token, while maintaining stability
-// when BaseToken may not have been initialized.
+// # Example
 //
-// Returns:
-//   - The Name string if BaseToken is non-nil
-//   - An empty string ("") if BaseToken is nil
+//	var b *BaseToken
+//	fmt.Println(b.GetError()) // → <nil>
 //
-// Example:
+//	b = NewBaseToken("id AS uid")
+//	fmt.Println(b.GetError()) // → <nil>
 //
-//	var b *BaseToken = nil
-//	name := b.GetName() // safely returns ""
+//	b.SetError("id AS uid", fmt.Errorf("name is missing"))
+//	fmt.Println(b.GetError()) // → name is missing
+func (b *BaseToken) GetError() error {
+	if b == nil {
+		return nil
+	}
+	return b.Error
+}
+
+// GetName returns the parsed Name of the token in a nil-safe way.
+// If the receiver is nil, it returns an empty string.
 //
-//	b = NewBaseToken("id")
-//	name = b.GetName() // returns "id"
+// This is commonly used in higher-level tokens (e.g., Column, Table)
+// to retrieve the logical identifier associated with the token.
 //
-// Usage in Column:
+// # Example
 //
-//	if col.BaseToken.GetName() == "id" {
-//	    // Perform logic using column name
-//	}
+//	var b *BaseToken
+//	fmt.Println(b.GetName()) // → ""
+//
+//	b = NewBaseToken("users.id")
+//	fmt.Println(b.GetName()) // → "users.id"
 func (b *BaseToken) GetName() string {
 	if b == nil {
 		return ""
@@ -216,24 +234,19 @@ func (b *BaseToken) GetName() string {
 	return b.Name
 }
 
-// GetSource returns the original input string associated with the token.
+// GetSource returns the original raw input expression used to construct the token in a nil-safe way.
+// If the receiver is nil, it returns an empty string.
 //
-// This method safely retrieves the `input` field of the BaseToken, which was
-// previously known as `Source`. The `input` typically represents the raw
-// expression string used to construct the token (e.g., "users.id AS user_id").
+// This accessor helps decouple the internal representation from external usage,
+// and is useful for diagnostic or error-reporting routines.
 //
-// If the BaseToken is nil, this method returns an empty string.
+// # Example
 //
-// This accessor ensures safe and consistent use of the underlying expression,
-// and helps decouple the internal representation (`input`) from external usage.
+//	var b *BaseToken
+//	fmt.Println(b.GetSource()) // → ""
 //
-// Example:
-//
-//	b := token.NewBaseToken("id", "users.id AS user_id", "user_id")
-//	raw := b.GetSource() // returns "users.id AS user_id"
-//
-//	var b2 *token.BaseToken
-//	raw = b2.GetSource() // safely returns ""
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.GetSource()) // → "users.id AS uid"
 func (b *BaseToken) GetSource() string {
 	if b == nil {
 		return ""
@@ -246,121 +259,130 @@ func (b *BaseToken) GetSource() string {
 // Typical causes include alias mismatches, unresolved references, or conflicting
 // overrides detected during token construction or resolution.
 func (b *BaseToken) HasError() bool {
-	return b.Error != nil
+	return b.IsErrored()
 }
 
-// IsAliased reports whether the token has a defined alias.
+// IsErrored reports whether the token contains a non-nil Error.
+// If the receiver is nil, returns false.
 //
-// Returns true if the Alias field is non-empty, which indicates the token
-// should appear in SQL output with an AS clause or similar aliasing logic.
+// Use this to quickly check if parsing or alias resolution failed,
+// without inspecting the actual error value.
+//
+// # Example
+//
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.IsErrored()) // → false
+//
+//	b.SetError("users.id", fmt.Errorf("no permission"))
+//	fmt.Println(b.IsErrored()) // → true
+func (b *BaseToken) IsErrored() bool {
+	return b != nil && b.Error != nil
+}
+
+// IsAliased reports whether the token has a non-empty Alias.
+// If the receiver is nil, returns false.
+//
+// This is useful when deciding whether to include an AS clause in SQL rendering.
+//
+// # Example
+//
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.IsAliased()) // → false
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.IsAliased()) // → true
 func (b *BaseToken) IsAliased() bool {
-	return b.Alias != ""
+	return b != nil && b.Alias != ""
 }
 
-// IsValid returns true if the token has a usable identifier and no associated error.
+// IsValid returns true if the token has a non-empty Name and no associated Error.
+// If the receiver is nil, returns false.
 //
-// This method ensures that the token is structurally well-formed and ready
-// to be included in a generated SQL query.
+// This is commonly used before including the token in a generated SQL query.
+//
+// # Example
+//
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.IsValid()) // → true
+//
+//	b = NewBaseToken("")
+//	fmt.Println(b.IsValid()) // → false
 func (b *BaseToken) IsValid() bool {
 	return b != nil && b.Error == nil && strings.TrimSpace(b.Name) != ""
 }
 
-// GetKind returns the classification kind associated with this token.
+// Raw returns the SQL raw expression representation: "name" or "name AS alias".
+// If the receiver is nil, returns an empty string.
 //
-// If the token is nil, it safely returns UnknownKind.
-// If no kind has been explicitly set, UnknownKind is also returned by default.
-//
-// Concrete token types (e.g., Column, Table) should assign a specific kind
-// via SetKind(...) during instantiation.
+// This method does not perform any quoting or validation—it simply concatenates
+// Name and Alias as provided.
 //
 // # Example
 //
-//	b := NewBaseToken("id")
-//	b.SetKind(ColumnKind)
-//	fmt.Println(b.GetKind()) // → ColumnKind
-func (b *BaseToken) GetKind() Kind {
-	if b == nil {
-		return UnknownKind
-	}
-	return b.kind
-}
-
-// Raw returns the base SQL expression, optionally including aliasing.
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.Raw()) // → "users.id"
 //
-// If the token has an alias, the returned string will follow the format:
-//
-//	"name AS alias"
-//
-// If no alias is set, only the base name is returned.
-//
-// # Examples
-//
-//	BaseToken{Name: "id"}.Raw()                 → "id"
-//	BaseToken{Name: "id", Alias: "user_id"}.Raw() → "id AS user_id"
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.Raw()) // → "users.id AS uid"
 func (b *BaseToken) Raw() string {
+	if b == nil {
+		return ""
+	}
 	if b.Alias != "" {
 		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
 	}
 	return b.Name
 }
 
-// RenderAlias returns a dialect-quoted alias expression if an alias is set,
-// otherwise returns the qualified name unchanged.
+// RenderAlias returns a dialect-quoted alias expression if an Alias is set,
+// otherwise returns the qualified input unchanged. If the receiver is nil or
+// qualified is empty, it returns qualified unchanged.
 //
-// If the alias is empty or the qualified name is empty, aliasing is skipped
-// and the qualified name is returned as-is. This avoids emitting invalid SQL
-// like `AS ""` or aliasing blank expressions.
-//
-// If the dialect is nil, a basic unquoted alias is used.
-// Otherwise, the alias will be quoted using the dialect’s identifier rules.
+// If dialect is nil, it uses an unquoted format: "qualified AS alias".
+// Otherwise, it applies dialect.QuoteIdentifier() to the alias.
 //
 // # Example
 //
-//	input := "u.id AS user_id"
-//	b := NewBaseToken(input)
-//	b.Alias = "user_id"
+//	b := NewBaseToken("users.id AS uid")
+//	fmt.Println(b.RenderAlias(driver.NewPostgresDialect(), "u.id"))
+//	// → u.id AS "uid"
 //
-//	fmt.Println(b.RenderAlias(postgres, "u.id")) // → u.id AS "user_id"
-//
-//	b = NewBaseToken(input)
-//	fmt.Println(b.RenderAlias(postgres, "u.id")) // → u.id
+//	b = NewBaseToken("users.id")
+//	fmt.Println(b.RenderAlias(driver.NewPostgresDialect(), "u.id"))
+//	// → u.id
 //
 //	b = NewBaseToken("")
-//	fmt.Println(b.RenderAlias(postgres, ""))     // → ""
+//	fmt.Println(b.RenderAlias(driver.NewPostgresDialect(), "u.id"))
+//	// → u.id
 func (b *BaseToken) RenderAlias(d driver.Dialect, qualified string) string {
 	if b == nil || qualified == "" {
 		return qualified
 	}
-
 	if b.Alias == "" {
 		return qualified
 	}
-
 	if d == nil {
 		return fmt.Sprintf("%s AS %s", qualified, b.Alias)
 	}
-
 	return fmt.Sprintf("%s AS %s", qualified, d.QuoteIdentifier(b.Alias))
 }
 
-// RenderName returns the dialect-quoted name of the token.
+// RenderName returns the dialect-quoted Name of the token if non-empty.
+// If the receiver is nil or Name is empty, it returns an empty string.
+// If dialect is nil, it returns Name unquoted.
 //
-// If the token is nil or the Name field is empty, it returns an empty string.
-// If the dialect is nil, the name is returned as-is without quoting.
-// Otherwise, it applies the dialect's identifier quoting rules.
-//
-// This is commonly used for rendering column or table names in
-// SELECT, FROM, or JOIN clauses.
+// This is commonly used when constructing SELECT, FROM, or JOIN clauses.
 //
 // # Example
 //
 //	b := NewBaseToken("id")
-//	b.Name = "id"
-//
 //	fmt.Println(b.RenderName(driver.NewPostgresDialect())) // → "id"
 //
 //	b = NewBaseToken("")
-//	fmt.Println(b.RenderName(nil))                         // → ""
+//	fmt.Println(b.RenderName(driver.NewPostgresDialect())) // → ""
+//
+//	b = NewBaseToken("id")
+//	fmt.Println(b.RenderName(nil)) // → "id"
 func (b *BaseToken) RenderName(d driver.Dialect) string {
 	if b == nil || b.Name == "" {
 		return ""
@@ -371,44 +393,52 @@ func (b *BaseToken) RenderName(d driver.Dialect) string {
 	return d.QuoteIdentifier(b.Name)
 }
 
-// SetErrorWith assigns a semantic or structural error to the token,
-// along with the original input string that triggered the failure.
-//
-// This method sets the Error and internal input fields (if unset),
-// preserving the original expression for diagnostic purposes.
-//
-// It returns the same *BaseToken instance, allowing fluent chaining
-// from higher-level token wrappers such as Column or Table.
-//
-// This method does not attempt to parse or correct the input — it is
-// purely used for marking invalid or unsupported expressions during
-// token construction or validation.
+// SetError assigns a semantic or structural error to this token,
+// along with the source expression string. It does not return any value,
+// matching the Errorable contract. Any existing error is overwritten.
 //
 // # Example
 //
-//	b := NewBaseToken("AS uid") // Invalid: missing name before 'AS'
-//	b.SetErrorWith("AS uid", fmt.Errorf("name is missing before 'AS'"))
+//	    var b *BaseToken
+//	    b.SetError("id AS uid", fmt.Errorf("name is missing"))
+//	    // → No panic, b remains nil
 //
-//	fmt.Println(b.Error)        // name is missing before 'AS'
-//	fmt.Println(b.GetSource())  // AS uid
-//
-//	// Output:
-//	name is missing before 'AS'
-//	AS uid
-func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
+//		b := NewBaseToken("id AS uid") // invalid: missing name before AS
+//		b.SetError("id AS uid", fmt.Errorf("name is missing"))
+//		fmt.Println(b.IsErrored())     // → true
+//		fmt.Println(b.GetError())      // → name is missing
+//		fmt.Println(b.GetSource())     // → "id AS uid"
+func (b *BaseToken) SetError(source string, err error) {
+	if b == nil {
+		return
+	}
 	b.Error = err
-	if b.Source == "" {
+	if b.Source != source {
 		b.Source = source
 	}
+}
+
+// SetErrorWith assigns a semantic or structural error to the token, along with the source expression.
+// It returns the same *BaseToken instance to allow fluent chaining. If the receiver is nil, this does nothing.
+//
+// Note: This method is provided for backward compatibility but SetError is preferred for new code.
+//
+// # Example
+//
+//	b := NewBaseToken("AS uid") // invalid: missing name before AS
+//	b.SetErrorWith("AS uid", fmt.Errorf("name is missing before 'AS'"))
+//	fmt.Println(b.IsErrored())    // → true
+//	fmt.Println(b.GetSource())    // → "AS uid"
+//	fmt.Println(b.GetError())     // → name is missing before 'AS'
+func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
+	b.SetError(source, err)
 	return b
 }
 
-// SetKind assigns the internal Kind classification to the token.
-// This should be used by higher-level token constructors (e.g., Column, Table)
-// to explicitly declare the token type.
+// SetKind assigns the internal Kind classification (e.g., ColumnKind, TableKind) to this token.
+// If the receiver is nil, this does nothing.
 //
-// This method is safe to call during instantiation, but not intended
-// for dynamic reclassification at runtime.
+// This should be called by higher-level token constructors (e.g., NewColumn, NewTable).
 //
 // # Example
 //
@@ -421,31 +451,53 @@ func (b *BaseToken) SetKind(k Kind) {
 	}
 }
 
-// String returns a diagnostic string representation of the token,
-// including its internal kind, alias status, and any error state.
-//
-// This method is intended for logging and testing — it does not produce SQL output.
+// GetKind returns the Kind classification assigned to this token.
+// If the receiver is nil or no kind has been set, it returns UnknownKind.
 //
 // # Example
 //
+//	b := &BaseToken{}
+//	fmt.Println(b.GetKind()) // → UnknownKind
+//
+//	b.SetKind(TableKind)
+//	fmt.Println(b.GetKind()) // → TableKind
+func (b *BaseToken) GetKind() Kind {
+	if b == nil {
+		return UnknownKind
+	}
+	return b.kind
+}
+
+// String returns a diagnostic string representation of the token, including its Kind, Name,
+// alias status, and any error present. This method is intended for logging, debugging, and
+// test assertions only—it does not produce valid SQL. If the receiver is nil, it returns "nil".
+//
+// Format: Kind("Name") [aliased: true/false, errored: true/false, error: <message>]
+//
+// # Examples
+//
 //	b := NewBaseToken("id")
 //	b.SetKind(ColumnKind)
-//	fmt.Println(b.String()) // → Column("id") [aliased: false, errored: false]
+//	fmt.Println(b.String())
+//	// → Column("id") [aliased: false, errored: false]
 //
-//	b.SetAlias("uid")
-//	fmt.Println(b.String()) // → Column("id") [aliased: true, errored: false]
+//	b = NewBaseToken("users.id AS uid")
+//	b.SetKind(ColumnKind)
+//	fmt.Println(b.String())
+//	// → Column("id") [aliased: true, errored: false]
 //
-//	b.SetErrorWith("id AS uid", fmt.Errorf("alias conflict"))
-//	fmt.Println(b.String()) // → Column("id") [aliased: true, errored: true, error: alias conflict]
+//	b = NewBaseToken("id AS uid")
+//	b.SetKind(ColumnKind)
+//	b.SetError("id AS uid", fmt.Errorf("alias conflict"))
+//	fmt.Println(b.String())
+//	// → Column("id") [aliased: true, errored: true, error: alias conflict]
 func (b *BaseToken) String() string {
 	if b == nil {
 		return "nil"
 	}
-
-	suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.HasError())
-	if b.HasError() {
+	suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.IsErrored())
+	if b.IsErrored() {
 		suffix += fmt.Sprintf(", error: %s", b.Error.Error())
 	}
-
 	return fmt.Sprintf("%s(\"%s\") [%s]", b.kind.String(), b.Name, suffix)
 }
