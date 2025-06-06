@@ -7,12 +7,25 @@ import (
 	"github.com/entiqon/entiqon/driver"
 )
 
-// BaseToken provides a reusable building block for SQL token types that
-// carry a core name, optional alias, and possible validation error.
+// BaseToken provides a normalized representation of a raw SQL-like expression,
+// including name and optional alias parsing. It acts as a foundational structure
+// shared across tokens like Column and Table.
 //
 // It is designed to be embedded in higher-level tokens such as Column,
 // Table, Join, or Condition, offering unified handling of identifier
 // semantics, alias resolution, and error reporting.
+//
+// BaseToken performs *general* validation (e.g., empty input, malformed aliases),
+// but does not resolve context-specific semantics such as:
+//
+//   - Table qualification (e.g., "users.id")
+//   - Ownership or binding to other sources
+//   - Dialect rendering preferences
+//
+// Qualification logic — like parsing "table.column" — is the responsibility of
+// higher-level tokens such as Column, since only some SQL expressions are validly qualified.
+//
+// This keeps BaseToken adaptable, non-opinionated, and reusable across different token types.
 //
 // This struct should not be used standalone to represent SQL elements,
 // but is intended as an internal abstraction to simplify composition.
@@ -52,20 +65,49 @@ type BaseToken struct {
 	Error error
 }
 
-// NewBaseToken creates a new BaseToken using only the raw input string.
+// NewBaseToken constructs a new BaseToken by parsing the input string.
+// It supports optional aliasing, both inline (e.g., "field AS alias") and explicit via variadic arguments.
 //
-// This constructor is intended for cases where the input (e.g., "users.id AS user_id")
-// will be parsed later to extract the logical name and alias.
+// If the input expression is malformed, empty, or structurally invalid (e.g., starts with "AS" or uses commas),
+// the returned BaseToken will carry an appropriate error.
 //
-// It stores the input internally and leaves Name and Alias empty.
-// These fields should be populated by the higher-level token constructors.
+// If both inline and explicit aliases are provided and conflict, the explicit one takes precedence,
+// and an alias conflict error is assigned.
 //
-// Example:
+// This function is intended to centralize alias parsing and validation logic used by higher-level
+// tokens such as Column or Table.
 //
-//	b := NewBaseToken("users.id AS user_id")
-//	fmt.Println(b.GetSource()) // "users.id AS user_id"
-//	// b.Name and b.Alias must be set later
-func NewBaseToken(input string) *BaseToken {
+// # Examples
+//
+//	b := NewBaseToken("users.id")
+//	fmt.Println(b.Name)   // "users.id"
+//	fmt.Println(b.Alias)  // ""
+//	fmt.Println(b.Error)  // <nil>
+//
+//	b = NewBaseToken("users.id AS uid")
+//	fmt.Println(b.Name)   // "users.id"
+//	fmt.Println(b.Alias)  // "uid"
+//	fmt.Println(b.Error)  // <nil>
+//
+//	b = NewBaseToken("users.id", "uid")
+//	fmt.Println(b.Name)   // "users.id"
+//	fmt.Println(b.Alias)  // "uid"
+//	fmt.Println(b.Error)  // <nil>
+//
+//	b = NewBaseToken("users.id AS user_id", "uid")
+//	fmt.Println(b.Name)   // "users.id"
+//	fmt.Println(b.Alias)  // "uid"
+//	fmt.Println(b.Error)  // alias conflict: explicit alias "uid" does not match inline alias "user_id"
+//
+//	b = NewBaseToken("AS uid")
+//	fmt.Println(b.Error)  // invalid input expression: cannot start with 'AS'
+//
+//	b = NewBaseToken("")
+//	fmt.Println(b.Error)  // invalid input expression: expression is empty
+//
+//	b = NewBaseToken("id, name")
+//	fmt.Println(b.Error)  // invalid input expression: aliases must not be comma-separated
+func NewBaseToken(input string, alias ...string) *BaseToken {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return &BaseToken{
@@ -97,11 +139,23 @@ func NewBaseToken(input string) *BaseToken {
 		}
 	}
 
-	return &BaseToken{
+	b := &BaseToken{
 		Source: input,
 		Name:   base,
 		Alias:  parsedAlias,
 	}
+
+	if len(alias) > 0 && alias[0] != "" {
+		if parsedAlias != "" && alias[0] != parsedAlias {
+			b.Error = fmt.Errorf(
+				"alias conflict: explicit alias %q does not match inline alias %q",
+				alias[0], parsedAlias,
+			)
+		}
+		b.Alias = alias[0]
+	}
+
+	return b
 }
 
 // AliasOr returns the alias if defined, or falls back to the Name.

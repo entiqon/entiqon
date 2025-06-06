@@ -98,3 +98,19 @@ fmt.Println(col2.Raw()) // u.id
 bad := NewColumn("orders.id").WithTable(users)
 fmt.Println(bad.Error) // column qualifier "orders" does not match table "users" (alias: "u")
 ```
+
+---
+
+## 🧱 BaseToken
+
+`BaseToken` is the abstract foundational structure used by all SQL tokens in Entiqon (such as Column, Table, and Condition).
+
+It handles:
+- Input normalization
+- Alias resolution
+- Error tracking
+- Dialect-safe rendering
+
+📄 **See [BaseToken](base_token.md) full guide**
+
+This modular reference allows isolated testing and future reuse for other token types.
