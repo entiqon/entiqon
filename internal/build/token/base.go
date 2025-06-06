@@ -63,6 +63,20 @@ type BaseToken struct {
 	// Error holds a semantic or structural conflict encountered during parsing,
 	// such as an alias mismatch or invalid override. A nil value indicates no error.
 	Error error
+
+	// kind classifies the token according to its role in a SQL query,
+	// such as Column, Table, or Condition.
+	//
+	// This field is assigned internally during token construction and is not exported,
+	// preventing unintended modifications. It is used by the Kind() method to support
+	// type-safe introspection and rendering logic.
+	//
+	// Valid values include:
+	//   - ColumnKind
+	//   - TableKind
+	//   - ConditionKind
+	//   - UnknownKind (default)
+	kind Kind
 }
 
 // NewBaseToken constructs a new BaseToken by parsing the input string.
@@ -251,6 +265,26 @@ func (b *BaseToken) IsValid() bool {
 	return b != nil && b.Error == nil && strings.TrimSpace(b.Name) != ""
 }
 
+// GetKind returns the classification kind associated with this token.
+//
+// If the token is nil, it safely returns UnknownKind.
+// If no kind has been explicitly set, UnknownKind is also returned by default.
+//
+// Concrete token types (e.g., Column, Table) should assign a specific kind
+// via SetKind(...) during instantiation.
+//
+// # Example
+//
+//	b := NewBaseToken("id")
+//	b.SetKind(ColumnKind)
+//	fmt.Println(b.GetKind()) // → ColumnKind
+func (b *BaseToken) GetKind() Kind {
+	if b == nil {
+		return UnknownKind
+	}
+	return b.kind
+}
+
 // Raw returns the base SQL expression, optionally including aliasing.
 //
 // If the token has an alias, the returned string will follow the format:
@@ -369,27 +403,49 @@ func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
 	return b
 }
 
+// SetKind assigns the internal Kind classification to the token.
+// This should be used by higher-level token constructors (e.g., Column, Table)
+// to explicitly declare the token type.
+//
+// This method is safe to call during instantiation, but not intended
+// for dynamic reclassification at runtime.
+//
+// # Example
+//
+//	b := NewBaseToken("id")
+//	b.SetKind(ColumnKind)
+//	fmt.Println(b.GetKind()) // → ColumnKind
+func (b *BaseToken) SetKind(k Kind) {
+	if b != nil {
+		b.kind = k
+	}
+}
+
 // String returns a diagnostic string representation of the token,
-// including the token type label, alias status, and any error.
+// including its internal kind, alias status, and any error state.
 //
-// This method is intended for logging and test assertions only — it does
-// not produce SQL output for execution.
+// This method is intended for logging and testing — it does not produce SQL output.
 //
-// # Examples
+// # Example
 //
-//	b := BaseToken{Name: "id"}
-//	fmt.Println(b.String(KindColumn)) → Column("id") [aliased: false]
+//	b := NewBaseToken("id")
+//	b.SetKind(ColumnKind)
+//	fmt.Println(b.String()) // → Column("id") [aliased: false, errored: false]
 //
-//	b = BaseToken{Name: "id", Alias: "user_id"}
-//	fmt.Println(b.String(KindColumn)) → Column("id") [aliased: true]
+//	b.SetAlias("uid")
+//	fmt.Println(b.String()) // → Column("id") [aliased: true, errored: false]
 //
-//	b = BaseToken{Name: "id", Alias: "uid", Error: fmt.Errorf("conflict")}
-//	fmt.Println(b.String(KindColumn)) → Column("id") [aliased: true, error: conflict]
-func (b *BaseToken) String(kind Kind) string {
+//	b.SetErrorWith("id AS uid", fmt.Errorf("alias conflict"))
+//	fmt.Println(b.String()) // → Column("id") [aliased: true, errored: true, error: alias conflict]
+func (b *BaseToken) String() string {
+	if b == nil {
+		return "nil"
+	}
+
 	suffix := fmt.Sprintf("aliased: %v, errored: %v", b.IsAliased(), b.HasError())
 	if b.HasError() {
 		suffix += fmt.Sprintf(", error: %s", b.Error.Error())
 	}
 
-	return fmt.Sprintf("%s(\"%s\") [%s]", kind, b.Name, suffix)
+	return fmt.Sprintf("%s(\"%s\") [%s]", b.kind.String(), b.Name, suffix)
 }
