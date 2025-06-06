@@ -146,6 +146,30 @@ func TestBaseToken(t *testing.T) {
 				})
 			})
 
+			t.Run("Kind", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var b *token.BaseToken = nil
+					if got := b.GetKind(); got != token.UnknownKind {
+						t.Errorf("expected UnknownKind for nil receiver, got %v", got)
+					}
+				})
+
+				t.Run("UnknownKind", func(t *testing.T) {
+					b := &token.BaseToken{}
+					if got := b.GetKind(); got != token.UnknownKind {
+						t.Errorf("expected UnknownKind, got %v", got)
+					}
+				})
+
+				t.Run("ExplicitKind", func(t *testing.T) {
+					b := &token.BaseToken{}
+					b.SetKind(token.ColumnKind)
+					if got := b.GetKind(); got != token.ColumnKind {
+						t.Errorf("expected ColumnKind, got %v", got)
+					}
+				})
+			})
+
 			t.Run("Raw", func(t *testing.T) {
 				t.Run("Name", func(t *testing.T) {
 					base := &token.BaseToken{Name: "name"}
@@ -253,26 +277,33 @@ func TestBaseToken(t *testing.T) {
 			})
 
 			t.Run("String", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var b *token.BaseToken = nil
+					_ = b.String() // just ensure no panic
+				})
+
 				t.Run("WithColumn", func(t *testing.T) {
 					b := &token.BaseToken{Name: "id"}
-					want := `Column("id") [aliased: false, errored: false]`
-					if got := b.String(token.KindColumn); got != want {
+					want := `Unknown("id") [aliased: false, errored: false]`
+					if got := b.String(); got != want {
 						t.Errorf("got %q, want %q", got, want)
 					}
 				})
 
 				t.Run("WithAliasedColumn", func(t *testing.T) {
 					b := &token.BaseToken{Name: "id", Alias: "user_id"}
+					b.SetKind(token.ColumnKind)
 					want := `Column("id") [aliased: true, errored: false]`
-					if got := b.String(token.KindColumn); got != want {
+					if got := b.String(); got != want {
 						t.Errorf("got %q, want %q", got, want)
 					}
 				})
 
 				t.Run("WithAliasedTable", func(t *testing.T) {
 					b := &token.BaseToken{Name: "users", Alias: "u"}
+					b.SetKind(token.TableKind)
 					want := `Table("users") [aliased: true, errored: false]`
-					if got := b.String(token.KindTable); got != want {
+					if got := b.String(); got != want {
 						t.Errorf("got %q, want %q", got, want)
 					}
 				})
@@ -283,7 +314,7 @@ func TestBaseToken(t *testing.T) {
 						Alias: "uid",
 						Error: fmt.Errorf("conflict"),
 					}
-					out := b.String(token.KindColumn)
+					out := b.String()
 					if !strings.Contains(out, "errored: true") || !strings.Contains(out, "error: conflict") {
 						t.Errorf("expected error details, got %q", out)
 					}
