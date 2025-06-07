@@ -348,7 +348,7 @@ func TestBaseToken(t *testing.T) {
 				}
 			})
 
-			t.Run("input", func(t *testing.T) {
+			t.Run("WithInput", func(t *testing.T) {
 				b := token.NewBaseToken("is", "uid")
 				err := fmt.Errorf("alias conflict")
 				b.SetError("id AS uid", err)

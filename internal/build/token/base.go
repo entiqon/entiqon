@@ -41,6 +41,7 @@ type BaseToken struct {
 	Source string
 	Name   string
 	Alias  string
+	Error  error
 
 	// input holds the original raw input string used to construct this token.
 	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
@@ -56,7 +57,7 @@ type BaseToken struct {
 
 	// Error holds a semantic or structural conflict encountered during parsing,
 	// such as an alias mismatch or invalid override. A nil value indicates no error.
-	Error error
+	err error
 
 	// kind classifies the token according to its role in a SQL query,
 	// such as ColumnKind, TableKind, or ConditionKind.
@@ -492,7 +493,8 @@ func (b *BaseToken) SetError(source string, err error) {
 	if b == nil {
 		return
 	}
-	b.Error = err
+	b.err = err
+	b.Error = b.err
 	if b.input != source {
 		b.input = source
 	}
