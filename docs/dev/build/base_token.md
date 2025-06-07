@@ -15,6 +15,8 @@
   * `alias` (parsed alias, unquoted)
   * `Error` (if validation fails)
 
+* \*\*Dropped \*\***`Source`** field and deprecated `GetSource()` in favor of `input` and `GetInput()`
+
 * **Provide nil-safe getters** via `contract.Rawable`:
 
   * `GetInput()` → raw input
@@ -25,7 +27,7 @@
 * **Implement core interfaces**:
 
   * `contract.Rawable`    (GetInput, GetName, GetAlias, GetRaw)
-  * `contract.Renderable` (Raw, RenderName, RenderAlias, String)
+  * `contract.Renderable` (RenderName, RenderAlias, String)
   * `contract.Kindable`   (GetKind, SetKind)
   * `contract.Errorable`  (GetError, IsErrored, SetError)
 
@@ -142,10 +144,4 @@ fmt.Println(s.String())            // Unknown("orders.qty") [aliased: false, err
 
 ---
 
-## 🚀 Generating Documentation
-
-* **godoc CLI**: `godoc -http=:6060`
-* **go doc**: `go doc github.com/entiqon/entiqon/internal/build/token.BaseToken`
-* **IDE**: Hover over methods for inline GoDoc.
-
-*Re-run after changes to refresh docs.*
+2025 — **© Entiqon Project**
