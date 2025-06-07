@@ -1,146 +1,160 @@
 # Entiqon Developer Guide: BaseToken
 
-`BaseToken` is the foundational building block for SQL-like token structures (e.g., `Column`, `Table`, `Join`, `Condition`). It normalizes raw input expressions into a parsed `name` and optional `alias`, tracks the original `input` for diagnostics, enforces basic validation, and records a `kind` classification. Higher-level tokens embed `BaseToken` to reuse this logic, leaving context-specific resolution (e.g., table-qualification or ownership) to their own constructors.
+`BaseToken` is the foundational building block for SQL-like token structures (e.g., `Column`, `Table`, `Join`, `Condition`). It normalizes raw input expressions into a parsed identifier and alias, tracks the original input for diagnostics, enforces validation, and records a `Kind` classification. Higher-level tokens embed `BaseToken` to reuse this logic, leaving context-specific resolution (e.g., table qualification) to their own constructors.
 
-> **Note:** `BaseToken` is *not* intended to be used standalone for producing SQL. It’s strictly an internal abstraction to simplify composition of more complex tokens.
+> **Note:** `BaseToken` is an internal abstraction. Use its public constructors and interfaces, not direct field access.
 
 ---
 
 ## 🔍 Purpose & Scope
 
-* **Parse & normalize** raw SQL-like input (e.g., `"users.id AS uid"`) into separate fields:
-
-  * `input` (the original string)
-  * `name`  (parsed identifier, unquoted)
-  * `alias` (parsed alias, unquoted)
-  * `Error` (if validation fails)
-
-* \*\*Dropped \*\***`Source`** field and deprecated `GetSource()` in favor of `input` and `GetInput()`
-
-* **Provide nil-safe getters** via `contract.Rawable`:
-
-  * `GetInput()` → raw input
-  * `GetName()`  → parsed identifier
-  * `GetAlias()` → parsed alias
-  * `GetRaw()`   → raw SQL fragment (`name` or `name AS alias`)
-
-* **Implement core interfaces**:
-
-  * `contract.Rawable`    (GetInput, GetName, GetAlias, GetRaw)
-  * `contract.Renderable` (RenderName, RenderAlias, String)
-  * `contract.Kindable`   (GetKind, SetKind)
-  * `contract.Errorable`  (GetError, IsErrored, SetError)
-
-* **Emit diagnostic output** via `String()`, showing token `kind`, `name`, alias state, and any error.
+- **Parse & normalize** raw input (e.g., `"users.id AS u"`) into:
+  - `input` – original string passed to the parser
+  - `name` – parsed identifier (e.g., `"users.id"`)
+  - `alias` – parsed alias (e.g., `"u"`)
+  - `Error` – non-nil if validation or alias conflict occurred
+  - `kind` – classification (`contract.Kind`)
+- **Provide accessors**:
+  - `GetInput()` • original input
+  - `GetName()` • unquoted identifier
+  - `GetAlias()` • unquoted alias
+  - `GetRaw()` • reconstructed SQL fragment: `name` or `name AS alias`
+- **Implement core interfaces**:
+  - `contract.Rawable` • raw data getters
+  - `contract.Renderable` • `RenderName`, `RenderAlias`, `String`
+  - `contract.Errorable` • `GetError`, `IsErrored`, `SetError`
+  - `contract.Kindable` • `SetKind`, `GetKind`
+- **Support mutation**:
+  - `SetName()` • override identifier
+  - `SetAlias()` • override alias
 
 ---
 
 ## 🧱 Struct Definition
 
 ```go
-// BaseToken provides parsing and error handling for a raw SQL token.
-// It is designed to be embedded in higher-level token types.
-//
-// Fields:
-//   input string        // original raw input (e.g. "users.id AS uid")
-//   name  string        // parsed identifier (unquoted)
-//   alias string        // parsed alias (unquoted)
-//   Error error         // non-nil if parsing/validation failed
-//   kind  contract.Kind // classification (e.g. ColumnKind)
-//
-// DEPRECATED FIELDS (for compatibility):
-//   Name  string        // use GetName() instead
-//   Alias string        // use GetAlias() instead
-//
-// BaseToken implements Rawable, Renderable, Kindable, and Errorable.
+// BaseToken normalizes a raw SQL token for later rendering or diagnostics.
 type BaseToken struct {
-    input string
-    name  string
-    alias string
-
-    // DEPRECATED: use GetName()
-    Name  string
-    // DEPRECATED: use GetAlias()
-    Alias string
-
-    Error error
-    kind  contract.Kind
+    input string        // original raw input
+    name  string        // parsed identifier
+    alias string        // parsed alias
+    Error error         // non-nil if validation failed
+    kind  contract.Kind // token classification
 }
 ```
+
+> Fields `name` and `alias` are unexported; use `GetName()` and `GetAlias()`.  
+> Direct field access is deprecated and may be removed in future.
 
 ---
 
 ## 🚧 Constructor
 
-```go
-func NewBaseToken(raw string, explicitAlias ...string) *BaseToken
-```
+### `func NewBaseToken(input string, explicitAlias ...string) *BaseToken`
 
-1. Trim & validate `raw` is non-empty, not comma-separated, doesn’t start with `AS `, and is not literally `AS`.
-2. Record `input = raw`.
-3. Parse inline alias via `ParseAlias(raw)`, populating `name` and `alias` (and writing `Name`/`Alias` for backward compatibility).
-4. Apply explicit override if provided, recording an error on conflict.
-5. Return `*BaseToken` with fields set and `Error` if any.
+1. **Trim & validate** `input`: non-empty, no commas, not starting with `"AS "` or equaling `"AS"`.  
+2. **Parse inline alias** via `ParseAlias(input)` → `(parsedName, parsedAlias)`.  
+3. **Apply `explicitAlias`** if provided:
+   - If both inline and explicit present and differ → record error.
+   - Override alias with explicit.  
+4. **Store** `b.input`, `b.name`, `b.alias`.  
+5. Return `*BaseToken` with `Error` set if any validation failed.
 
 ```go
-b := NewBaseToken("users.id AS uid")
-// b.GetInput() == "users.id AS uid"
-// b.GetName()    == "users.id"
-// b.GetAlias()   == "uid"
-// b.Name         == "users.id"        // for compatibility
-// b.Alias        == "uid"             // for compatibility
-// b.GetRaw()     == "users.id AS uid"
+b := NewBaseToken("users.id AS u")
+// b.GetInput() → "users.id AS u"
+// b.GetName()  → "users.id"
+// b.GetAlias() → "u"
+// b.GetError() → nil
 ```
 
 ---
 
 ## ✅ Methods Overview
 
-| Method        | Signature                                           | Description                                              |
-| ------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| `GetInput`    | `func (b *BaseToken) GetInput() string`             | Original raw input.                                      |
-| `GetName`     | `func (b *BaseToken) GetName() string`              | Parsed identifier (unquoted).                            |
-| `GetAlias`    | `func (b *BaseToken) GetAlias() string`             | Parsed alias (unquoted).                                 |
-| `GetRaw`      | `func (b *BaseToken) GetRaw() string`               | `name` or `name AS alias`.                               |
-| `Raw`         | `func (b *BaseToken) Raw() string`                  | Same as `GetRaw()`.                                      |
-| `RenderName`  | `func (b *BaseToken) RenderName(q Quoter) string`   | Quoted name or alias via dialect.                        |
-| `RenderAlias` | `func (b *BaseToken) RenderAlias(q Quoter, string)` | `qualified AS alias` with quoting.                       |
-| `String`      | `func (b *BaseToken) String() string`               | Diagnostic representation with `kind`, alias, and error. |
-| `GetError`    | `func (b *BaseToken) GetError() error`              | Underlying error (if any).                               |
-| `IsErrored`   | `func (b *BaseToken) IsErrored() bool`              | Reports whether `Error != nil`.                          |
-| `SetError`    | `func (b *BaseToken) SetError(input string, err)`   | Assigns `Error` and updates `input`.                     |
-| `SetKind`     | `func (b *BaseToken) SetKind(k Kind)`               | Sets token classification.                               |
-| `GetKind`     | `func (b *BaseToken) GetKind() Kind`                | Retrieves token classification.                          |
-| `AliasOr`     | `func (b *BaseToken) AliasOr() string`              | `alias` if set, else `name`.                             |
-| `IsAliased`   | `func (b *BaseToken) IsAliased() bool`              | `true` if `alias` non-empty.                             |
-| `IsValid`     | `func (b *BaseToken) IsValid() bool`                | `true` if `name` non-empty and no `Error`.               |
+| Method                  | Description                                                                                     |
+|-------------------------|-------------------------------------------------------------------------------------------------|
+| `GetInput()`            | Original input string (nil-safe).                                                               |
+| `GetName()`             | Parsed identifier, unquoted (nil-safe).                                                        |
+| `GetAlias()`            | Parsed alias, unquoted (nil-safe).                                                             |
+| `AliasOr()`             | `GetAlias()` if non-empty, else `GetName()`.                                                   |
+| `GetRaw()`              | `name` or `name AS alias` (nil-safe).                                                          |
+| **Errorable**           |                                                                                                 |
+| `IsErrored()`           | `true` if an error was recorded (nil-safe).                                                     |
+| `GetError()`            | Recorded `error` or `nil` (nil-safe).                                                           |
+| `SetError(input, err)`  | Record an error and update `input` for diagnostics (nil-safe).                                  |
+| **Mutation**            |                                                                                                 |
+| `SetName(name)`         | Override parsed name (nil-safe).                                                                |
+| `SetAlias(alias)`       | Override parsed alias (nil-safe).                                                              |
+| **Kindable**            |                                                                                                 |
+| `SetKind(kind)`         | Set token classification (nil-safe).                                                            |
+| `GetKind()`             | Retrieve token classification.                                                                  |
+| **Renderable**          |                                                                                                 |
+| `RenderName(q Quoter)`  | Quote identifier (alias if present) via `Quoter`; unquoted if `q == nil`.                       |
+| `RenderAlias(q, qual)`  | Quote and append alias to `qual` if present; fallback if missing.                               |
+| `String()`              | Diagnostic string: `Kind("name") [aliased:bool, errored:bool, error:<msg>]`.                   |
 
 ---
 
-## 📖 Examples
+## 📖 Detailed Method Examples
 
-### Rawable usage
-
-```go
-var r contract.Rawable = NewBaseToken("users.id AS u")
-
-fmt.Println(r.GetInput()) // users.id AS u
-fmt.Println(r.GetName())  // users.id
-fmt.Println(r.GetAlias()) // u
-fmt.Println(r.GetRaw())   // users.id AS u
-```
-
-### Renderable usage
+### GetRaw
 
 ```go
-var s contract.Renderable = NewBaseToken("orders.qty")
-
-dialect := driver.NewPostgresDialect()
-
-fmt.Println(s.Raw())               // orders.qty
-fmt.Println(s.RenderName(dialect)) // "orders.qty"
-fmt.Println(s.String())            // Unknown("orders.qty") [aliased: false, errored: false]
+func (b *BaseToken) GetRaw() string {
+    if b == nil { return "" }
+    if b.alias == "" { return b.name }
+    return fmt.Sprintf("%s AS %s", b.name, b.alias)
+}
 ```
+
+<aside>
+// **Example**
+
+// Raw form without alias:
+//   b := NewBaseToken("users.id")
+//   fmt.Println(b.GetRaw()) // Output: users.id
+
+// With alias:
+//   b := NewBaseToken("users.id AS u")
+//   fmt.Println(b.GetRaw()) // Output: users.id AS u
+</aside>
+
+### SetName
+
+```go
+func (b *BaseToken) SetName(name string) {
+    if b == nil { return }
+    b.name = name
+}
+```
+
+<aside>
+// **Example**
+
+// Override parsed name:
+//   b := NewBaseToken("users.email AS e")
+//   b.SetName("email")
+//   fmt.Println(b.GetName()) // Output: email
+</aside>
+
+### SetAlias
+
+```go
+func (b *BaseToken) SetAlias(alias string) {
+    if b == nil { return }
+    b.alias = alias
+}
+```
+
+<aside>
+// **Example**
+
+// Override parsed alias:
+//   b := NewBaseToken("users.id AS u")
+//   b.SetAlias("uid")
+//   fmt.Println(b.GetAlias()) // Output: uid
+</aside>
 
 ---
 
