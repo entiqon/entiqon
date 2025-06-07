@@ -41,7 +41,6 @@ type BaseToken struct {
 	Source string
 	Name   string
 	Alias  string
-	Error  error
 
 	// input holds the original raw input string used to construct this token.
 	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
@@ -233,7 +232,7 @@ func (b *BaseToken) GetError() error {
 	if b == nil {
 		return nil
 	}
-	return b.Error
+	return b.err
 }
 
 // GetInput returns the original raw input expression used to construct the token in a nil-safe way.
@@ -338,7 +337,7 @@ func (b *BaseToken) HasError() bool {
 //	b.SetError("users.id", fmt.Errorf("no permission"))
 //	fmt.Println(b.IsErrored()) // → true
 func (b *BaseToken) IsErrored() bool {
-	return b != nil && b.Error != nil
+	return b != nil && b.err != nil
 }
 
 // IsAliased reports whether the token has a non-empty Alias.
@@ -370,7 +369,7 @@ func (b *BaseToken) IsAliased() bool {
 //	b = NewBaseToken("")
 //	fmt.Println(b.IsValid()) // → false
 func (b *BaseToken) IsValid() bool {
-	return b != nil && b.Error == nil && strings.TrimSpace(b.name) != ""
+	return b != nil && b.err == nil && strings.TrimSpace(b.name) != ""
 }
 
 // Raw returns the SQL raw expression representation: "name" or "name AS alias".
@@ -494,7 +493,6 @@ func (b *BaseToken) SetError(source string, err error) {
 		return
 	}
 	b.err = err
-	b.Error = b.err
 	if b.input != source {
 		b.input = source
 	}

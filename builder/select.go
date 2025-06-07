@@ -109,7 +109,7 @@ func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
 	source := token.NewTable(table, alias...)
 	if !source.IsValid() {
 		b.Validator.AddStageError(core.StageFrom,
-			fmt.Errorf("invalid column: %s — %v", source.String(), source.Error))
+			fmt.Errorf("invalid column: %s — %v", source.String(), source.GetError()))
 	}
 	b.sources = append(b.sources, token.NewTable(table, alias...))
 	return b
@@ -302,7 +302,7 @@ func (b *SelectBuilder) appendColumns(cols []*token.Column, table *token.Table) 
 	for _, col := range cols {
 		if !col.IsValid() {
 			b.Validator.AddStageError(core.StageSelect,
-				fmt.Errorf("invalid column: %s — %v", col.String(), col.Error))
+				fmt.Errorf("invalid column: %s — %v", col.String(), col.GetError()))
 		}
 
 		// Assign table for qualification and rendering

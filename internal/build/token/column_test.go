@@ -38,7 +38,7 @@ func TestColumn(t *testing.T) {
 					t.Errorf("expected table name to be 'users', got %v", col.Table)
 				}
 				if col.HasError() {
-					t.Errorf("unexpected error: %v", col.Error)
+					t.Errorf("unexpected error: %v", col.GetError().Error())
 				}
 			})
 		})
@@ -47,7 +47,7 @@ func TestColumn(t *testing.T) {
 			t.Run("Inline", func(t *testing.T) {
 				col := token.NewColumn("id AS email")
 				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.Error)
+					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
 				}
 				if col.Name != "id" {
 					t.Errorf("expected column name 'id', got %q", col.Name)
@@ -60,7 +60,7 @@ func TestColumn(t *testing.T) {
 			t.Run("ExplicitAlias", func(t *testing.T) {
 				col := token.NewColumn("id", "email")
 				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.Error)
+					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
 				}
 				if col.Name != "id" {
 					t.Errorf("expected column name 'id', got %q", col.Name)
@@ -73,7 +73,7 @@ func TestColumn(t *testing.T) {
 			t.Run("PostgresEmptyName", func(t *testing.T) {
 				col := token.NewColumn("'' AS name")
 				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.Error)
+					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
 				}
 				if col.Name != "''" {
 					t.Errorf("expected column name \"''\", got %q", col.Name)
@@ -90,7 +90,7 @@ func TestColumn(t *testing.T) {
 						t.Errorf("expected column to be aliased")
 					}
 					if !col.IsValid() {
-						t.Errorf("expected column to be valid, got error: %v", col.Error)
+						t.Errorf("expected column to be valid, got error: %v", col.GetError().Error())
 					}
 				})
 
@@ -99,11 +99,11 @@ func TestColumn(t *testing.T) {
 					if col.IsValid() {
 						t.Fatalf("expected column to be invalid due to alias conflict")
 					}
-					if col.Error == nil {
+					if col.GetError() == nil {
 						t.Fatalf("expected error due to alias conflict, got nil")
 					}
-					if !strings.Contains(col.Error.Error(), "alias conflict") {
-						t.Errorf("expected error message to contain 'alias conflict', got: %v", col.Error)
+					if !strings.Contains(col.GetError().Error(), "alias conflict") {
+						t.Errorf("expected error message to contain 'alias conflict', got: %v", col.GetError().Error())
 					}
 					if col.Name != "user_id" {
 						t.Errorf("expected column name 'user_id', got %q", col.Name)
@@ -123,8 +123,8 @@ func TestColumn(t *testing.T) {
 					if col.IsValid() {
 						t.Fatalf("expected column to be invalid due to starting with 'AS'")
 					}
-					if col.Error == nil || !strings.Contains(col.Error.Error(), "cannot start with 'AS'") {
-						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.Error)
+					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
+						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError().Error())
 					}
 					if col.Source != "AS email" {
 						t.Errorf("expected source to be 'AS email', got %q", col.Source)
@@ -136,8 +136,8 @@ func TestColumn(t *testing.T) {
 					if col.IsValid() {
 						t.Fatalf("expected column to be invalid due to starting with 'AS'")
 					}
-					if col.Error == nil || !strings.Contains(col.Error.Error(), "cannot start with 'AS'") {
-						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.Error)
+					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
+						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError().Error())
 					}
 					if col.Source != " AS alias" {
 						t.Errorf("expected source to be ' AS alias', got %q", col.Source)
@@ -149,8 +149,8 @@ func TestColumn(t *testing.T) {
 					if col.IsValid() {
 						t.Fatalf("expected column to be invalid due to missing column name after dot")
 					}
-					if col.Error == nil || !strings.Contains(col.Error.Error(), "column name is required") {
-						t.Errorf("expected error containing 'column name is required', got: %v", col.Error)
+					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "column name is required") {
+						t.Errorf("expected error containing 'column name is required', got: %v", col.GetError().Error())
 					}
 					if col.Source != "u." {
 						t.Errorf("expected source to be 'u.', got %q", col.Source)
@@ -164,12 +164,12 @@ func TestColumn(t *testing.T) {
 			if col.IsValid() {
 				t.Errorf("expected column to be invalid due to comma-separated input")
 			}
-			if col.Error == nil {
+			if col.GetError() == nil {
 				t.Errorf("expected error due to comma-separated alias, got nil")
-			} else if !strings.Contains(col.Error.Error(), "aliases must not be comma-separated") {
+			} else if !strings.Contains(col.GetError().Error(), "aliases must not be comma-separated") {
 				t.Errorf(
 					"unexpected error message: got %q, want message containing %q",
-					col.Error.Error(),
+					col.GetError().Error(),
 					"aliases must not be comma-separated",
 				)
 			}
@@ -192,8 +192,8 @@ func TestColumn(t *testing.T) {
 			if !col.HasError() {
 				t.Fatalf("expected error due to table mismatch, but got none")
 			}
-			if !strings.Contains(col.Error.Error(), "table mismatch") {
-				t.Errorf("expected error to contain 'table mismatch', got: %v", col.Error)
+			if !strings.Contains(col.GetError().Error(), "table mismatch") {
+				t.Errorf("expected error to contain 'table mismatch', got: %v", col.GetError().Error())
 			}
 		})
 
@@ -220,7 +220,7 @@ func TestColumn(t *testing.T) {
 	t.Run("Raw", func(t *testing.T) {
 		col := token.NewColumn("id")
 		if col.HasError() {
-			t.Errorf("unexpected error: %v", col.Error)
+			t.Errorf("unexpected error: %v", col.GetError())
 		}
 		if got := col.Raw(); got != "id" {
 			t.Errorf("Raw mismatch: got %q, want %q", got, "id")
@@ -248,7 +248,7 @@ func TestColumn(t *testing.T) {
 				t.Errorf("expected column to be qualified")
 			}
 			if col.HasError() {
-				t.Errorf("unexpected error: %v", col.Error)
+				t.Errorf("unexpected error: %v", col.GetError())
 			}
 		})
 

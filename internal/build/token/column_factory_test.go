@@ -19,7 +19,7 @@ func TestParseColumns(t *testing.T) {
 		cols := token.NewColumnsFrom("id")
 		assert.Len(t, cols, 1)
 		assert.Equal(t, "id", cols[0].Name)
-		assert.Nil(t, cols[0].Error)
+		assert.Nil(t, cols[0].GetError())
 	})
 
 	t.Run("CommaSeparatedInput", func(t *testing.T) {
@@ -34,17 +34,17 @@ func TestParseColumns(t *testing.T) {
 		assert.Len(t, cols, 1)
 		assert.Equal(t, "user_id", cols[0].Name)
 		assert.Equal(t, "uid", cols[0].Alias)
-		assert.Nil(t, cols[0].Error)
+		assert.Nil(t, cols[0].GetError())
 	})
 
 	t.Run("ExplicitAlias", func(t *testing.T) {
 		cols := token.NewColumnsFrom("email", "contact AS primary_email")
 		assert.Len(t, cols, 2)
 		assert.Equal(t, "email", cols[0].Name)
-		assert.Nil(t, cols[0].Error)
+		assert.Nil(t, cols[0].GetError())
 		assert.Equal(t, "contact", cols[1].Name)
 		assert.Equal(t, "primary_email", cols[1].Alias)
-		assert.Nil(t, cols[1].Error)
+		assert.Nil(t, cols[1].GetError())
 	})
 
 	//--------------------------------------------------
@@ -72,6 +72,6 @@ func TestParseColumns(t *testing.T) {
 	t.Run("AliasWithoutName", func(t *testing.T) {
 		cols := token.NewColumnsFrom(" AS email")
 		assert.Len(t, cols, 1)
-		assert.Error(t, cols[0].Error)
+		assert.Error(t, cols[0].GetError())
 	})
 }

@@ -276,7 +276,7 @@ func (c *Column) String() string {
 		c.Name, c.IsAliased(), c.IsQualified(), c.HasError(),
 	)
 	if c.HasError() {
-		s += fmt.Sprintf(", error: %s", c.Error.Error())
+		s += fmt.Sprintf(", error: %s", c.GetError().Error())
 	}
 	s += "]"
 	return s
@@ -302,7 +302,15 @@ func (c *Column) WithTable(table *Table) *Column {
 	// validate only if the column’s table name does not match EITHER name or alias
 	if c.Table != nil && table != nil {
 		if c.Table.Name != table.Name && c.Table.Name != table.Alias {
-			c.BaseToken.Error = fmt.Errorf("table mismatch: column refers to %q, but table is %q (alias: %q)", c.Table.Name, table.Name, table.Alias)
+			c.BaseToken.SetError(
+				c.GetInput(),
+				fmt.Errorf(
+					"table mismatch: column refers to %q, but table is %q (alias: %q)",
+					c.Table.Name,
+					table.Name,
+					table.Alias,
+				),
+			)
 			return c
 		}
 	}
