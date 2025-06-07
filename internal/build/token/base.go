@@ -38,6 +38,8 @@ import (
 //	fmt.Println(b.String())
 //	// Output: Column("id") [aliased: true, errored: false]
 type BaseToken struct {
+	// Source holds the original raw input string used to construct this token.
+	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
 	Source string
 
 	// input holds the original raw input string used to construct this token.
@@ -236,10 +238,10 @@ func (b *BaseToken) GetError() error {
 // # Example
 //
 //	var b *BaseToken
-//	fmt.Println(b.GetSource()) // → ""
+//	fmt.Println(b.GetInput()) // → ""
 //
 //	b = NewBaseToken("users.id AS uid")
-//	fmt.Println(b.GetSource()) // → "users.id AS uid"
+//	fmt.Println(b.GetInput()) // → "users.id AS uid"
 func (b *BaseToken) GetInput() string {
 	if b == nil {
 		return ""
@@ -252,7 +254,7 @@ func (b *BaseToken) GetInput() string {
 //
 // # Example
 //
-//	b := &BaseToken{}
+//	b := NewBaseToken("")
 //	fmt.Println(b.GetKind()) // → UnknownKind
 //
 //	b.SetKind(TableKind)
@@ -305,23 +307,6 @@ func (b *BaseToken) GetRaw() string {
 		return fmt.Sprintf("%s AS %s", b.Name, b.Alias)
 	}
 	return b.Name
-}
-
-// GetSource returns the original raw input expression used to construct the token in a nil-safe way.
-// If the receiver is nil, it returns an empty string.
-//
-// This accessor helps decouple the internal representation from external usage,
-// and is useful for diagnostic or error-reporting routines.
-//
-// # Example
-//
-//	var b *BaseToken
-//	fmt.Println(b.GetSource()) // → ""
-//
-//	b = NewBaseToken("users.id AS uid")
-//	fmt.Println(b.GetSource()) // → "users.id AS uid"
-func (b *BaseToken) GetSource() string {
-	return b.GetInput()
 }
 
 // HasError reports whether the token has encountered a semantic or structural error.
@@ -471,7 +456,7 @@ func (b *BaseToken) RenderName(q contract.Quoter) string {
 //		b.SetError("id AS uid", fmt.Errorf("name is missing"))
 //		fmt.Println(b.IsErrored())     // → true
 //		fmt.Println(b.GetError())      // → name is missing
-//		fmt.Println(b.GetSource())     // → "id AS uid"
+//		fmt.Println(b.GetInput())     // → "id AS uid"
 func (b *BaseToken) SetError(source string, err error) {
 	if b == nil {
 		return
@@ -492,7 +477,7 @@ func (b *BaseToken) SetError(source string, err error) {
 //	b := NewBaseToken("AS uid") // invalid: missing name before AS
 //	b.SetErrorWith("AS uid", fmt.Errorf("name is missing before 'AS'"))
 //	fmt.Println(b.IsErrored())    // → true
-//	fmt.Println(b.GetSource())    // → "AS uid"
+//	fmt.Println(b.GetInput())    // → "AS uid"
 //	fmt.Println(b.GetError())     // → name is missing before 'AS'
 func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
 	b.SetError(source, err)

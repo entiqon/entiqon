@@ -111,8 +111,8 @@ func TestColumn(t *testing.T) {
 					if col.Alias != "external" {
 						t.Errorf("expected alias 'external', got %q", col.Alias)
 					}
-					if col.Source != "user_id AS internal" {
-						t.Errorf("expected source 'user_id AS internal', got %q", col.Source)
+					if col.GetInput() != "user_id AS internal" {
+						t.Errorf("expected source 'user_id AS internal', got %q", col.GetInput())
 					}
 				})
 			})

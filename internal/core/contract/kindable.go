@@ -22,7 +22,7 @@ type Kindable interface {
 	//
 	// # Example
 	//
-	//     b := &BaseToken{}
+	//     b := token.NewBaseToken("")
 	//     fmt.Println(b.GetKind()) // → UnknownKind
 	//     b.SetKind(TableKind)
 	//     fmt.Println(b.GetKind()) // → TableKind
@@ -33,7 +33,7 @@ type Kindable interface {
 	//
 	// # Example
 	//
-	//     b := &BaseToken{}
+	//     b := token.NewBaseToken("")
 	//     b.SetKind(ColumnKind)
 	//     fmt.Println(b.GetKind()) // → ColumnKind
 	SetKind(k Kind)
