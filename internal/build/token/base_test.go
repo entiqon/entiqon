@@ -41,7 +41,7 @@ func TestBaseToken(t *testing.T) {
 				if b.GetAlias() != "uid" {
 					t.Errorf("expected alias to be overridden to 'uid', got %q", b.GetAlias())
 				}
-				if b.GetError() == nil || b.Error.Error() != `alias conflict: explicit alias "uid" does not match inline alias "user_id"` {
+				if b.GetError() == nil || b.GetError().Error() != `alias conflict: explicit alias "uid" does not match inline alias "user_id"` {
 					t.Errorf("expected alias conflict error, got %v", b.GetError())
 				}
 			})
@@ -353,8 +353,8 @@ func TestBaseToken(t *testing.T) {
 				err := fmt.Errorf("alias conflict")
 				b.SetError("id AS uid", err)
 
-				if b.Error == nil || b.Error.Error() != "alias conflict" {
-					t.Errorf("expected error 'alias conflict', got %v", b.Error)
+				if b.GetError() == nil || b.GetError().Error() != "alias conflict" {
+					t.Errorf("expected error 'alias conflict', got %v", b.GetError())
 				}
 				if b.GetInput() != "id AS uid" {
 					t.Errorf("expected source to be 'id AS uid', got %q", b.GetInput())
@@ -378,7 +378,7 @@ func TestBaseToken(t *testing.T) {
 				b.SetErrorWith("id AS uid", err)
 
 				if b.GetError() == nil || b.GetError().Error() != "alias conflict" {
-					t.Errorf("expected error 'alias conflict', got %v", b.Error)
+					t.Errorf("expected error 'alias conflict', got %v", b.GetError())
 				}
 				if b.GetInput() != "id AS uid" {
 					t.Errorf("expected source to be 'id AS uid', got %q", b.GetInput())
@@ -474,10 +474,10 @@ func TestBaseToken(t *testing.T) {
 	t.Run("Validations", func(t *testing.T) {
 		t.Run("EmptyInput", func(t *testing.T) {
 			b := token.NewBaseToken("")
-			if b.Error == nil {
+			if b.GetError() == nil {
 				t.Errorf("expected error for empty input, got nil")
-			} else if b.Error.Error() != "invalid input expression: expression is empty" {
-				t.Errorf("unexpected error message: %s", b.Error)
+			} else if b.GetError().Error() != "invalid input expression: expression is empty" {
+				t.Errorf("unexpected error message: %s", b.GetError())
 			}
 			if b.GetInput() != "" {
 				t.Errorf("expected input to be empty, got %q", b.GetInput())
@@ -486,28 +486,28 @@ func TestBaseToken(t *testing.T) {
 
 		t.Run("InvalidInput", func(t *testing.T) {
 			b := token.NewBaseToken("id, name")
-			if b.Error == nil {
+			if b.GetError() == nil {
 				t.Errorf("expected error, got nil")
-			} else if b.Error.Error() != "invalid input expression: aliases must not be comma-separated" {
-				t.Errorf("unexpected error message: %s", b.Error)
+			} else if b.GetError().Error() != "invalid input expression: aliases must not be comma-separated" {
+				t.Errorf("unexpected error message: %s", b.GetError())
 			}
 		})
 
 		t.Run("InputStartsWithAS", func(t *testing.T) {
 			b := token.NewBaseToken("AS uid")
-			if b.Error == nil {
+			if b.GetError() == nil {
 				t.Errorf("expected error, got nil")
-			} else if b.Error.Error() != "invalid input expression: cannot start with 'AS'" {
-				t.Errorf("unexpected error message: %s", b.Error)
+			} else if b.GetError().Error() != "invalid input expression: cannot start with 'AS'" {
+				t.Errorf("unexpected error message: %s", b.GetError())
 			}
 		})
 
 		t.Run("ReservedWordASOnly", func(t *testing.T) {
 			b := token.NewBaseToken("AS")
-			if b.Error == nil {
+			if b.GetError() == nil {
 				t.Errorf("expected error for reserved word 'AS', got nil")
-			} else if b.Error.Error() != "invalid input expression: name cannot be AS keyword" {
-				t.Errorf("unexpected error message: %s", b.Error)
+			} else if b.GetError().Error() != "invalid input expression: name cannot be AS keyword" {
+				t.Errorf("unexpected error message: %s", b.GetError())
 			}
 		})
 	})

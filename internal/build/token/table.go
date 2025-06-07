@@ -122,7 +122,7 @@ func (t *Table) String() string {
 
 	s := fmt.Sprintf("Table(%q) [aliased: %v, errored: %v", t.Name, t.IsAliased(), t.HasError())
 	if t.HasError() {
-		s += fmt.Sprintf(", error: %s", t.Error.Error())
+		s += fmt.Sprintf(", error: %s", t.GetError().Error())
 	}
 	s += "]"
 	return s

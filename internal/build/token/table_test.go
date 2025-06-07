@@ -138,8 +138,8 @@ func TestTable(t *testing.T) {
 			}
 
 			expected := `alias conflict: explicit alias "x" does not match inline alias "u"`
-			if tbl.Error == nil || tbl.Error.Error() != expected {
-				t.Errorf("unexpected alias conflict error: got %v, want %q", tbl.Error, expected)
+			if tbl.GetError() == nil || tbl.GetError().Error() != expected {
+				t.Errorf("unexpected alias conflict error: got %v, want %q", tbl.GetError(), expected)
 			}
 		})
 
@@ -148,8 +148,8 @@ func TestTable(t *testing.T) {
 			if tbl.IsValid() {
 				t.Errorf("expected invalid table for empty input")
 			}
-			if tbl.Error == nil || !strings.Contains(tbl.Error.Error(), "table expression is empty") {
-				t.Errorf("unexpected error: %v", tbl.Error)
+			if tbl.GetError() == nil || !strings.Contains(tbl.GetError().Error(), "table expression is empty") {
+				t.Errorf("unexpected error: %v", tbl.GetError())
 			}
 		})
 
@@ -158,8 +158,8 @@ func TestTable(t *testing.T) {
 			if tbl.IsValid() {
 				t.Errorf("expected invalid table for comma-separated input")
 			}
-			if tbl.Error == nil || !strings.Contains(tbl.Error.Error(), "aliases must not be comma-separated") {
-				t.Errorf("unexpected error: %v", tbl.Error)
+			if tbl.GetError() == nil || !strings.Contains(tbl.GetError().Error(), "aliases must not be comma-separated") {
+				t.Errorf("unexpected error: %v", tbl.GetError())
 			}
 		})
 
@@ -168,8 +168,8 @@ func TestTable(t *testing.T) {
 			if tbl.IsValid() {
 				t.Errorf("expected invalid table for expression starting with AS")
 			}
-			if tbl.Error == nil || !strings.Contains(tbl.Error.Error(), "cannot start with 'AS'") {
-				t.Errorf("unexpected error: %v", tbl.Error)
+			if tbl.GetError() == nil || !strings.Contains(tbl.GetError().Error(), "cannot start with 'AS'") {
+				t.Errorf("unexpected error: %v", tbl.GetError())
 			}
 		})
 	})
