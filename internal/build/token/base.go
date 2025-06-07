@@ -40,6 +40,7 @@ import (
 type BaseToken struct {
 	Source string
 	Name   string
+	Alias  string
 
 	// input holds the original raw input string used to construct this token.
 	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
@@ -51,7 +52,7 @@ type BaseToken struct {
 
 	// Alias is an optional alternative label for the token, used in SELECT or AS clauses.
 	// If empty, the token will appear under its name.
-	Alias string
+	alias string
 
 	// Error holds a semantic or structural conflict encountered during parsing,
 	// such as an alias mismatch or invalid override. A nil value indicates no error.
@@ -146,18 +147,23 @@ func NewBaseToken(input string, alias ...string) *BaseToken {
 		return t
 	}
 
-	t.name = base
-	t.Name = t.name
-	t.Alias = parsedAlias
+	t.SetName(base)
+	t.SetAlias(parsedAlias)
 
 	if len(alias) > 0 && alias[0] != "" {
-		if parsedAlias != "" && alias[0] != parsedAlias {
+		explicit := alias[0]
+
+		// If there was already an inline alias, and it doesn’t match the explicit one,
+		// record an error (but still honor the explicit alias).
+		if parsedAlias != "" && explicit != parsedAlias {
 			t.SetError(input, fmt.Errorf(
 				"alias conflict: explicit alias %q does not match inline alias %q",
-				alias[0], parsedAlias,
+				explicit,
+				parsedAlias,
 			))
 		}
-		t.Alias = alias[0]
+		// Finally, override whatever alias we had with the explicit one.
+		t.SetAlias(explicit)
 	}
 
 	return t
@@ -440,6 +446,31 @@ func (b *BaseToken) RenderName(q contract.Quoter) string {
 		return b.name
 	}
 	return q.QuoteIdentifier(b.name)
+}
+
+// SetAlias replaces the parsed alias of the BaseToken.
+// It updates both the private `alias` field and the deprecated exported `Alias` field
+// for backward compatibility. After calling SetAlias, GetAlias() and AliasOr() will
+// return the new alias. If the receiver is nil, SetAlias is a no-op.
+//
+// Example:
+//
+//	b := NewBaseToken("users.id AS u")
+//	fmt.Println(b.GetAlias()) // Output: u
+//
+//	// Override the alias to "uid":
+//	b.SetAlias("uid")
+//	fmt.Println(b.GetAlias())  // Output: uid
+//	fmt.Println(b.Raw())       // Output: users.id AS uid
+//	fmt.Println(b.AliasOr())   // Output: uid
+//
+// Since: v1.7.0
+func (b *BaseToken) SetAlias(alias string) {
+	if b == nil {
+		return
+	}
+	b.alias = alias
+	b.Alias = alias // deprecated exported field, maintained for compatibility
 }
 
 // SetError assigns a semantic or structural error to this token,

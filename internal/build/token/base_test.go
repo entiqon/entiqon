@@ -321,6 +321,24 @@ func TestBaseToken(t *testing.T) {
 			})
 		})
 
+		t.Run("SetAlias", func(t *testing.T) {
+			t.Run("NilReceiver", func(t *testing.T) {
+				var b *token.BaseToken = nil
+				b.SetAlias("uid")
+				if name := b.GetName(); name != "" {
+					t.Errorf("expected name %q, got %q", "", name)
+				}
+			})
+
+			t.Run("WithValue", func(t *testing.T) {
+				b := token.NewBaseToken("id")
+				b.SetAlias("uid")
+				if name := b.GetAlias(); name != "uid" {
+					t.Errorf("expected name %q, got %q", "uid", name)
+				}
+			})
+		})
+
 		t.Run("SetError", func(t *testing.T) {
 			t.Run("NilReceiver", func(t *testing.T) {
 				var b *token.BaseToken = nil
@@ -402,7 +420,7 @@ func TestBaseToken(t *testing.T) {
 				}
 			})
 
-			t.Run("Value", func(t *testing.T) {
+			t.Run("WithValue", func(t *testing.T) {
 				b := token.NewBaseToken("id")
 				b.SetName("uid")
 				if name := b.GetName(); name != "uid" {
