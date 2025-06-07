@@ -176,7 +176,7 @@ func TestBaseToken(t *testing.T) {
 				}
 			})
 
-			t.Run("Name", func(t *testing.T) {
+			t.Run("WithName", func(t *testing.T) {
 				base := token.NewBaseToken("name")
 				if got := base.GetRaw(); got != "name" {
 					t.Errorf("expected 'name', got %q", got)
@@ -389,6 +389,24 @@ func TestBaseToken(t *testing.T) {
 				b.SetKind(contract.ColumnKind)
 				if got := b.GetKind(); got != contract.ColumnKind {
 					t.Errorf("expected ColumnKind, got %v", got)
+				}
+			})
+		})
+
+		t.Run("SetName", func(t *testing.T) {
+			t.Run("NilReceiver", func(t *testing.T) {
+				var b *token.BaseToken = nil
+				b.SetName("id")
+				if name := b.GetName(); name != "" {
+					t.Errorf("expected name %q, got %q", "id", name)
+				}
+			})
+
+			t.Run("Value", func(t *testing.T) {
+				b := token.NewBaseToken("id")
+				b.SetName("uid")
+				if name := b.GetName(); name != "uid" {
+					t.Errorf("expected name %q, got %q", "id", name)
 				}
 			})
 		})
