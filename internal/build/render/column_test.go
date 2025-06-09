@@ -6,27 +6,36 @@ import (
 	"github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/build/render"
 	"github.com/entiqon/entiqon/internal/build/token"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderColumn_ValidCases(t *testing.T) {
 	d := driver.NewGenericDialect()
 
 	col := token.NewColumn("id")
-	assert.Equal(t, "id", render.Column(d, *col))
+	if got := render.Column(d, *col); got != "id" {
+		t.Errorf("got %s, want %s", got, "id")
+	}
 
 	col = token.NewColumn("id", "uid")
-	assert.Equal(t, "id AS uid", render.Column(d, *col))
+	if got := render.Column(d, *col); got != "id AS uid" {
+		t.Errorf("got %s, want %s", got, "id AS uid")
+	}
 
 	col = token.NewColumn("users.id")
-	assert.Equal(t, "users.id", render.Column(d, *col))
+	if got := render.Column(d, *col); got != "users.id" {
+		t.Errorf("got %s, want %s", got, "users.id")
+	}
 
 	col = token.NewColumn("users.id", "uid")
-	assert.Equal(t, "users.id AS uid", render.Column(d, *col))
+	if got := render.Column(d, *col); got != "users.id AS uid" {
+		t.Errorf("got %s, want %s", got, "users.id AS uid")
+	}
 
 	// postgres dialect
 	col = token.NewColumn("users.id", "uid")
-	assert.Equal(t, `"users"."id" AS "uid"`, render.Column(driver.NewPostgresDialect(), *col))
+	if got := render.Column(driver.NewPostgresDialect(), *col); got != `"users"."id" AS "uid"` {
+		t.Errorf("got %s, want %s", got, `"users"."id" AS "uid"`)
+	}
 }
 
 func TestRenderColumn_InvalidCases(t *testing.T) {
@@ -34,15 +43,21 @@ func TestRenderColumn_InvalidCases(t *testing.T) {
 
 	// Invalid: empty name
 	col := &token.Column{}
-	assert.Equal(t, "", render.Column(d, *col))
+	if got := render.Column(d, *col); got != "" {
+		t.Errorf("got %s, want '%s'", got, "")
+	}
 
 	t.Run("NilDialect", func(t *testing.T) {
 		col := token.NewColumn("users.id", "uid") // valid column
-		result := render.Column(nil, *col)
-		assert.Equal(t, "users.id AS uid", result) // should match generic output
+		if got := render.Column(nil, *col); got != "users.id AS uid" {
+			t.Errorf("got %s, want '%s'", got, "users.id AS uid")
+		}
 	})
 
-	// Invalid: semantic alias mismatch
-	col = token.NewColumn("id AS uid", "wrong")
-	assert.Equal(t, "", render.Column(d, *col))
+	t.Run("InvalidAlias", func(t *testing.T) {
+		col = token.NewColumn("id AS uid", "wrong")
+		if got := render.Column(d, *col); got != "" {
+			t.Errorf("got %s, want '%s'", got, "")
+		}
+	})
 }

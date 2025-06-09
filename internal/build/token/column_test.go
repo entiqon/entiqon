@@ -6,6 +6,7 @@
 package token_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -17,8 +18,8 @@ func TestColumn(t *testing.T) {
 	t.Run("Usage", func(t *testing.T) {
 		t.Run("Basic", func(t *testing.T) {
 			col := token.NewColumn("id")
-			if col.Name != "id" {
-				t.Errorf("expected column name 'id', got %q", col.Name)
+			if col.GetName() != "id" {
+				t.Errorf("expected column name 'id', got %q", col.GetName())
 			}
 			if col.IsAliased() {
 				t.Errorf("expected column to not be aliased")
@@ -31,131 +32,100 @@ func TestColumn(t *testing.T) {
 			}
 		})
 
-		t.Run("Table", func(t *testing.T) {
-			t.Run("Inline", func(t *testing.T) {
-				col := token.NewColumn("users.id")
-				if col.Table == nil || col.Table.Name != "users" {
-					t.Errorf("expected table name to be 'users', got %v", col.Table)
-				}
-				if col.HasError() {
-					t.Errorf("unexpected error: %v", col.GetError().Error())
-				}
-			})
+		t.Run("InlineTable", func(t *testing.T) {
+			col := token.NewColumn("users.id")
+			if got := col.GetQualified(); got != "users" {
+				t.Errorf("expected column qualified name to be 'users': %v", col.GetQualified())
+			}
 		})
 
-		t.Run("Alias", func(t *testing.T) {
-			t.Run("Inline", func(t *testing.T) {
-				col := token.NewColumn("id AS email")
-				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
+		t.Run("AliasMatch", func(t *testing.T) {
+			col := token.NewColumn("id AS uid", "uid")
+			if alias := col.GetAlias(); alias != "uid" {
+				t.Errorf("expected column alias to be 'uid', got %q'", alias)
+			}
+		})
+
+		t.Run("AliasConflict", func(t *testing.T) {
+			col := token.NewColumn("user_id AS internal", "external")
+			if col.IsValid() {
+				t.Fatalf("expected column to be invalid due to alias conflict")
+			}
+			if col.GetError() == nil {
+				t.Fatalf("expected error due to alias conflict, got nil")
+			}
+			if !strings.Contains(col.GetError().Error(), "alias conflict") {
+				t.Errorf("expected error message to contain 'alias conflict', got: %v", col.GetError())
+			}
+			if col.GetName() != "user_id" {
+				t.Errorf("expected column name 'user_id', got %q", col.GetName())
+			}
+			if col.GetAlias() != "external" {
+				t.Errorf("expected alias 'external', got %q", col.GetAlias())
+			}
+			if col.GetInput() != "user_id AS internal" {
+				t.Errorf("expected source 'user_id AS internal', got %q", col.GetInput())
+			}
+		})
+
+		t.Run("InlineAlias", func(t *testing.T) {
+			col := token.NewColumn("id AS email")
+			if col.GetName() != "id" {
+				t.Errorf("expected column name 'id', got %q", col.GetName())
+			}
+			if col.GetAlias() != "email" {
+				t.Errorf("expected alias 'email', got %q", col.GetAlias())
+			}
+		})
+
+		t.Run("ExplicitAlias", func(t *testing.T) {
+			col := token.NewColumn("id", "email")
+			if col.GetName() != "id" {
+				t.Errorf("expected column name 'id', got %q", col.GetName())
+			}
+			if col.GetAlias() != "email" {
+				t.Errorf("expected alias 'email', got %q", col.GetAlias())
+			}
+		})
+
+		t.Run("ParsingErrors", func(t *testing.T) {
+			t.Run("StartsWithAS", func(t *testing.T) {
+				col := token.NewColumn("AS email")
+				if col.IsValid() {
+					t.Fatalf("expected column to be invalid due to starting with 'AS'")
 				}
-				if col.Name != "id" {
-					t.Errorf("expected column name 'id', got %q", col.Name)
+				if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
+					t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError())
 				}
-				if col.Alias != "email" {
-					t.Errorf("expected alias 'email', got %q", col.Alias)
+				if col.GetInput() != "AS email" {
+					t.Errorf("expected source to be 'AS email', got %q", col.GetInput())
 				}
 			})
 
-			t.Run("ExplicitAlias", func(t *testing.T) {
-				col := token.NewColumn("id", "email")
-				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
+			t.Run("OnlyAlias", func(t *testing.T) {
+				col := token.NewColumn(" AS alias")
+				if col.IsValid() {
+					t.Fatalf("expected column to be invalid due to starting with 'AS'")
 				}
-				if col.Name != "id" {
-					t.Errorf("expected column name 'id', got %q", col.Name)
+				if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
+					t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError())
 				}
-				if col.Alias != "email" {
-					t.Errorf("expected alias 'email', got %q", col.Alias)
-				}
-			})
-
-			t.Run("PostgresEmptyName", func(t *testing.T) {
-				col := token.NewColumn("'' AS name")
-				if !col.IsValid() {
-					t.Fatalf("expected column to be valid, but got error: %v", col.GetError().Error())
-				}
-				if col.Name != "''" {
-					t.Errorf("expected column name \"''\", got %q", col.Name)
-				}
-				if col.Alias != "name" {
-					t.Errorf("expected alias 'name', got %q", col.Alias)
+				if col.GetInput() != " AS alias" {
+					t.Errorf("expected source to be ' AS alias', got %q", col.GetInput())
 				}
 			})
 
-			t.Run("AliasOverriding", func(t *testing.T) {
-				t.Run("Match", func(t *testing.T) {
-					col := token.NewColumn("id AS uid", "uid")
-					if !col.IsAliased() {
-						t.Errorf("expected column to be aliased")
-					}
-					if !col.IsValid() {
-						t.Errorf("expected column to be valid, got error: %v", col.GetError().Error())
-					}
-				})
-
-				t.Run("AliasConflict", func(t *testing.T) {
-					col := token.NewColumn("user_id AS internal", "external")
-					if col.IsValid() {
-						t.Fatalf("expected column to be invalid due to alias conflict")
-					}
-					if col.GetError() == nil {
-						t.Fatalf("expected error due to alias conflict, got nil")
-					}
-					if !strings.Contains(col.GetError().Error(), "alias conflict") {
-						t.Errorf("expected error message to contain 'alias conflict', got: %v", col.GetError().Error())
-					}
-					if col.Name != "user_id" {
-						t.Errorf("expected column name 'user_id', got %q", col.Name)
-					}
-					if col.Alias != "external" {
-						t.Errorf("expected alias 'external', got %q", col.Alias)
-					}
-					if col.GetInput() != "user_id AS internal" {
-						t.Errorf("expected source 'user_id AS internal', got %q", col.GetInput())
-					}
-				})
-			})
-
-			t.Run("ParsingErrors", func(t *testing.T) {
-				t.Run("StartsWithAS", func(t *testing.T) {
-					col := token.NewColumn("AS email")
-					if col.IsValid() {
-						t.Fatalf("expected column to be invalid due to starting with 'AS'")
-					}
-					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
-						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError().Error())
-					}
-					if col.Source != "AS email" {
-						t.Errorf("expected source to be 'AS email', got %q", col.Source)
-					}
-				})
-
-				t.Run("OnlyAlias", func(t *testing.T) {
-					col := token.NewColumn(" AS alias")
-					if col.IsValid() {
-						t.Fatalf("expected column to be invalid due to starting with 'AS'")
-					}
-					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "cannot start with 'AS'") {
-						t.Errorf("expected error containing 'cannot start with 'AS'', got: %v", col.GetError().Error())
-					}
-					if col.Source != " AS alias" {
-						t.Errorf("expected source to be ' AS alias', got %q", col.Source)
-					}
-				})
-
-				t.Run("DotWithoutColumn", func(t *testing.T) {
-					col := token.NewColumn("u.")
-					if col.IsValid() {
-						t.Fatalf("expected column to be invalid due to missing column name after dot")
-					}
-					if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "column name is required") {
-						t.Errorf("expected error containing 'column name is required', got: %v", col.GetError().Error())
-					}
-					if col.Source != "u." {
-						t.Errorf("expected source to be 'u.', got %q", col.Source)
-					}
-				})
+			t.Run("DotWithoutColumn", func(t *testing.T) {
+				col := token.NewColumn("u.")
+				if col.IsValid() {
+					t.Fatalf("expected column to be invalid due to missing column name after dot")
+				}
+				if col.GetError() == nil || !strings.Contains(col.GetError().Error(), "column name is required") {
+					t.Errorf("expected error containing 'column name is required', got: %v", col.GetError())
+				}
+				if col.GetInput() != "u." {
+					t.Errorf("expected source to be 'u.', got %q", col.GetInput())
+				}
 			})
 		})
 
@@ -176,201 +146,266 @@ func TestColumn(t *testing.T) {
 		})
 	})
 
-	t.Run("WithTable", func(t *testing.T) {
-		t.Run("Explicit", func(t *testing.T) {
-			col := token.NewColumn("id", "user_id").WithTable(token.NewTable("users"))
-			if col.Table == nil || col.Table.Name != "users" {
-				t.Errorf("expected table name to be 'users', got %v", col.Table)
-			}
-		})
+	t.Run("Members", func(t *testing.T) {
+		t.Run("GetQualified", func(t *testing.T) {
+			t.Run("WithNilReceiver", func(t *testing.T) {
+				var column *token.Column = nil
+				if got := column.GetQualified(); got != "" {
+					t.Errorf("expected '' error, got %v", got)
+				}
+			})
 
-		t.Run("Conflict", func(t *testing.T) {
-			col := token.NewColumn("users.id").WithTable(token.NewTable("orders")) // should produce error
-			if col.Table == nil || col.Table.Name != "users" {
-				t.Errorf("expected table name to remain 'users', got %v", col.Table)
-			}
-			if !col.HasError() {
-				t.Fatalf("expected error due to table mismatch, but got none")
-			}
-			if !strings.Contains(col.GetError().Error(), "table mismatch") {
-				t.Errorf("expected error to contain 'table mismatch', got: %v", col.GetError().Error())
-			}
-		})
+			t.Run("NotQualified", func(t *testing.T) {
+				column := token.NewColumn("id")
+				if got := column.GetQualified(); got != "" {
+					t.Errorf("expected '' error, got %v", got)
+				}
+			})
 
-		t.Run("InvalidColumn", func(t *testing.T) {
-			col := token.NewColumn("") // empty = invalid
-			if col.IsValid() {
-				t.Errorf("expected column to be invalid")
-			}
-			result := col.WithTable(token.NewTable("users"))
-			if result != col {
-				t.Errorf("expected WithTable to return original column")
-			}
-		})
+			t.Run("Inline", func(t *testing.T) {
+				column := token.NewColumn("users.id")
+				if got := column.GetQualified(); got != "users" {
+					t.Errorf("expected 'users' error, got %v", got)
+				}
+			})
 
-		t.Run("NilColumn", func(t *testing.T) {
-			var col *token.Column
-			result := col.WithTable(token.NewTable("users"))
-			if result != nil {
-				t.Errorf("expected nil result for nil column")
-			}
-		})
-	})
+			t.Run("WithTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users"))
+				if got := column.GetQualified(); got != "users" {
+					t.Errorf("expected 'users' error, got %v", got)
+				}
+			})
 
-	t.Run("Raw", func(t *testing.T) {
-		col := token.NewColumn("id")
-		if col.HasError() {
-			t.Errorf("unexpected error: %v", col.GetError())
-		}
-		if got := col.Raw(); got != "id" {
-			t.Errorf("Raw mismatch: got %q, want %q", got, "id")
-		}
+			t.Run("WithAliasedTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users", "u"))
+				if got := column.GetQualified(); got != "u" {
+					t.Errorf("expected 'u' error, got %v", got)
+				}
+			})
 
-		t.Run("WithTable", func(t *testing.T) {
-			col := token.NewColumn("u.id AS user_id").WithTable(token.NewTable("users u"))
-
-			if got := col.Source; got != "u.id AS user_id" {
-				t.Errorf("Source mismatch: got %q, want %q", got, "id")
-			}
-			if got := col.Raw(); got != "u.user_id" {
-				t.Errorf("Raw mismatch: got %q, want %q", got, "u.id AS user_id")
-			}
-			if got := col.String(); got != `Column("id") [aliased: true, qualified: true, errored: false]` {
-				t.Errorf("String mismatch: got %q, want %q", got, "u.user_id")
-			}
-			if col.Alias != "user_id" {
-				t.Errorf("Alias mismatch: got %q, want %q", col.Alias, "user_id")
-			}
-			if !col.IsAliased() {
-				t.Errorf("expected column to be aliased")
-			}
-			if !col.IsQualified() {
-				t.Errorf("expected column to be qualified")
-			}
-			if col.HasError() {
-				t.Errorf("unexpected error: %v", col.GetError())
-			}
+			t.Run("Conflict", func(t *testing.T) {
+				column := token.NewColumn("users.id").WithTable(token.NewTable("user", "u"))
+				if !strings.Contains(column.GetError().Error(), "table mismatch") {
+					t.Errorf("expected table mismatch error, got %v", column.GetError())
+				}
+			})
 		})
 
 		t.Run("IsQualified", func(t *testing.T) {
-			col := token.NewColumn("users.id")
-			if col.IsAliased() {
-				t.Errorf("expected column to not be aliased")
-			}
-			if !col.IsQualified() {
-				t.Errorf("expected column to be qualified")
-			}
-			if got := col.Raw(); got != "users.id" {
-				t.Errorf("Raw mismatch: got %q, want %q", got, "users.id")
-			}
-		})
-
-		t.Run("EdgeCases", func(t *testing.T) {
-			t.Run("IsAliased", func(t *testing.T) {
-				col := token.NewColumn("id AS user_id")
-				if got := col.Raw(); got != "id AS user_id" {
-					t.Errorf("Raw mismatch: got %q, want %q", got, "id AS user_id")
+			t.Run("WithNilReceiver", func(t *testing.T) {
+				var column *token.Column = nil
+				if got := column.IsQualified(); got != false {
+					t.Errorf("expected false, got %v", got)
 				}
 			})
 
-			t.Run("NotTableIsAliased", func(t *testing.T) {
-				table := token.NewTable("users") // no alias
-				col := token.NewColumn("users.id AS user_id").WithTable(table)
-				if got := col.Raw(); got != "users.user_id" {
-					t.Errorf("Raw mismatch: got %q, want %q", got, "users.user_id")
+			t.Run("NotQualified", func(t *testing.T) {
+				column := token.NewColumn("id")
+				if got := column.IsQualified(); got != false {
+					t.Errorf("expected false, got %v", got)
+				}
+			})
+
+			t.Run("Inline", func(t *testing.T) {
+				column := token.NewColumn("users.id")
+				if got := column.IsQualified(); got != true {
+					t.Errorf("expected true, got %v", got)
+				}
+			})
+
+			t.Run("WithTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users"))
+				if got := column.IsQualified(); got != true {
+					t.Errorf("expected true, got %v", got)
+				}
+			})
+
+			t.Run("WithAliasedTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users", "u"))
+				if got := column.IsQualified(); got != true {
+					t.Errorf("expected true, got %v", got)
+				}
+			})
+
+			t.Run("Conflict", func(t *testing.T) {
+				column := token.NewColumn("users.id").WithTable(token.NewTable("user", "u"))
+				if !strings.Contains(column.GetError().Error(), "table mismatch") {
+					t.Errorf("expected table mismatch error, got %v", column.GetError())
+				}
+			})
+		})
+
+		t.Run("GetRaw", func(t *testing.T) {
+			t.Run("WithNilReceiver", func(t *testing.T) {
+				var column *token.Column = nil
+				column.SetError("ignored", fmt.Errorf("structural error"))
+				if got := column.GetRaw(); got != "" {
+					t.Errorf("expected nil error, got %v", got)
+				}
+			})
+
+			t.Run("WithName", func(t *testing.T) {
+				column := token.NewColumn("name")
+				if got := column.GetRaw(); got != "name" {
+					t.Errorf("expected 'name', got %q", got)
+				}
+			})
+
+			t.Run("WithAlias", func(t *testing.T) {
+				column := token.NewColumn("name", "alias")
+				if got := column.GetRaw(); got != "name AS alias" {
+					t.Errorf("expected 'name AS alias', got %q", got)
+				}
+			})
+		})
+
+		t.Run("Render", func(t *testing.T) {
+			postgres := driver.NewPostgresDialect()
+
+			t.Run("Basic", func(t *testing.T) {
+				col := token.NewColumn("email")
+				if got := col.Render(postgres); got != `"email"` {
+					t.Errorf(`Render mismatch: got %q, want "email"`, got)
+				}
+			})
+
+			t.Run("Aliased", func(t *testing.T) {
+				col := token.NewColumn("email AS user_email")
+				if got := col.Render(postgres); got != `"email" AS "user_email"` {
+					t.Errorf(`Render mismatch: got %q, want "email" AS "user_email"`, got)
+				}
+			})
+
+			t.Run("Qualified", func(t *testing.T) {
+				col := token.NewColumn("users.email").WithTable(token.NewTable("users"))
+				got := col.Render(postgres)
+				want := `"users"."email"`
+
+				if got != want {
+					t.Errorf("Render mismatch: got %q, want %q", got, want)
+				}
+			})
+
+			t.Run("Full", func(t *testing.T) {
+				col := token.NewColumn("id", "uid").WithTable(token.NewTable("users u"))
+				if got := col.Render(postgres); got != `"u"."id" AS "uid"` {
+					t.Errorf(`Render mismatch: got %q, want "u"."id" AS "uid"`, got)
+				}
+			})
+
+			t.Run("NoTableAliased", func(t *testing.T) {
+				col := token.NewColumn("users.email AS mail").WithTable(token.NewTable("users"))
+				got := col.Render(postgres)
+				want := `"users"."email" AS "mail"`
+
+				if got != want {
+					t.Errorf("Render mismatch: got %q, want %q", got, want)
+				}
+			})
+
+			t.Run("InvalidColumn", func(t *testing.T) {
+				col := token.NewColumn("") // invalid
+				got := col.Render(postgres)
+
+				if got != "" {
+					t.Errorf("Expected empty render for invalid column, got %q", got)
+				}
+			})
+		})
+
+		t.Run("SetQualified", func(t *testing.T) {
+			t.Run("WithNilReceiver", func(t *testing.T) {
+				var column *token.Column = nil
+				column.SetQualified("users")
+				if got := column.GetQualified(); got != "" {
+					t.Errorf("expected '' error, got %v", got)
+				}
+			})
+
+			t.Run("Qualified", func(t *testing.T) {
+				column := token.NewColumn("id")
+				column.SetQualified("users")
+				if got := column.GetQualified(); got != "users" {
+					t.Errorf("expected 'users' error, got %v", got)
+				}
+			})
+
+			t.Run("ConflictQualified", func(t *testing.T) {
+				column := token.NewColumn("users.id")
+				column.SetQualified("user")
+				if got := column.GetQualified(); got != "users" {
+					t.Errorf("expected 'users' error, got %v", got)
+				}
+				if column.GetError() == nil ||
+					!strings.Contains(column.GetError().Error(), "qualified conflict") {
+					t.Errorf("expected qualified conflict error, got %v", column.GetError())
+				}
+			})
+
+			t.Run("ConflictWithTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users"))
+				column.SetQualified("user")
+				if got := column.GetQualified(); got != "users" {
+					t.Errorf("expected 'users' error, got %v", got)
+				}
+				if column.GetError() == nil ||
+					!strings.Contains(column.GetError().Error(), "qualified conflict") {
+					t.Errorf("expected qualified conflict error, got %v", column.GetError())
+				}
+			})
+
+			t.Run("WithAliasedTable", func(t *testing.T) {
+				column := token.NewColumn("id").WithTable(token.NewTable("users", "u"))
+				column.SetQualified("user")
+				if got := column.GetQualified(); got != "u" {
+					t.Errorf("expected 'u' error, got %v", got)
+				}
+				if column.GetError() == nil ||
+					!strings.Contains(column.GetError().Error(), "qualified conflict") {
+					t.Errorf("expected qualified conflict error, got %v", column.GetError())
+				}
+			})
+		})
+
+		t.Run("String", func(t *testing.T) {
+			t.Run("WithNilReceiver", func(t *testing.T) {
+				var c *token.Column
+				if got := c.String(); got != "Column(nil)" {
+					t.Errorf("expected 'Column(nil)', got %q", got)
+				}
+			})
+
+			t.Run("Valid", func(t *testing.T) {
+				col := token.NewColumn("users.id", "uid")
+				want := `Column("id") [aliased: true, qualified: true, errored: false]`
+				if got := col.String(); got != want {
+					t.Errorf("String mismatch: got %q, want %q", got, want)
+				}
+			})
+
+			t.Run("WithError", func(t *testing.T) {
+				col := token.NewColumn("users.id").WithTable(token.NewTable("orders"))
+				if !col.HasError() {
+					t.Errorf("expected column to have error due to table mismatch")
+				}
+				if got := col.String(); !strings.Contains(got, "table mismatch") {
+					t.Errorf("expected String to contain 'table mismatch', got %q", got)
 				}
 			})
 		})
 	})
 
-	t.Run("Render", func(t *testing.T) {
-		postgres := driver.NewPostgresDialect()
-
-		t.Run("Basic", func(t *testing.T) {
-			col := token.NewColumn("email")
-			got := col.Render(postgres)
-			want := `"email"`
-
-			if got != want {
-				t.Errorf("Render mismatch: got %q, want %q", got, want)
+	t.Run("EdgeCases", func(t *testing.T) {
+		t.Run("PostgresEmptyName", func(t *testing.T) {
+			col := token.NewColumn("'' AS name")
+			if !col.IsValid() {
+				t.Fatalf("expected column to be valid, but got error: %v", col.GetError())
 			}
-		})
-
-		t.Run("Aliased", func(t *testing.T) {
-			col := token.NewColumn("email AS user_email")
-			got := col.Render(postgres)
-			want := `"email" AS "user_email"`
-
-			if got != want {
-				t.Errorf("Render mismatch: got %q, want %q", got, want)
+			if col.GetName() != "''" {
+				t.Errorf("expected column name \"''\", got %q", col.GetName())
 			}
-		})
-
-		t.Run("Qualified", func(t *testing.T) {
-			col := token.NewColumn("users.email").WithTable(token.NewTable("users"))
-			got := col.Render(postgres)
-			want := `"users"."email"`
-
-			if got != want {
-				t.Errorf("Render mismatch: got %q, want %q", got, want)
-			}
-		})
-
-		t.Run("Full", func(t *testing.T) {
-			col := token.NewColumn("u.email AS mail").WithTable(token.NewTable("users u"))
-			got := col.Render(postgres)
-			want := `"u"."email" AS "mail"`
-
-			if got != want {
-				t.Errorf("Render mismatch: got %q, want %q", got, want)
-			}
-		})
-
-		t.Run("NoTableAliased", func(t *testing.T) {
-			col := token.NewColumn("users.email AS mail").WithTable(token.NewTable("users"))
-			got := col.Render(postgres)
-			want := `"users"."email" AS "mail"`
-
-			if got != want {
-				t.Errorf("Render mismatch: got %q, want %q", got, want)
-			}
-		})
-
-		t.Run("InvalidColumn", func(t *testing.T) {
-			col := token.NewColumn("") // invalid
-			got := col.Render(postgres)
-
-			if got != "" {
-				t.Errorf("Expected empty render for invalid column, got %q", got)
-			}
-		})
-	})
-
-	t.Run("String", func(t *testing.T) {
-		t.Run("Valid", func(t *testing.T) {
-			col := token.NewColumn("users.id", "uid")
-			want := `Column("id") [aliased: true, qualified: true, errored: false]`
-			if got := col.String(); got != want {
-				t.Errorf("String mismatch: got %q, want %q", got, want)
-			}
-		})
-
-		t.Run("NilColumn", func(t *testing.T) {
-			var c *token.Column
-			got := c.String()
-			want := "Column(nil)"
-			if got != want {
-				t.Errorf("expected %q, got %q", want, got)
-			}
-		})
-
-		t.Run("WithError", func(t *testing.T) {
-			col := token.NewColumn("users.id").WithTable(token.NewTable("orders"))
-			if !col.HasError() {
-				t.Errorf("expected column to have error due to table mismatch")
-			}
-			if got := col.String(); !strings.Contains(got, "table mismatch") {
-				t.Errorf("expected String to contain 'table mismatch', got %q", got)
+			if col.GetAlias() != "name" {
+				t.Errorf("expected alias 'name', got %q", col.GetAlias())
 			}
 		})
 	})

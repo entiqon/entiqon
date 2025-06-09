@@ -36,16 +36,17 @@ func Column(d driver.Dialect, column token.Column) string {
 		d = driver.NewGenericDialect()
 	}
 
-	name := d.QuoteIdentifier(column.Name)
-	if column.IsQualified() {
+	qualified := column.RenderName(d)
+	if column.IsQualified() && column.Table != nil {
 		base := d.QuoteIdentifier(column.Table.AliasOr())
-		name = base + "." + name
+		if base != "" {
+			qualified = fmt.Sprintf("%s.%s", base, qualified)
+		}
 	}
 
 	if column.IsAliased() {
-		alias := d.QuoteIdentifier(column.Alias)
-		return fmt.Sprintf("%s AS %s", name, alias)
+		qualified = column.RenderAlias(d, qualified)
 	}
 
-	return name
+	return qualified
 }

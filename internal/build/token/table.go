@@ -57,10 +57,10 @@ func NewTable(expr string, alias ...string) *Table {
 
 	base, parsedAlias := ParseAlias(expr)
 	source := &Table{BaseToken: NewBaseToken(expr)}
-	source.Name = base
+	source.SetName(base)
 
 	if len(alias) > 0 && alias[0] != "" {
-		source.Alias = alias[0]
+		source.SetAlias(alias[0])
 		if parsedAlias != "" && alias[0] != parsedAlias {
 			return source.SetErrorWith(expr, fmt.Errorf(
 				"alias conflict: explicit alias %q does not match inline alias %q",
@@ -69,7 +69,7 @@ func NewTable(expr string, alias ...string) *Table {
 			))
 		}
 	} else {
-		source.Alias = parsedAlias
+		source.SetAlias(parsedAlias)
 	}
 
 	return source
@@ -85,9 +85,9 @@ func NewTable(expr string, alias ...string) *Table {
 //	Table{Name: "users", Alias: "u"} → "users AS u"
 func (t *Table) Raw() string {
 	if t.IsAliased() {
-		return fmt.Sprintf("%s AS %s", t.Name, t.Alias)
+		return fmt.Sprintf("%s AS %s", t.GetName(), t.GetAlias())
 	}
-	return t.Name
+	return t.GetName()
 }
 
 // Render returns the dialect-quoted table name and alias (if present).
@@ -97,13 +97,13 @@ func (t *Table) Raw() string {
 //	tbl := NewTable("users u")
 //	fmt.Println(tbl.Render(postgres)) → `"users" AS "u"`
 func (t *Table) Render(d driver.Dialect) string {
-	if t == nil || t.Name == "" {
+	if t == nil || t.GetName() == "" {
 		return ""
 	}
 	if t.IsAliased() {
-		return fmt.Sprintf("%s AS %s", d.QuoteIdentifier(t.Name), d.QuoteIdentifier(t.Alias))
+		return fmt.Sprintf("%s AS %s", d.QuoteIdentifier(t.GetName()), d.QuoteIdentifier(t.GetAlias()))
 	}
-	return d.QuoteIdentifier(t.Name)
+	return d.QuoteIdentifier(t.GetName())
 }
 
 // String returns a debug-friendly view of the Table token.
@@ -120,11 +120,10 @@ func (t *Table) String() string {
 		return "Table(nil)"
 	}
 
-	s := fmt.Sprintf("Table(%q) [aliased: %v, errored: %v", t.Name, t.IsAliased(), t.HasError())
-	if t.HasError() {
-		s += fmt.Sprintf(", error: %s", t.GetError().Error())
+	s := fmt.Sprintf("Table(%q) [aliased: %t, errored: %t]", t.GetName(), t.IsAliased(), t.IsErrored())
+	if t.IsErrored() {
+		s += fmt.Sprintf(" – %s", t.GetError().Error())
 	}
-	s += "]"
 	return s
 }
 
