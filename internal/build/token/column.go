@@ -7,9 +7,9 @@ package token
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/entiqon/entiqon/driver"
+	"github.com/entiqon/entiqon/internal/core/contract"
 )
 
 // Column represents a SQL column reference used within SELECT, WHERE, ORDER BY, and similar clauses.
@@ -48,7 +48,7 @@ type Column struct {
 	//
 	//	c := NewColumn("users.id")
 	//	fmt.Println(c.Qualified) // "users"
-	Qualified string
+	qualified string
 }
 
 // NewColumn constructs a Column token from a raw expression and optional alias.
@@ -68,90 +68,87 @@ type Column struct {
 //	NewColumn("id", "alias")           → name: "id", alias: "alias"
 //	NewColumn("users.id", "alias")     → name: "id", table: "users", alias: "alias"
 func NewColumn(expr string, alias ...string) *Column {
-	trimmed := strings.TrimSpace(expr)
-	if trimmed == "" {
-		return (&Column{BaseToken: NewBaseToken(expr)}).
-			SetErrorWith(expr, fmt.Errorf("column expression is empty"))
+	base := NewBaseToken(expr, alias...)
+	base.SetKind(contract.ColumnKind)
+
+	// **Early exit on parse error**: preserve the original BaseToken error
+	if base.IsErrored() {
+		return &Column{BaseToken: base}
 	}
 
-	if strings.Contains(expr, ",") {
-		return (&Column{BaseToken: NewBaseToken(expr)}).
-			SetErrorWith(expr, fmt.Errorf("invalid column expression: aliases must not be comma-separated"))
-	}
-
-	upper := strings.ToUpper(trimmed)
-	if strings.HasPrefix(upper, "AS ") {
-		return (&Column{BaseToken: NewBaseToken(expr)}).
-			SetErrorWith(expr, fmt.Errorf("invalid column expression: cannot start with 'AS'"))
-	}
-
-	base, parsedAlias := ParseAlias(expr)
-	tableName, column := ParseTableColumn(base)
-	if column == "" {
-		return (&Column{BaseToken: NewBaseToken(expr)}).
-			SetErrorWith(expr, fmt.Errorf("column name is required"))
-	}
-
-	col := &Column{BaseToken: NewBaseToken(expr)}
-	col.Name = column
-
-	if len(alias) > 0 && alias[0] != "" {
-		col.Alias = alias[0]
-		if parsedAlias != "" && alias[0] != parsedAlias {
-			return col.SetErrorWith(expr, fmt.Errorf(
-				"alias conflict: explicit alias %q does not match inline alias %q",
-				parsedAlias,
-				alias[0],
-			))
-		}
+	// Split off the table qualifier from the parsed name
+	tableName, colName := ParseTableColumn(base.GetName())
+	if colName == "" {
+		base.SetError(expr, fmt.Errorf("column name is required"))
 	} else {
-		col.Alias = parsedAlias
+		base.SetName(colName)
 	}
 
+	// Initialize qualified to whatever tableName was (empty if none)
+	col := &Column{BaseToken: base, qualified: tableName}
+
+	// If there really was a qualifier, attach the TableToken to validate it
 	if tableName != "" {
 		return col.WithTable(NewTable(tableName))
 	}
-
 	return col
 }
 
-// IsQualified reports whether the column is considered qualified.
+// GetQualified returns the explicit qualifier for this Column (e.g. schema or table alias).
+// Nil receiver → empty string.
 //
-// A column is qualified if:
-//   - It has a non-nil Table reference (attached or parsed), AND
-//   - It is structurally valid (i.e., passes IsValid)
+// Example:
 //
-// This check is used to determine if the column should render with a table prefix
-// during SQL generation. It reflects the effective qualification status, not just
-// string-based parsing of the expression.
+//	var col *Column = nil
+//	fmt.Println(col.GetQualified()) // Output:
 //
-// # Examples
+//	col = NewColumn("id")
+//	fmt.Println(col.GetQualified()) // Output:
 //
-//	NewColumn("id")                 → false
-//	NewColumn("users.id")           → true
-//	NewColumn("id").WithTable(...)  → true, assuming the column is valid
-func (c *Column) IsQualified() bool {
-	return c.Table != nil && c.Table.IsValid()
+//	col.SetQualified("users")
+//	fmt.Println(col.GetQualified()) // Output: users
+//
+// Since: v1.6.0
+func (c *Column) GetQualified() string {
+	if c == nil {
+		return ""
+	}
+	return c.qualified
 }
 
-// Raw returns the SQL-safe, dialect-neutral representation of the column,
-// including table qualification and aliasing if applicable.
+// IsQualified reports whether this Column is qualified—either by an explicit
+// qualifier via SetQualified or implicitly via an attached Table token.
+// Nil receiver → false.
 //
-// If the column is qualified (i.e., has a table context), the table prefix will be used.
-// Table.Alias is preferred over Table.Name when available.
+// Example:
 //
-// If the column is aliased, the result will follow SQL's "AS" convention
-// (e.g., "users.id AS uid").
+//	// No qualifier, no table → false
+//	col := NewColumn("id")
+//	fmt.Println(col.IsQualified()) // Output: false
 //
-// # Examples
+//	// Explicit qualifier → true
+//	col.SetQualified("users")
+//	fmt.Println(col.IsQualified()) // Output: true
 //
-//	NewColumn("id")                             → "id"
-//	NewColumn("id", "alias")                    → "id AS alias"
-//	NewColumn("users.id")                       → "users.id"
-//	NewColumn("users.id", "alias")              → "users.id AS alias"
-//	NewColumn("id", "alias").WithTable(t("u"))  → "u.alias"
+//	// Implicit via table → true
+//	col = NewColumn("schema.users.id")
+//	fmt.Println(col.IsQualified()) // Output: true
 //
-// Raw returns the SQL-safe, dialect-neutral representation of the column.
+// Since: v1.6.0
+func (c *Column) IsQualified() bool {
+	if c == nil {
+		return false
+	}
+	if c.qualified != "" {
+		return true
+	}
+	if c.Table != nil && (c.Table.IsValid() || c.Table.IsAliased()) {
+		return true
+	}
+	return false
+}
+
+// GetRaw returns the SQL-safe, dialect-neutral representation of the column.
 //
 // The rendering logic adapts based on qualification and aliasing status:
 //
@@ -177,25 +174,29 @@ func (c *Column) IsQualified() bool {
 //	NewColumn("users.id")                            	→ "users.id"
 //	NewColumn("users.id", "alias")                   	→ "users.id AS alias"
 //	NewColumn("id", "alias").WithTable(NewTable("u")) 	→ "u.alias"
-func (c *Column) Raw() string {
+func (c *Column) GetRaw() string {
+	if c == nil || c.BaseToken == nil {
+		return ""
+	}
+
 	if c.IsAliased() && c.IsQualified() {
-		prefix := c.Table.Alias
+		prefix := c.Table.GetAlias()
 		if prefix == "" {
-			prefix = c.Table.Name
+			prefix = c.Table.name
 		}
-		return fmt.Sprintf("%s.%s", prefix, c.Alias)
+		return fmt.Sprintf("%s.%s", prefix, c.GetAlias())
 	}
 	if c.IsAliased() {
-		return fmt.Sprintf("%s AS %s", c.Name, c.Alias)
+		return fmt.Sprintf("%s AS %s", c.name, c.GetAlias())
 	}
 	if c.IsQualified() {
-		prefix := c.Table.Alias
+		prefix := c.Table.GetAlias()
 		if prefix == "" {
-			prefix = c.Table.Name
+			prefix = c.Table.name
 		}
-		return fmt.Sprintf("%s.%s", prefix, c.Name)
+		return fmt.Sprintf("%s.%s", prefix, c.name)
 	}
-	return c.Name
+	return c.BaseToken.GetRaw()
 }
 
 // Render returns the dialect-aware SQL string for the column,
@@ -218,22 +219,44 @@ func (c *Column) Render(d driver.Dialect) string {
 		return ""
 	}
 
-	prefix := ""
+	if d == nil {
+		d = driver.NewGenericDialect()
+	}
+
+	qualified := c.RenderName(d)
 	if c.IsQualified() && c.Table != nil {
-		prefix = c.Table.Alias
-		if prefix == "" {
-			prefix = c.Table.Name
+		base := d.QuoteIdentifier(c.Table.AliasOr())
+		if base != "" {
+			qualified = fmt.Sprintf("%s.%s", base, qualified)
 		}
 	}
 
-	qualified := c.Name
-	if prefix != "" {
-		qualified = fmt.Sprintf("%s.%s", d.QuoteIdentifier(prefix), d.QuoteIdentifier(qualified))
-	} else {
-		qualified = d.QuoteIdentifier(c.Name)
+	if c.IsAliased() {
+		qualified = c.RenderAlias(d, qualified)
 	}
 
-	return c.RenderAlias(d, qualified)
+	return qualified
+}
+
+// SetError records a parsing or validation error on the Column’s BaseToken.
+// If the Column or its embedded BaseToken is nil, SetError is a no-op.
+//
+// Example:
+//
+//	var col *Column = nil
+//	col.SetError("expr", fmt.Errorf("something went wrong"))
+//	// no panic
+//
+//	col = NewColumn("users.id")
+//	col.SetError("users.id", fmt.Errorf("permission denied"))
+//	fmt.Println(col.IsErrored()) // Output: true
+//
+// Since: v1.6.0
+func (c *Column) SetError(input string, err error) {
+	if c == nil || c.BaseToken == nil {
+		return
+	}
+	c.BaseToken.SetError(input, err)
 }
 
 // SetErrorWith records an error and source expression on the column token.
@@ -250,8 +273,49 @@ func (c *Column) Render(d driver.Dialect) string {
 //	// Output:
 //	Column("id") [aliased: true, qualified: false, errored: true, error: alias conflict]
 func (c *Column) SetErrorWith(expr string, err error) *Column {
-	c.BaseToken.SetErrorWith(expr, err)
+	if c == nil || c.BaseToken == nil {
+		return c
+	}
+
+	c.SetError(expr, err)
 	return c
+}
+
+// SetQualified sets an explicit qualifier for this Column.
+// If a qualifier was previously set and the new qualifier differs,
+// it records an error rather than overwriting.  Nil receiver → no-op.
+//
+// Example:
+//
+//	col := NewColumn("id")
+//	col.SetQualified("users")
+//	fmt.Println(col.GetQualified()) // Output: users
+//
+//	// Attempt to override with a different qualifier:
+//	col.SetQualified("u")
+//	fmt.Println(col.GetQualified()) // Output: users
+//	fmt.Println(col.GetError())     // Output includes: qualified conflict: explicit qualifier "u" does not match existing qualifier "users"
+//
+// Since: v1.6.0
+func (c *Column) SetQualified(q string) {
+	if c == nil {
+		return
+	}
+	// First time: just set it
+	if c.qualified == "" {
+		c.qualified = q
+		return
+	}
+	// Already set: if same value, no-op; if different, record conflict
+	if c.qualified != q {
+		c.SetError(
+			c.GetInput(),
+			fmt.Errorf(
+				"qualified conflict: explicit qualifier %q does not match existing qualifier %q",
+				q, c.qualified,
+			),
+		)
+	}
 }
 
 // String returns a structured diagnostic view of the column token.
@@ -272,13 +336,12 @@ func (c *Column) String() string {
 		return "Column(nil)"
 	}
 
-	s := fmt.Sprintf("Column(%q) [aliased: %v, qualified: %v, errored: %v",
-		c.Name, c.IsAliased(), c.IsQualified(), c.HasError(),
+	s := fmt.Sprintf("Column(%q) [aliased: %t, qualified: %t, errored: %t]",
+		c.name, c.IsAliased(), c.IsQualified(), c.IsErrored(),
 	)
-	if c.HasError() {
-		s += fmt.Sprintf(", error: %s", c.GetError().Error())
+	if c.IsErrored() {
+		s += fmt.Sprintf(" – %s", c.GetError().Error())
 	}
-	s += "]"
 	return s
 }
 
@@ -295,27 +358,29 @@ func (c *Column) String() string {
 //	col := token.NewColumn("id", "user_id").WithTable(users)
 //	fmt.Println(col.Raw()) // "u.user_id"
 func (c *Column) WithTable(table *Table) *Column {
-	if c == nil || !c.IsValid() || c.HasError() {
+	// nil-safe and error-safe guard
+	if c == nil || !c.IsValid() || c.IsErrored() {
 		return c
 	}
 
-	// validate only if the column’s table name does not match EITHER name or alias
-	if c.Table != nil && table != nil {
-		if c.Table.Name != table.Name && c.Table.Name != table.Alias {
-			c.BaseToken.SetError(
-				c.GetInput(),
-				fmt.Errorf(
-					"table mismatch: column refers to %q, but table is %q (alias: %q)",
-					c.Table.Name,
-					table.Name,
-					table.Alias,
-				),
-			)
+	// If there's a mismatch between expected qualifier and actual table id, error
+	if table != nil {
+		expected := c.qualified
+		// prefer alias, fallback to name
+		actual := table.AliasOr()
+		if expected != "" && expected != actual {
+			c.SetError(c.GetInput(), fmt.Errorf(
+				"table mismatch: column refers to %q, but table is %q (alias: %q)",
+				expected,
+				table.GetName(),
+				table.GetAlias(),
+			))
 			return c
 		}
-	}
-	if table != nil {
+
+		// otherwise attach the table and update qualifier to actual
 		c.Table = table
+		c.SetQualified(actual)
 	}
 
 	return c
@@ -323,3 +388,9 @@ func (c *Column) WithTable(table *Table) *Column {
 
 // Ensure Column satisfies the GenericToken interface.
 var _ GenericToken = &Column{}
+var _ contract.MutableToken = &Column{}
+var _ contract.Errorable = &Column{}
+var _ contract.Kindable = &Column{}
+var _ contract.Renderable = &Column{}
+var _ contract.Rawable = &Column{}
+var _ contract.Qualifiable = &Column{}

@@ -25,10 +25,10 @@ func Table(d driver.Dialect, tbl token.Table) string {
 		d = driver.NewGenericDialect()
 	}
 
-	name := d.QuoteIdentifier(tbl.Name)
+	name := d.QuoteIdentifier(tbl.GetName())
 
 	if tbl.IsAliased() {
-		alias := d.QuoteIdentifier(tbl.Alias)
+		alias := d.QuoteIdentifier(tbl.GetAlias())
 		return fmt.Sprintf("%s AS %s", name, alias)
 	}
 

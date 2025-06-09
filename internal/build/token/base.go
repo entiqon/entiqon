@@ -38,10 +38,6 @@ import (
 //	fmt.Println(b.String())
 //	// Output: Column("id") [aliased: true, errored: false]
 type BaseToken struct {
-	Source string
-	Name   string
-	Alias  string
-
 	// input holds the original raw input string used to construct this token.
 	// Unlike Raw(), this is not formatted or rendered—it is used for diagnostics only.
 	input string
@@ -122,7 +118,7 @@ type BaseToken struct {
 //	b = NewBaseToken("id, name")
 //	fmt.Println(b.GetError()) // → invalid input expression: aliases must not be comma-separated
 func NewBaseToken(input string, alias ...string) *BaseToken {
-	t := &BaseToken{input: input, Source: input}
+	t := &BaseToken{input: input}
 
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
@@ -186,8 +182,8 @@ func (b *BaseToken) AliasOr() string {
 	if b == nil {
 		return ""
 	}
-	if b.Alias != "" {
-		return b.Alias
+	if b.alias != "" {
+		return b.alias
 	}
 	return b.name
 }
@@ -209,7 +205,7 @@ func (b *BaseToken) GetAlias() string {
 	if b == nil {
 		return ""
 	}
-	return b.Alias
+	return b.alias
 }
 
 // GetError returns the underlying error associated with the token.
@@ -292,7 +288,7 @@ func (b *BaseToken) GetName() string {
 	return b.name
 }
 
-// Raw returns the SQL raw expression representation: "name" or "name AS alias".
+// GetRaw returns the SQL raw expression representation: "name" or "name AS alias".
 // If the receiver is nil, returns an empty string.
 //
 // This method does not perform any quoting or validation—it simply concatenates
@@ -309,8 +305,8 @@ func (b *BaseToken) GetRaw() string {
 	if b == nil {
 		return ""
 	}
-	if b.Alias != "" {
-		return fmt.Sprintf("%s AS %s", b.name, b.Alias)
+	if b.alias != "" {
+		return fmt.Sprintf("%s AS %s", b.name, b.alias)
 	}
 	return b.name
 }
@@ -353,7 +349,7 @@ func (b *BaseToken) IsErrored() bool {
 //	b = NewBaseToken("users.id AS uid")
 //	fmt.Println(b.IsAliased()) // → true
 func (b *BaseToken) IsAliased() bool {
-	return b != nil && b.Alias != ""
+	return b != nil && b.alias != ""
 }
 
 // IsValid returns true if the token has a non-empty name and no associated Error.
@@ -413,13 +409,13 @@ func (b *BaseToken) RenderAlias(q contract.Quoter, qualified string) string {
 	if b == nil || qualified == "" {
 		return qualified
 	}
-	if b.Alias == "" {
+	if b.alias == "" {
 		return qualified
 	}
 	if q == nil {
-		return fmt.Sprintf("%s AS %s", qualified, b.Alias)
+		return fmt.Sprintf("%s AS %s", qualified, b.alias)
 	}
-	return fmt.Sprintf("%s AS %s", qualified, q.QuoteIdentifier(b.Alias))
+	return fmt.Sprintf("%s AS %s", qualified, q.QuoteIdentifier(b.alias))
 }
 
 // RenderName returns the dialect-quoted name of the token if non-empty.
@@ -470,7 +466,6 @@ func (b *BaseToken) SetAlias(alias string) {
 		return
 	}
 	b.alias = alias
-	b.Alias = alias // deprecated exported field, maintained for compatibility
 }
 
 // SetError assigns a semantic or structural error to this token,
@@ -557,7 +552,6 @@ func (b *BaseToken) SetName(name string) {
 		return
 	}
 	b.name = name
-	b.Name = name // deprecated exported field, maintained for compatibility
 }
 
 // String returns a diagnostic string representation of the token, including its Kind, name,
@@ -590,7 +584,7 @@ func (b *BaseToken) String() string {
 
 	suffix := fmt.Sprintf("[aliased: %t, errored: %t]", b.IsAliased(), b.IsErrored())
 	if b.IsErrored() {
-		suffix += fmt.Sprintf(", error: %s", b.GetError())
+		suffix += fmt.Sprintf(", error: %s", b.GetError().Error())
 	}
 	return fmt.Sprintf("%s(\"%s\") %s", b.kind.String(), b.GetName(), suffix)
 }

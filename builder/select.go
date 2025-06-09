@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/entiqon/entiqon/driver"
-	"github.com/entiqon/entiqon/internal/build/render"
+	"github.com/entiqon/entiqon/driver"
 	"github.com/entiqon/entiqon/internal/build/token"
 	"github.com/entiqon/entiqon/internal/core/builder"
 	"github.com/entiqon/entiqon/internal/core/builder/bind"
@@ -32,7 +31,10 @@ type SelectBuilder struct {
 // The builder name is automatically set to "select".
 //
 // Since: v1.4.0
-func NewSelect(dialect driver2.Dialect) *SelectBuilder {
+func NewSelect(dialect driver.Dialect) *SelectBuilder {
+	if dialect == nil {
+		dialect = driver.NewGenericDialect()
+	}
 	base := NewBaseBuilder("select", dialect)
 
 	return &SelectBuilder{
@@ -95,9 +97,6 @@ func (b *SelectBuilder) Select(columns ...string) *SelectBuilder {
 //	AddSelect("id", "name AS customer")
 //	  → SELECT id, name AS customer
 func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
-	if b.columns == nil {
-		b.columns = make([]*token.Column, 0)
-	}
 	return b.addColumns(columns...)
 }
 
@@ -167,7 +166,7 @@ func (b *SelectBuilder) Skip(value int) *SelectBuilder {
 // UseDialect resolves and applies the dialect by name (e.g., "postgres").
 // It replaces any previously set dialect on the builder.
 func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
-	b.BaseBuilder.dialect = driver2.ResolveDialect(name)
+	b.BaseBuilder.dialect = driver.ResolveDialect(name)
 	return b
 }
 
@@ -175,8 +174,11 @@ func (b *SelectBuilder) UseDialect(name string) *SelectBuilder {
 // If the FROM clause is missing, an error is returned.
 // Dialect rules (quoting, pagination) are applied if configured.
 func (b *SelectBuilder) Build() (string, []any, error) {
+	if b.Dialect == nil {
+		b.Dialect = driver.NewGenericDialect()
+	}
 	if len(b.sources) == 0 {
-		b.AddStageError(core.StageFrom, fmt.Errorf("missing source; expected at least one table source"))
+		return "", nil, fmt.Errorf("%s: missing source; expected at least one table source", core.StageFrom)
 	}
 
 	var tokens []string
@@ -184,13 +186,51 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	// prepare columns
 	columns := "*"
 	if len(b.columns) > 0 {
-		var rendered []string
-		for _, column := range b.columns {
-			if out := render.Column(b.Dialect, *column); out != "" {
-				rendered = append(rendered, out)
+		single := len(b.sources) == 1
+		var defaultAlias string
+		if single && b.sources[0].IsAliased() {
+			// Only pick up an explicit alias
+			defaultAlias = b.sources[0].GetAlias()
+		}
+
+		var parts []string
+		for _, col := range b.columns {
+			rendered := col.Render(b.Dialect)
+			if single {
+				col = col.WithTable(b.sources[0])
+				part := col.RenderAlias(b.Dialect, col.GetName())
+				// Single‐source: prefix only if we have an explicit alias
+				if defaultAlias != "" {
+					parts = append(parts, fmt.Sprintf("%s.%s", defaultAlias, part))
+				} else {
+					parts = append(parts, part)
+				}
+			} else {
+				// Multiple sources: must have a Table and it must be registered
+				if col.Table == nil {
+					return "", nil, fmt.Errorf(
+						"%s: column %q must have an owner table in multi-source SELECT",
+						core.StageSelect, col.GetName(),
+					)
+				}
+				found := false
+				for _, src := range b.sources {
+					if src == col.Table {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return "", nil, fmt.Errorf(
+						"%s: column %q refers to table %q which is not in builder sources",
+						core.StageSelect, col.GetName(), col.Table.GetName(),
+					)
+				}
+				parts = append(parts, fmt.Sprintf("%s.%s", col.Table.AliasOr(), rendered))
 			}
 		}
-		columns = strings.Join(rendered, ", ")
+
+		columns = strings.Join(parts, ", ")
 	}
 
 	tokens = append([]string{}, fmt.Sprintf("SELECT %s", columns))
@@ -199,7 +239,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 	if len(b.sources) > 0 {
 		var fromParts []string
 		for _, tbl := range b.sources {
-			if out := render.Table(b.Dialect, *tbl); out != "" {
+			if out := tbl.Render(b.Dialect); out != "" {
 				fromParts = append(fromParts, out)
 			}
 		}
@@ -214,7 +254,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		binder := bind.NewParamBinderWithPosition(b.Dialect, len(args)+1)
 		whereClause, clauseArgs, err := builder.RenderConditionsWithBinder(b.Dialect, b.conditions, binder)
 		if err != nil {
-			return "", nil, fmt.Errorf("SELECT: %w", err)
+			return "", nil, fmt.Errorf("%s: %w", core.StageWhere, err)
 		}
 		tokens = append(tokens, "WHERE", whereClause)
 		args = append(args, clauseArgs...)
@@ -298,11 +338,11 @@ func (b *SelectBuilder) addColumns(columns ...string) *SelectBuilder {
 //	b.appendColumns(cols, &users)
 //
 //	// Rendered: SELECT u.id, u.email FROM users AS u
-func (b *SelectBuilder) appendColumns(cols []*token.Column, table *token.Table) {
+func (b *SelectBuilder) appendColumns(cols []*token.Column,
+	table *token.Table) {
 	for _, col := range cols {
-		if !col.IsValid() {
-			b.Validator.AddStageError(core.StageSelect,
-				fmt.Errorf("invalid column: %s — %v", col.String(), col.GetError()))
+		if col.IsErrored() {
+			b.Validator.AddStageError(core.StageSelect, fmt.Errorf("invalid column: %s", col.String()))
 		}
 
 		// Assign table for qualification and rendering

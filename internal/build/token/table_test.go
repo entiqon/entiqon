@@ -15,10 +15,10 @@ func TestTable(t *testing.T) {
 			if !tbl.IsValid() {
 				t.Errorf("expected valid table")
 			}
-			if tbl.Name != "users" {
-				t.Errorf("expected name 'users', got %q", tbl.Name)
+			if tbl.GetName() != "users" {
+				t.Errorf("expected name 'users', got %q", tbl.GetName())
 			}
-			if tbl.Alias != "" {
+			if tbl.GetAlias() != "" {
 				t.Errorf("expected no alias")
 			}
 		})
@@ -29,8 +29,8 @@ func TestTable(t *testing.T) {
 				if !tbl.IsValid() {
 					t.Errorf("expected valid table")
 				}
-				if tbl.Name != "users" || tbl.Alias != "u" {
-					t.Errorf("expected users AS u, got %q AS %q", tbl.Name, tbl.Alias)
+				if tbl.GetName() != "users" || tbl.GetAlias() != "u" {
+					t.Errorf("expected users AS u, got %q AS %q", tbl.GetName(), tbl.GetAlias())
 				}
 			})
 		})
@@ -109,7 +109,7 @@ func TestTable(t *testing.T) {
 				if !strings.Contains(out, `errored: true`) {
 					t.Errorf("expected 'errored: true' in output, got %q", out)
 				}
-				if !strings.Contains(out, `error: alias conflict`) {
+				if !strings.Contains(out, `alias conflict`) {
 					t.Errorf("expected alias conflict in output, got %q", out)
 				}
 			})

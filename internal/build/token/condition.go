@@ -197,7 +197,7 @@ func (c *Condition) String() string {
 
 	if c.Column != nil {
 		qualified = c.Column.IsQualified()
-		name = c.Column.Name
+		name = c.Column.GetName()
 		valid = c.Column.IsValid()
 	}
 
