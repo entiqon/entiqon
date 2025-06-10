@@ -29,7 +29,7 @@ coverage and modular design.
 
 ## 📦 Releases
 - [Overview](./releases/index.md)
-- [v1.6.0 - Keystone](./releases/release-notes-v1.6.0.md)
+- [v1.7.0 - Forge](./releases/release-notes-v1.7.0.md)
 - [Full Changelog](./CHANGELOG.md)
 
 ---

@@ -5,9 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
----
-## [v1.6.0] - 2025-05-25
+## [v1.7.0] - 2025-06-09
 
+- refactor(token): rename HasError → IsErrored(), SetErrorWith → SetError()
+- feat(token): add GetError(), SetError(), IsErrored() (Errorable contract)
+- feat(token): introduce Kind enum and Kindable interface
+- feat(token): add SetKind(), GetKind() to BaseToken
+- chore(token): update BaseToken.String() to use Kindable & Errorable
+- docs: add base_token.md and update token.md to document new contracts
+- test: add tests for Errorable and Kindable methods (nil-safe coverage)
+
+**Codename:** Forge
+
+---
 ## [v1.6.0] - 2025-05-25
 
 ### Added
