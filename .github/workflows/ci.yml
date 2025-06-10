@@ -16,6 +16,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # ensure full history so Codecov can compare head vs base
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -38,7 +42,7 @@ jobs:
           echo "Coverage: $pct%"
           awk -v p="$pct" 'BEGIN {exit !(p >= 80)}'
 
-      - name: Upload coverage
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -50,4 +54,5 @@ jobs:
           files: coverage.out
           flags: unittests
           verbose: true
-          # token: ${{ secrets.CODECOV_TOKEN }}  # only for private repos
+          commit: ${{ github.sha }}
+          branch: ${{ github.ref_name }}
