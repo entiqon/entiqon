@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # ensure full history so Codecov can compare head vs base
+          # full history so Codecov can compare commits
           fetch-depth: 0
           fetch-tags: true
 
@@ -36,9 +36,18 @@ jobs:
           echo "Total coverage:"
           go tool cover -func=coverage.out | grep total
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.out
+          flags: unittests
+          verbose: true
+
       - name: Enforce minimum 80% coverage
         run: |
-          pct=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          pct=$(go tool cover -func=coverage.out \
+            | grep total \
+            | awk '{print substr($3, 1, length($3)-1)}')
           echo "Coverage: $pct%"
           awk -v p="$pct" 'BEGIN {exit !(p >= 80)}'
 
@@ -47,12 +56,3 @@ jobs:
         with:
           name: coverage
           path: coverage.out
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage.out
-          flags: unittests
-          verbose: true
-          commit: ${{ github.sha }}
-          branch: ${{ github.ref_name }}
