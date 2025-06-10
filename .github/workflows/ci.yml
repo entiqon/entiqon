@@ -43,3 +43,11 @@ jobs:
         with:
           name: coverage
           path: coverage.out
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.out
+          flags: unittests
+          verbose: true
+          # token: ${{ secrets.CODECOV_TOKEN }}  # only for private repos
