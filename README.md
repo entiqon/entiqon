@@ -18,59 +18,15 @@
 
 💡 Originally created by [Isidro Lopez](https://github.com/ialopezg)  
 🏢 Maintained by the [Entiqon Organization](https://github.com/entiqon)
-
 ---
 
-## 🌱 Overview
+## Packages
 
-Entiqon is a modular SQL query engine for Go focused on:
+- <a href="url"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
+  Database</a>:
+  Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`
 
-* 🧱 Composable and type-safe SQL builders
-* 🔄 Dialect abstraction and pluggable formatting logic
-* 🔍 Strict validation with tagged error context
-* 🧪 Full method-based test coverage
-
----
-
-## 🚀 Quick Start
-
-```bash
-go get github.com/entiqon/db
-```
-
-```go
-sql, args, err := builder.NewSelect().
-  From("users").
-  Where("email = ?", "test@entiqon.dev").
-  Build()
-```
-
----
-
-## 📘 Developer Guides
-
-### Architecture & Concepts
-
-- [Builder Architecture](./builder_guide_updates.md) — Dialects, StageToken, ParamBinder integration
-
-### Builders
-
-- [SelectBuilder](docs/dev/builder/select_builder.md)
-- [InsertBuilder](docs/dev/builder/insert_builder.md)
-- [UpdateBuilder](docs/dev/builder/update_builder.md)
-- [DeleteBuilder](docs/dev/builder/delete_builder.md)
-- [UpsertBuilder](docs/dev/builder/upsert_builder.md)
-
-### Extensions
-
-- [Custom Driver Guide](docs/dev/core/driver/custom_driver_guide.md)
-
----
-
-## 📦 Releases
-
-- [v1.6.0 - Keystone](./releases/release-notes-v1.6.0.md)
-- [CHANGELOG](./CHANGELOG.md)
+*Future modules such as `core`, `auth`, `http`, and others will be added following the modular architecture.*
 
 ---
 
@@ -89,6 +45,14 @@ sql, args, err := builder.NewSelect().
 * 🧠 Tag errors with `StageToken`
 * ⚙️ Compose with safe abstractions
 * 📂 Group test methods visually
+
+---
+
+## 📦 Releases
+
+- [v2.0.0 - Atlas](./releases/release-notes-v2.0.0.md)
+- [v1.7.0 - Forge](./releases/release-notes-v1.7.0.md)
+- [CHANGELOG](./CHANGELOG.md)
 
 ---
 
