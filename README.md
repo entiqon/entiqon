@@ -22,7 +22,7 @@
 
 ## Packages
 
-- <a href="url"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
+- <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
   Database</a>:
   Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`
 
