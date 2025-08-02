@@ -7,7 +7,7 @@ If your SQL engine is not natively supported by Entiqon, you can create your own
 ## ✅ Step 1: Import the `core/driver` package
 
 ```go
-import "github.com/entiqon/entiqon/core/driver"
+import "github.com/entiqon/db/core/driver"
 ```
 
 ---
