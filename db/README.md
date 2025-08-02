@@ -1,6 +1,4 @@
-<p align="center">
-    <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="128" width="128">
-</p>
+<h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="center" height="64" width="64"> Entiqon DB Module</h1>
 
 ---
 
@@ -27,9 +25,9 @@ go get github.com/entiqon/db
 
 ```go
 sql, args, err := builder.NewSelect().
-  From("users").
-  Where("email = ?", "test@entiqon.dev").
-  Build()
+From("users").
+Where("email = ?", "test@entiqon.dev").
+Build()
 ```
 
 ---
