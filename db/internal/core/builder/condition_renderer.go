@@ -1,12 +1,14 @@
+// File: db/internal/builder/condition_rendered.go
+
 package builder
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
+	"github.com/entiqon/db/v2/internal/core/token"
 )
 
 // AppendCondition appends a valid condition to a slice and returns the result.

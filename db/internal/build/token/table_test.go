@@ -1,11 +1,13 @@
+// File: db/internal/build/token/table_test.go
+
 package token_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/token"
 )
 
 func TestTable(t *testing.T) {

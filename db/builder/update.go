@@ -1,14 +1,16 @@
+// File: db/builder/update.go
+
 package builder
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/db/internal/core/error"
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/builder"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
+	core "github.com/entiqon/db/v2/internal/core/error"
+	"github.com/entiqon/db/v2/internal/core/token"
 )
 
 // UpdateBuilder builds a SQL UPDATE query with fluent syntax and dialect_engine.md support.

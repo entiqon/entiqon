@@ -1,4 +1,4 @@
-// File: internal/core/errors/stage_error.go
+// File: db/internal/core/errors/stage_error.go
 // Description: Defines the StageError struct and its error interface.
 // Since: v1.5.0
 

@@ -1,3 +1,5 @@
+// File: db/internal/core/token/condition_ops.go
+
 package token
 
 import "strings"

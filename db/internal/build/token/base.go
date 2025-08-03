@@ -1,10 +1,12 @@
+// File: db/internal/build/token/base.go
+
 package token
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/internal/core/contract"
+	"github.com/entiqon/db/v2/internal/core/contract"
 )
 
 // BaseToken provides a normalized representation of a raw SQL-like expression,

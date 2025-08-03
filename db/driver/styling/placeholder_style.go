@@ -1,3 +1,5 @@
+// File: db/driver/styling/placeholder_style.go
+
 package styling
 
 import "fmt"

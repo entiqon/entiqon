@@ -1,10 +1,12 @@
+// File: db/internal/build/render/table.go
+
 package render
 
 import (
 	"fmt"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/token"
 )
 
 // Table renders a dialect-safe SQL representation of a table reference,

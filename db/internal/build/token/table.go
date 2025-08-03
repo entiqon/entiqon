@@ -1,4 +1,4 @@
-// filename: internal/build/token/table.go
+// File: db/internal/build/token/table.go
 
 package token
 
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/driver"
 )
 
 // Table represents a SQL table reference, typically used in FROM, INTO, or JOIN clauses.

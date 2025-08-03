@@ -1,4 +1,4 @@
-// filename: /internal/core/token/condition_test.go
+// File: db/internal/core/token/condition_test.go
 
 package token_test
 
@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/internal/core/builder"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

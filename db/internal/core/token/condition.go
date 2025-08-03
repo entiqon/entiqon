@@ -1,3 +1,5 @@
+// File: db/internal/core/token/condition.go
+
 package token
 
 // Condition represents a conditional expression used in a WHERE clause.

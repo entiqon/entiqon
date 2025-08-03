@@ -1,13 +1,15 @@
+// File: db/builder/insert.go
+
 package builder
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/db/internal/core/error"
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
+	core "github.com/entiqon/db/v2/internal/core/error"
+	"github.com/entiqon/db/v2/internal/core/token"
 )
 
 // InsertBuilder builds a SQL INSERT statement.

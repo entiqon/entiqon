@@ -1,4 +1,4 @@
-module github.com/entiqon/db
+module github.com/entiqon/db/v2
 
 go 1.24
 

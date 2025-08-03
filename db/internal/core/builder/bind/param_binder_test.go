@@ -1,10 +1,12 @@
+// File: db/internal/build/token/param_binder_test.go
+
 package bind_test
 
 import (
 	"testing"
 
-	driver2 "github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder/bind"
+	driver2 "github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
 	"github.com/stretchr/testify/suite"
 )
 

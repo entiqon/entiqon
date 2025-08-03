@@ -13,13 +13,13 @@ It enables code reuse, collaboration, and shared resource management for multipl
 ## 🚀 Quick Start
 
 ```bash
-go get github.com/entiqon/common
+go get github.com/entiqon/common/v2
 ```
 
 Example usage:
 
 ```go
-import "github.com/entiqon/common"
+import "github.com/entiqon/common/v2"
 
 func example() {
     status := common.BoolToStr(true, "enabled", "disabled")

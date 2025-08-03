@@ -1,10 +1,12 @@
+// File: db/driver/driver_test.go
+
 package driver_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/driver/styling"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/driver/styling"
 	"github.com/stretchr/testify/suite"
 )
 

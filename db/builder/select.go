@@ -1,15 +1,17 @@
+// File: db/builder/select.go
+
 package builder
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/token"
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/db/internal/core/error"
-	internal "github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/token"
+	"github.com/entiqon/db/v2/internal/core/builder"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
+	core "github.com/entiqon/db/v2/internal/core/error"
+	internal "github.com/entiqon/db/v2/internal/core/token"
 )
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.

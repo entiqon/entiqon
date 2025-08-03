@@ -1,11 +1,13 @@
+// File: db/builder/update_test.go
+
 package builder
 
 import (
 	"fmt"
 	"testing"
 
-	core "github.com/entiqon/db/internal/core/error"
-	"github.com/entiqon/db/internal/core/token"
+	core "github.com/entiqon/db/v2/internal/core/error"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

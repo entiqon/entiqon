@@ -1,4 +1,4 @@
-// File: internal/core/errors/error_collector.go
+// File: db/internal/core/errors/error_collector.go
 // Description: Manages accumulation and grouping of StageErrors.
 // Since: v1.4.0
 

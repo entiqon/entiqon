@@ -1,3 +1,5 @@
+// File: db/internal/core/token/condition_helper.go
+
 package token
 
 import (

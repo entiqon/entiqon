@@ -1,4 +1,4 @@
-// File: internal/core/errors/stage_error_test.go
+// File: db/internal/core/errors/stage_error_test.go
 // Since: v1.5.0
 
 package errors_test
@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	core "github.com/entiqon/db/internal/core/error"
+	core "github.com/entiqon/db/v2/internal/core/error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
