@@ -1,11 +1,5 @@
 <h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="center" height="64" width="64"> Entiqon DB Module</h1>
 
----
-
-# Entiqon DB Module
-
----
-
 ## 🌱 Overview
 
 Entiqon is a modular SQL query engine for Go focused on:
@@ -25,9 +19,9 @@ go get github.com/entiqon/db
 
 ```go
 sql, args, err := builder.NewSelect().
-From("users").
-Where("email = ?", "test@entiqon.dev").
-Build()
+    From("users").
+    Where("email = ?", "test@entiqon.dev").
+    Build()
 ```
 
 ---
@@ -52,31 +46,6 @@ Build()
 
 ---
 
-## 📦 Releases
-
-- [v1.6.0 - Keystone](./releases/release-notes-v1.6.0.md)
-- [CHANGELOG](./CHANGELOG.md)
-
----
-
-## 📏 Principles & Best Practices
-
-* 🧼 Clarity over brevity — use explicit method names
-* 🚫 Deprecations are tested and clearly marked
-* 🔐 Validate every path — no silent failures
-* 🧩 Always quote identifiers through the dialect
-
----
-
-## 🧩 Design Philosophy
-
-* 📐 Chain → Validate → Compile
-* 🧠 Tag errors with `StageToken`
-* ⚙️ Compose with safe abstractions
-* 📂 Group test methods visually
-
----
-
 ## 📄 License
 
-[MIT](./LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../LICENSE) — © Isidro Lopez / Entiqon Project

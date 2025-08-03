@@ -34,7 +34,8 @@ nav:
       - UpsertBuilder: dev/builder/upsert_builder.md
   - 📦 Releases:
       - Overview: releases/index.md
-      - v2.0.0: releases/release-notes-v1.7.0.md
+      - v2.0.1: releases/release-notes-v2.0.1.md
+      - v2.0.0: releases/release-notes-v2.0.0.md
       - v1.7.0: releases/release-notes-v1.7.0.md
       - v1.6.0: releases/release-notes-v1.6.0.md
       - v1.5.0: releases/release-notes-v1.5.0.md
