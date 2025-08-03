@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+
+## [v2.1.0] - 2025-08-03
+
+### Added
+
+- Introduced **Common** package — foundational shared utilities, reusable components, and helpers used across Entiqon.
+- Created **Sharicon** — the new icon representing the Common package, featuring a robot with orange eyes, bow tie, and interconnected folders chest symbol representing shared resources and collaboration.
+- Updated documentation and README for the Common package with quick start and developer guides placeholders.
+
+### Notes
+
+- The Common package complements existing modules like `datacon` by providing shared foundational utilities.
+- Icon design follows Entiqon’s visual branding and category color scheme.
+
+---
+
 ## [v2.0.0] - 2025-08-02
 
 ### Breaking Changes

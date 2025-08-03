@@ -1,3 +1,6 @@
 go 1.24.2
 
-use ./db
+use (
+	./common
+	./db
+)

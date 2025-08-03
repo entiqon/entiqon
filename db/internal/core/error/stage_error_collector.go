@@ -4,7 +4,10 @@
 
 package errors
 
-import "fmt"
+import (
+	stdErrors "errors"
+	"fmt"
+)
 
 // StageErrorCollector accumulates StageErrors and formats them for builder validation.
 type StageErrorCollector struct {
@@ -54,7 +57,7 @@ func (c *StageErrorCollector) CombineErrors() error {
 			}
 		}
 	}
-	return fmt.Errorf(msg)
+	return stdErrors.New(msg)
 }
 
 // String returns the same grouped view as CombineErrors but implements fmt.Stringer.
