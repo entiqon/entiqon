@@ -1,11 +1,13 @@
+// File: db/internal/build/render/column_test.go
+
 package render_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/render"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/render"
+	"github.com/entiqon/db/v2/internal/build/token"
 )
 
 func TestRenderColumn_ValidCases(t *testing.T) {

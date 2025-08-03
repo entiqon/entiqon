@@ -1,10 +1,12 @@
+// File: db/builder/upsert.go
+
 package builder
 
 import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/entiqon/db/driver"
+	driver2 "github.com/entiqon/db/v2/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.

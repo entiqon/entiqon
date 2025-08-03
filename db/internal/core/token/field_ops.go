@@ -1,3 +1,5 @@
+// File: db/internal/core/token/field_ops.go
+
 package token
 
 import "strings"

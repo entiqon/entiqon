@@ -1,12 +1,14 @@
+// File: db/internal/builder/condition_renderer.go
+
 package builder_test
 
 import (
 	"testing"
 
-	driver2 "github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	"github.com/entiqon/db/internal/core/token"
+	driver2 "github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/builder"
+	"github.com/entiqon/db/v2/internal/core/builder/bind"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

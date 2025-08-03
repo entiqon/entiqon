@@ -1,9 +1,11 @@
+// File: common/bools_test.go
+
 package common_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/common"
+	"github.com/entiqon/common/v2"
 )
 
 func TestBoolToStr(t *testing.T) {

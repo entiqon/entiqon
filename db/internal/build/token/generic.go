@@ -1,4 +1,4 @@
-// filename: internal/build/token/generic.go
+// File: db/internal/build/token/generic.go
 
 package token
 

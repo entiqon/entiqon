@@ -1,3 +1,5 @@
+// File: db/internal/core/token/field_resolver.go
+
 package token
 
 import (

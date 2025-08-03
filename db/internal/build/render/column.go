@@ -1,12 +1,12 @@
-// File: internal/core/builder/base.go
+// File: db/internal/build/render/column.go
 
 package render
 
 import (
 	"fmt"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/token"
 )
 
 // Column renders a dialect-safe SQL column expression for use in SELECT, INSERT, or UPDATE clauses.

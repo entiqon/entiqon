@@ -1,11 +1,13 @@
+// File: db/builder/select_test.go
+
 package builder_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/db/builder"
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/builder"
+	"github.com/entiqon/db/v2/driver"
 )
 
 func TestSelectBuilder(t *testing.T) {

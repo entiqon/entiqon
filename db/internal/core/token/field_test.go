@@ -1,9 +1,11 @@
+// File: db/internal/core/token/field_test.go
+
 package token_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

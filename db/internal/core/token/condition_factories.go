@@ -1,4 +1,4 @@
-// filename: /internal/core/token/condition_factories.go
+// File: db/internal/core/token/condition_factories.go
 
 package token
 
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/internal/core/builder/util"
+	"github.com/entiqon/db/v2/internal/core/builder/util"
 )
 
 // NewCondition builds a Condition by parsing a condition expression and optional value(s).
