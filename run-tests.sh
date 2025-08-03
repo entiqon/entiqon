@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-modules=(db)
+modules=(common db)
 
 WITH_COVERAGE=false
 
