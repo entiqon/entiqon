@@ -1,4 +1,4 @@
-// File: driver/styling/contracts.go
+// File: db/driver/styling/contracts.go
 
 // Package styling provides utilities and configuration types for rendering SQL tokens,
 // such as quoting identifiers or formatting table/column aliases in dialect-specific ways.

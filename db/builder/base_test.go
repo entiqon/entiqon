@@ -1,10 +1,12 @@
+// File: db/builder/base_test.go
+
 package builder_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/builder"
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/builder"
+	"github.com/entiqon/db/v2/driver"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -1,12 +1,12 @@
-// File: driver/styling/style_test.go
+// File: db/driver/styling/style_test.go
 
 package styling_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/driver/styling"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/driver/styling"
 )
 
 func TestStyleValidationCoverage(t *testing.T) {

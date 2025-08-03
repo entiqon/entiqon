@@ -1,12 +1,14 @@
+// File: db/internal/build/render/table_test.go
+
 package render_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/render"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/build/render"
+	"github.com/entiqon/db/v2/internal/build/token"
 	"github.com/stretchr/testify/assert"
 )
 

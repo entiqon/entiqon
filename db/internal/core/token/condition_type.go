@@ -1,4 +1,4 @@
-// filename: internal/core/token/condition.go
+// File: db/internal/core/token/condition.go
 
 package token
 

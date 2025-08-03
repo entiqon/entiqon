@@ -1,18 +1,12 @@
-/**
- * @Author: Isidro Lopez isidro.lopezg@live.com
- * @Date: 2025-05-24 10:40:43
- * @LastEditors: Isidro Lopez isidro.lopezg@live.com
- * @LastEditTime: 2025-08-02 18:24:09
- * @FilePath: db/builder/delete_test.go
- * @Description: 这是默认设置,可以在设置》工具》File Description中进行配置
- */
+// File: db/builder/delete_test.go
+
 package builder
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

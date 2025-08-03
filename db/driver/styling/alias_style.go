@@ -1,4 +1,4 @@
-// File: internal/driver/alias_style.go
+// File: db/driver/alias_style.go
 
 package styling
 

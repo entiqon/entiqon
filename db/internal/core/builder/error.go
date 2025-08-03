@@ -1,3 +1,5 @@
+// File: db/internal/builder/error.go
+
 package builder
 
 type Error struct {

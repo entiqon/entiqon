@@ -1,12 +1,14 @@
+// File: db/builder/insert_test.go
+
 package builder_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/entiqon/db/builder"
-	driver2 "github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/v2/builder"
+	driver2 "github.com/entiqon/db/v2/driver"
+	"github.com/entiqon/db/v2/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

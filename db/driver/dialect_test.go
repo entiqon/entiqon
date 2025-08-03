@@ -1,9 +1,11 @@
+// File: db/driver/dialect_test.go
+
 package driver_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/driver"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,3 +1,5 @@
+// File: db/internal/builder/contract/renderable.go
+
 // Package contract defines core interfaces and types for Entiqon tokens,
 // including rendering and error-handling abstractions. These interfaces live
 // in the “contracts” layer to decouple token implementations from dialects

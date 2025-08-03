@@ -1,3 +1,5 @@
+// File: db/internal/test/dialect.go
+
 package test
 
 // TestDialect is a mock dialect that escapes identifiers using double quotes,

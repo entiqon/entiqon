@@ -1,3 +1,5 @@
+// File: db/internal/core/token/field.go
+
 package token
 
 // FieldToken represents a column or expression used in SQL statements.

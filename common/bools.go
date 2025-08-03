@@ -1,4 +1,4 @@
-// file: common/bools.go
+// File: common/bools.go
 
 // Package common provides shared utility functions used across the Entiqon project.
 package common

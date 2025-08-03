@@ -1,9 +1,11 @@
+// File: db/builder/upsert_test.go
+
 package builder
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/driver"
 	"github.com/stretchr/testify/suite"
 )
 

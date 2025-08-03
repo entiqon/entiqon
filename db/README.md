@@ -14,7 +14,7 @@ Entiqon is a modular SQL query engine for Go focused on:
 ## 🚀 Quick Start
 
 ```bash
-go get github.com/entiqon/db
+go get github.com/entiqon/db/v2
 ```
 
 ```go

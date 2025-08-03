@@ -1,11 +1,11 @@
-// File: internal/build/common/parser_test.go
+// File: db/internal/build/token/column_factory_test.go
 
 package token_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/v2/internal/build/token"
 	"github.com/stretchr/testify/assert"
 )
 

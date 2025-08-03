@@ -1,9 +1,9 @@
-// filename: internal/builder/bind/param_binder.go
+// File: db/internal/builder/bind/param_binder.go
 
 package bind
 
 import (
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/v2/driver"
 )
 
 // ParamBinder is a utility that manages positional SQL placeholder generation
