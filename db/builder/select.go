@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	token3 "github.com/entiqon/db/internal/build/token"
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/entiqon/db/driver"
+	token3 "github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/entiqon/db/internal/core/builder"
+	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
+	core "github.com/entiqon/entiqon/db/internal/core/errors"
+	token2 "github.com/entiqon/entiqon/db/internal/core/token"
 )
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.

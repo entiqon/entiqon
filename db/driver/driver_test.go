@@ -5,8 +5,8 @@ package driver_test
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/driver/styling"
+	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/driver/styling"
 	"github.com/stretchr/testify/suite"
 )
 

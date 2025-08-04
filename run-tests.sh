@@ -50,39 +50,16 @@ if $OPEN_COVERAGE; then
   fi
 fi
 
-run_tests_module() {
-  local mod=$1
-  if $WITH_COVERAGE; then
-    local covfile="../coverage_${mod}.out"
-    echo "Running tests with coverage in $mod"
-    cd "$mod"
-    go test -coverprofile="$covfile" -covermode=atomic ./...
-    cd ..
-  else
-    echo "Running tests in $mod"
-    cd "$mod"
-    go test ./...
-    cd ..
-  fi
-}
-
-MODULES=(db common)
-COVERAGE_FILES=()
-
-for mod in "${MODULES[@]}"; do
-  run_tests_module "$mod"
-  if $WITH_COVERAGE; then
-    COVERAGE_FILES+=("coverage_${mod}.out")
-  fi
-done
+if $WITH_COVERAGE; then
+  echo "Running tests with coverage across all packages"
+  go test -coverprofile=coverage.out -covermode=atomic ./...
+else
+  echo "Running tests normally across all packages"
+  go test ./...
+fi
 
 if $WITH_COVERAGE; then
-  echo "Merging coverage reports..."
-
-  # Merge coverage files, skip header lines after first
-  awk 'FNR==1 && NR!=1 {next} {print}' "${COVERAGE_FILES[@]}" > coverage.out
-
-  echo "Combined coverage report saved as coverage.out"
+  echo "Coverage report saved as coverage.out"
   echo "Run 'go tool cover -html=coverage.out' to view it"
 
   if $OPEN_COVERAGE; then

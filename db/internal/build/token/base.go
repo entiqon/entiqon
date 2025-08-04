@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	contract2 "github.com/entiqon/db/internal/core/contract"
+	contract2 "github.com/entiqon/entiqon/db/internal/core/contract"
 )
 
 // BaseToken provides a normalized representation of a raw SQL-like expression,

@@ -5,8 +5,8 @@ package bind_test
 import (
 	"testing"
 
-	driver2 "github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder/bind"
+	driver2 "github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
 	"github.com/stretchr/testify/suite"
 )
 

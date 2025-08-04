@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/driver"
 )
 
 // Condition represents a simple SQL condition like "column = value" or "column IN (?)".

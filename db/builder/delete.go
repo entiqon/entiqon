@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/core/builder"
-	"github.com/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/internal/core/builder"
+	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
+	core "github.com/entiqon/entiqon/db/internal/core/errors"
+	token2 "github.com/entiqon/entiqon/db/internal/core/token"
 )
 
 // DeleteBuilder builds a SQL DELETE statement with optional WHERE and LIMIT clauses.

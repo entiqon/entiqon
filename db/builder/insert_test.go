@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/entiqon/db/builder"
-	driver2 "github.com/entiqon/db/driver"
-	token2 "github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/entiqon/db/builder"
+	driver2 "github.com/entiqon/entiqon/db/driver"
+	token2 "github.com/entiqon/entiqon/db/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -2,9 +2,7 @@
 
 package driver
 
-import (
-	"strings"
-)
+import "strings"
 
 // ResolveDialect returns a predefined dialect instance based on the input name.
 //

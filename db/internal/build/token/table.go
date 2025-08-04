@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/driver"
 )
 
 // Table represents a SQL table reference, typically used in FROM, INTO, or JOIN clauses.

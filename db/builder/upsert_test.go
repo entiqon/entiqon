@@ -5,7 +5,7 @@ package builder
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/driver"
 	"github.com/stretchr/testify/suite"
 )
 

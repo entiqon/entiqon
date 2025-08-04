@@ -5,7 +5,7 @@ package common_test
 import (
 	"testing"
 
-	"github.com/entiqon/common"
+	"github.com/entiqon/entiqon/common"
 )
 
 func TestBoolToStr(t *testing.T) {

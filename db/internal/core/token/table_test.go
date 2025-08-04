@@ -6,7 +6,7 @@ package token_test
 import (
 	"testing"
 
-	"github.com/entiqon/db/internal/core/token"
+	"github.com/entiqon/entiqon/db/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

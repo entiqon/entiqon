@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/entiqon/db/driver"
+	driver2 "github.com/entiqon/entiqon/db/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.
