@@ -20,6 +20,10 @@ extra:
 
 nav:
   - 🏠 Home: index.md
+  - 📦 Packages:
+      - Overview: packages/overview.md
+      - Common: packages/common.md  # or existing common docs
+      - Database: packages/db.md    # or another existing file describing the db package
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
       - TokenSystem: docs/dev/build/token.md

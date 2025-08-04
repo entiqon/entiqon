@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.0] - 2025-08-02
+
+### Added
+
+- Modularization of `db` package as a standalone Go module: `github.com/entiqon/db`.
+- Updated import paths from `github.com/entiqon/entiqon/...` to `github.com/entiqon/db/...`.
+- Added initial test coverage and CI integration for `db` module.
+- Future modules like `core` will be added modularly following this pattern.
+- Icon and documentation support for:
+  - Category 1: **Entiqon Sharicon** (orange shared folder)
+  - Category 2: **Entiqon Corecon** (green gear)
+  - Category 3: **Entiqon Datacon** (green DB cylinder)
+  - Category 4: **Entiqon Commicon** (teal antenna)
+  - Category 5: **Entiqon Toolicon** (red wrench & hammer)
+
+**Note:** This is a breaking change; downstream users must update import paths accordingly.
+
+**Codename:** Atlas
+
 ## [v1.7.0] - 2025-06-09
 
 - refactor(token): rename HasError → IsErrored(), SetErrorWith → SetError()
