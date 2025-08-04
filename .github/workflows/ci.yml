@@ -26,10 +26,13 @@ jobs:
         with:
           go-version: stable
 
+      - name: Sync go.work workspace
+        run: go work sync
+
       - name: Run tests with coverage
         run: |
-          go test ./... -coverprofile=coverage.out
-          test -s coverage.out
+          chmod +x ./run-tests.sh
+          ./run-tests.sh --with-coverage
 
       - name: Show coverage %
         run: |
