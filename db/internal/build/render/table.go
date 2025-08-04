@@ -5,8 +5,8 @@ package render
 import (
 	"fmt"
 
-	"github.com/entiqon/db/driver"
-	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/internal/build/token"
 )
 
 // Table renders a dialect-safe SQL representation of a table reference,

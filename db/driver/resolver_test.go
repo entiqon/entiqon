@@ -5,7 +5,7 @@ package driver_test
 import (
 	"testing"
 
-	"github.com/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/driver"
 	"github.com/stretchr/testify/assert"
 )
 

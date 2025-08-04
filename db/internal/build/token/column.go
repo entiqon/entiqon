@@ -8,8 +8,8 @@ package token
 import (
 	"fmt"
 
-	"github.com/entiqon/db/driver"
-	contract2 "github.com/entiqon/db/internal/core/contract"
+	"github.com/entiqon/entiqon/db/driver"
+	contract2 "github.com/entiqon/entiqon/db/internal/core/contract"
 )
 
 // Column represents a SQL column reference used within SELECT, WHERE, ORDER BY, and similar clauses.

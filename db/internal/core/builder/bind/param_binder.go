@@ -2,7 +2,7 @@
 
 package bind
 
-import "github.com/entiqon/db/driver"
+import "github.com/entiqon/entiqon/db/driver"
 
 // ParamBinder is a utility that manages positional SQL placeholder generation
 // and the corresponding argument list for dialect-aware query building.

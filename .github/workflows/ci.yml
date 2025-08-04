@@ -2,11 +2,11 @@ name: Test & Coverage
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
   test:
@@ -17,7 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # full history so Codecov can compare commits
           fetch-depth: 0
           fetch-tags: true
 
@@ -25,9 +24,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-
-      - name: Sync go.work workspace
-        run: go work sync
 
       - name: Run tests with coverage
         run: |

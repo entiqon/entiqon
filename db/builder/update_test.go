@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	core "github.com/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/db/internal/core/token"
+	core "github.com/entiqon/entiqon/db/internal/core/errors"
+	token2 "github.com/entiqon/entiqon/db/internal/core/token"
 	"github.com/stretchr/testify/suite"
 )
 

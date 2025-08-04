@@ -5,7 +5,7 @@
 
 package driver
 
-import "github.com/entiqon/db/driver/styling"
+import "github.com/entiqon/entiqon/db/driver/styling"
 
 // Dialect defines the behavior of a SQL dialect.
 // Implementations may embed BaseDialect and override specific methods as needed.
