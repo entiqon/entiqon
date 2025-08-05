@@ -20,32 +20,29 @@ extra:
 
 nav:
   - 🏠 Home: index.md
+
   - 📦 Packages:
       - Overview: packages/overview.md
-      - Common: packages/common.md  # or existing common docs
-      - Database: packages/db.md    # or another existing file describing the db package
+      - Common: packages/common/overview.md
+      - Database: packages/database.md
+
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
       - TokenSystem: docs/dev/build/token.md
       - Infrastructure: documentation-infra.md
       - Dialect: dev/driver/dialect.md
       - Styling: dev/driver/styling.md
+
   - 🧱 Builders:
       - SelectBuilder: dev/builder/select_builder.md
       - InsertBuilder: dev/builder/insert_builder.md
       - UpdateBuilder: dev/builder/update_builder.md
       - DeleteBuilder: dev/builder/delete_builder.md
       - UpsertBuilder: dev/builder/upsert_builder.md
+
   - 📦 Releases:
       - Overview: releases/index.md
-      - v1.7.0: releases/release-notes-v1.7.0.md
-      - v1.6.0: releases/release-notes-v1.6.0.md
-      - v1.5.0: releases/release-notes-v1.5.0.md
-      - v1.4.0: releases/release-notes-v1.4.0.md
-      - v1.3.0: releases/release-notes-v1.3.0.md
-      - v1.2.0: releases/release-notes-v1.2.0.md
-      - v1.1.0: releases/release-notes-v1.1.0.md
-      - v1.0.0: releases/release-notes-v1.0.0.md
+      - Lastest: releases/release-notes-v1.7.0.md
       - Full Changelog: CHANGELOG.md
 
 markdown_extensions:

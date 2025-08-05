@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.2] - 2025-08-04
+
+### Added
+
+- Deployment automation script (`deploy-docs-container.sh`) with dynamic CLI flags to specify Docker image name,
+  container name, and port mapping for flexible documentation site deployment.
+- Dockerfile improvements for the documentation site, including symlink dereferencing and cleaning steps to prevent
+  build errors and ensure reliable image builds.
+- Updated documentation package listing, converting it into a Markdown table with icon images and checkbox indicators
+  for guides availability, enhancing visual clarity and usability.
+
 ## [v1.8.0] - 2025-08-02
 
 ### Added
@@ -14,11 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added initial test coverage and CI integration for `db` module.
 - Future modules like `core` will be added modularly following this pattern.
 - Icon and documentation support for:
-  - Category 1: **Entiqon Sharicon** (orange shared folder)
-  - Category 2: **Entiqon Corecon** (green gear)
-  - Category 3: **Entiqon Datacon** (green DB cylinder)
-  - Category 4: **Entiqon Commicon** (teal antenna)
-  - Category 5: **Entiqon Toolicon** (red wrench & hammer)
+    - Category 1: **Entiqon Sharicon** (orange shared folder)
+    - Category 2: **Entiqon Corecon** (green gear)
+    - Category 3: **Entiqon Datacon** (green DB cylinder)
+    - Category 4: **Entiqon Commicon** (teal antenna)
+    - Category 5: **Entiqon Toolicon** (red wrench & hammer)
 
 **Note:** This is a breaking change; downstream users must update import paths accordingly.
 
@@ -37,15 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 **Codename:** Forge
 
 ---
+
 ## [v1.6.0] - 2025-05-25
 
 ### Added
+
 - Support for aliasable SQL expressions with optional table qualification
 - Introduces reusable token abstraction for handling elements like `table.column AS alias`
 - Provides helper methods: `Raw()`, `String()`, `WithTable()`, `IsValid()`, etc.
 
 ### Notes
-This version enables standardized handling of SQL identifiers across the builder, including aliases and table scoping. It's the first practical application of the previously introduced `AliasableToken`.
+
+This version enables standardized handling of SQL identifiers across the builder, including aliases and table scoping.
+It's the first practical application of the previously introduced `AliasableToken`.
 
 **Codename:** Keystone
 
@@ -56,16 +71,19 @@ This version enables standardized handling of SQL identifiers across the builder
 ## [v1.5.0] – 2025-05-24
 
 ### ✨ Features
+
 - `StageToken`: Standardized clause tagging for error validation
 - Public Dialect API: Enables custom dialect implementations
 - Enhanced builder error tagging with `StageToken`
 
 ### 🛠️ Refactors
+
 - Normalized ParamBinder and Condition to use injected Dialect
 - All builders updated to unified token/dialect handling strategy
 - Centralized placeholder resolution across WHERE, SET, VALUES
 
 ### ✅ Test Coverage
+
 - builder: 94.4%
 - driver: 100.0%
 - core/builder: 95.5%
@@ -73,6 +91,7 @@ This version enables standardized handling of SQL identifiers across the builder
 - error/token: >75%
 
 ### 📄 Docs
+
 - Updated all builder guides
 - Documented new dialect interface and StageToken strategy
 
@@ -81,14 +100,17 @@ This version enables standardized handling of SQL identifiers across the builder
 ## [v1.4.0] - 2025-05-22
 
 ### ✨ Added
+
 - `NewCondition`: semantic-aware condition constructor with support for:
-  - Inline and placeholder syntax (e.g., `"status = active"`, `"status = ?"` + value)
-  - Type inference (`int`, `bool`, `float64`, `string`)
-  - Operator support: `=`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`, `BETWEEN`, `LIKE`, `NOT LIKE`
+    - Inline and placeholder syntax (e.g., `"status = active"`, `"status = ?"` + value)
+    - Type inference (`int`, `bool`, `float64`, `string`)
+    - Operator support: `=`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`, `BETWEEN`, `LIKE`, `NOT LIKE`
 - `ParamBinder`: unified argument binding for dialects (`?`, `$N`, `:field`)
-- `condition_helpers.go`: includes `InferLiteralType`, `ParsePlaceholderPattern`, `AllSameType`, and `ContainsUnboundPlaceholder`
+- `condition_helpers.go`: includes `InferLiteralType`, `ParsePlaceholderPattern`, `AllSameType`, and
+  `ContainsUnboundPlaceholder`
 
 ### 🧱 Builders Implemented
+
 - `SelectBuilder`
 - `InsertBuilder`
 - `UpdateBuilder`
@@ -96,17 +118,19 @@ This version enables standardized handling of SQL identifiers across the builder
 - `UpsertBuilder` (with `ON CONFLICT`, `DO UPDATE`, and `DO NOTHING`)
 
 ### ✅ Validation
+
 - All builders enforce:
-  - Table presence
-  - Column count/value alignment
-  - Alias rejection in INSERT/UPSERT
-  - Invalid or unsupported condition rejection via `AddStageError(...)`
+    - Table presence
+    - Column count/value alignment
+    - Alias rejection in INSERT/UPSERT
+    - Invalid or unsupported condition rejection via `AddStageError(...)`
 - `UpsertBuilder` supports `RETURNING` only if the dialect allows it (`SupportsReturning()`)
 
 ### 🧪 Test Coverage
+
 - Achieved **100% coverage** on:
-  - `select.go`, `insert.go`, `update.go`, `delete.go`, `upsert.go`
-  - `condition_renderer.go`, `condition_helpers.go`, `param_binder.go`
+    - `select.go`, `insert.go`, `update.go`, `delete.go`, `upsert.go`
+    - `condition_renderer.go`, `condition_helpers.go`, `param_binder.go`
 
 ---
 
@@ -124,9 +148,9 @@ This version enables standardized handling of SQL identifiers across the builder
 ### 🧪 Coverage
 
 - Achieved **100.0%** test coverage across all:
-  - Builder methods
-  - Token resolvers
-  - Dialect interfaces (base, postgres, resolver)
+    - Builder methods
+    - Token resolvers
+    - Dialect interfaces (base, postgres, resolver)
 - Deprecated methods (e.g., `WithDialect(...)`) remain tested until removal
 - All helper methods, even unused, are now covered and documented
 
@@ -161,7 +185,8 @@ This version enables standardized handling of SQL identifiers across the builder
 
 ---
 
-Entiqon is now fully documented and auto-published, with hardened query building and consistent structure across all SQL operations.
+Entiqon is now fully documented and auto-published, with hardened query building and consistent structure across all SQL
+operations.
 
 ---
 
@@ -172,8 +197,8 @@ Entiqon is now fully documented and auto-published, with hardened query building
 * Introduced dialect-aware escaping via `WithDialect(...)` in all builders
 * Implemented `PostgresEngine` with support for:
 
-  * Escaping table and column identifiers
-  * Escaping conflict and returning fields in UPSERT
+    * Escaping table and column identifiers
+    * Escaping conflict and returning fields in UPSERT
 * Exposed `Dialect Engine` interface for future extensibility
 
 ### 🔧 Refactored
@@ -187,13 +212,14 @@ Entiqon is now fully documented and auto-published, with hardened query building
 
 * Updated README with:
 
-  * Dialect usage example
-  * New “Dialect Support” section
-  * Go module version badge
+    * Dialect usage example
+    * New “Dialect Support” section
+    * Go module version badge
 
 ---
 
-Entiqon now provides a consistent, safe foundation for dialect-specific SQL generation — ready for PostgreSQL, and future engines.
+Entiqon now provides a consistent, safe foundation for dialect-specific SQL generation — ready for PostgreSQL, and
+future engines.
 
 ---
 

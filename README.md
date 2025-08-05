@@ -14,7 +14,7 @@
 
 > ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems.
 
-## Packages
+## 📦 Packages
 
 - <a href="https://github.com/entiqon/entiqon/blob/main/common"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" align="left" height="24" width="24"> Common</a>: Shared utilities and helper functions used across multiple modules. Installation: `go get github.com/entiqon/common`
 - <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">Database</a>: Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`

@@ -1,5 +1,3 @@
-<p align="center"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_black.png?raw=true" align="center" height="48" /></p>
-
 <h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true" align="center" height="64" width="64"> Common Module</h1>
 
 ## 🌱 Overview
@@ -13,13 +11,13 @@ It enables code reuse, collaboration, and shared resource management for multipl
 ## 🚀 Quick Start
 
 ```bash
-go get github.com/entiqon/common/v2
+go get github.com/entiqon/entiqon
 ```
 
 Example usage:
 
 ```go
-import "github.com/entiqon/common/v2"
+import "github.com/entiqon/entiqon/common"
 
 func example() {
     status := common.BoolToStr(true, "enabled", "disabled")
@@ -31,10 +29,13 @@ func example() {
 
 ## 📘 Developer Guides
 
-Guides and best practices for contributing to the Sharicon package will be added soon.
+### 📚 Common
+
+- [ProcessStage](guides/ProcessStage_Developer_Guide.md) — Dialects, StageToken, ParamBinder integration
+
 
 ---
 
 ## 📄 License
 
-[MIT](../LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../../../LICENSE) — © Isidro Lopez / Entiqon Project
