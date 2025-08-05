@@ -2,3 +2,5 @@ site/
 __pycache__/
 *.pyc
 .git/
+docs/releases
+docs/CHANGELOG.md

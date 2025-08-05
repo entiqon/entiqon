@@ -1,18 +1,18 @@
-# use a pinned version for consistency
 FROM squidfunk/mkdocs-material:9.4.7
 
 WORKDIR /project
 
 COPY mkdocs.yml requirements.txt ./
+RUN echo "Config files copied"
 
-# Stage documentation content and maintain folder structure
-RUN mkdir -p docs-site/dev/builder docs-site/dev/core docs-site/releases
+RUN mkdir -p docs-site/dev/builder docs-site/dev/core docs-site/releases && echo "Docs directories created"
 
-COPY docs/documentation-infra.md docs-site/
-COPY docs/index.md docs-site/index.md
+# Copy docs folder excluding docs/releases (excluded by .dockerignore)
+COPY docs docs-site/
+
 COPY CHANGELOG.md docs-site/
-COPY docs/dev/ docs-site/dev/
 COPY releases/ docs-site/releases/
+RUN echo "Documentation content copied"
 
 EXPOSE 8000
 

@@ -1,11 +1,28 @@
-# 📚 Entiqon Builder Documentation Index
+# 📚 Entiqon Documentation
 
 Welcome to the Entiqon SQL Builder documentation. This suite includes validated, dialect-aware builders with full test
 coverage and modular design.
 
 ---
 
-## 📘 Core Builder Guides
+## 📦 Packages
+
+| Icon                                                                                                                                          | Package                                   | Description                           |                                                Guides                                                 |
+|-----------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|---------------------------------------|:-----------------------------------------------------------------------------------------------------:|
+| <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" height="32" width="32" alt="Common Icon" />  | [**Common**](packages/common/overview.md) | Shared utilities and helper functions | <img src="https://img.icons8.com/ios-glyphs/24/000000/checked-checkbox.png" width="20" height="20" /> |
+| <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" height="32" width="32" alt="Database Icon" /> | [**Database**](packages/database.md)      | Modular SQL Query builder             | <img src="https://img.icons8.com/ios-glyphs/24/000000/checked-checkbox.png" width="20" height="20" /> |
+
+---
+
+## 📘 Developer Guides
+
+### 📚 Common
+
+- [ProcessStage](packages/common/guides/ProcessStage_Developer_Guide.md) – How to use and extend the ProcessStage type
+  for
+  stage-aware error handling and workflow tracking.
+
+### 📚 Database
 
 - [SelectBuilder](dev/builder/select_builder.md) – Fluent SELECT queries with pagination, WHERE logic, and dialect
   quoting.
@@ -19,7 +36,8 @@ coverage and modular design.
 ## ⚙️ Architecture & Shared Concepts
 
 - [Dialect Exposure Guide](dev/driver/dialect.md) *(WIP)* – Describes how custom dialects integrate with builders.
-- [Styling Guide](dev/driver/styling.md) – Details `QuoteStyle`, `AliasStyle`, and `PlaceholderStyle` configuration and behavior.
+- [Styling Guide](dev/driver/styling.md) – Details `QuoteStyle`, `AliasStyle`, and `PlaceholderStyle` configuration and
+  behavior.
 - [Token System Guide](dev/build/token.md) – Covers how tokens like `Column` are parsed, validated, and consumed by
   builders.
 - [StageToken Usage](dev/builder/builder_guide.md#stagetoken) – Explains clause tagging and error traceability.
@@ -28,6 +46,7 @@ coverage and modular design.
 ---
 
 ## 📦 Releases
+
 - [Overview](./releases/index.md)
 - [v1.7.0 - Forge](./releases/release-notes-v1.7.0.md)
 - [Full Changelog](./CHANGELOG.md)
