@@ -1,0 +1,81 @@
+#!/bin/bash
+
+START_TAG=$1
+END_TAG=$2
+OUTPUT_FILE=$3
+
+if [ -z "$START_TAG" ] || [ -z "$END_TAG" ]; then
+  echo "Usage: $0 <start_tag> <end_tag> [output_file]"
+  exit 1
+fi
+
+if [ -n "$OUTPUT_FILE" ]; then
+  TEMP_FILE=$(mktemp)
+  exec > "$TEMP_FILE"
+fi
+
+echo "## [${END_TAG}] - Upcoming"
+echo
+echo "### Patch releases included:"
+echo
+
+all_tags=($(git tag --sort=creatordate))
+
+# Reverse tags: newest first
+reversed_tags=()
+for (( idx=${#all_tags[@]}-1 ; idx>=0 ; idx-- )) ; do
+  reversed_tags+=("${all_tags[idx]}")
+done
+
+start_index=-1
+end_index=-1
+
+# Find indices of start and end tags
+for i in "${!reversed_tags[@]}"; do
+  if [[ "${reversed_tags[$i]}" == "$START_TAG" ]]; then
+    start_index=$i
+  fi
+  if [[ "${reversed_tags[$i]}" == "$END_TAG" ]]; then
+    end_index=$i
+  fi
+done
+
+if [[ $start_index -eq -1 || $end_index -eq -1 ]]; then
+  echo "Error: Could not find start or end tag."
+  exit 1
+fi
+
+# Ensure ascending indices for iteration
+if (( start_index > end_index )); then
+  tmp=$start_index
+  start_index=$end_index
+  end_index=$tmp
+fi
+
+for ((i=start_index; i<=end_index; i++)); do
+  tag="${reversed_tags[$i]}"
+  echo "- [$tag](https://github.com/entiqon/entiqon/releases/tag/$tag)"
+
+  if (( i == start_index )); then
+    # For newest tag, show commits between HEAD and this tag (unreleased commits)
+    commits=$(git log --pretty=format:"  - %h %s (%an)" HEAD ^$tag)
+  else
+    # For other tags, show commits between this tag and the previous (newer) tag
+    prev_tag="${reversed_tags[$((i-1))]}"
+    commits=$(git log --pretty=format:"  - %h %s (%an)" $tag ^$prev_tag)
+  fi
+
+  if [[ -z "$(echo "$commits" | tr -d '[:space:]')" ]]; then
+    echo "  - (no commits)"
+  else
+    echo "$commits"
+  fi
+
+  echo
+done
+
+if [ -n "$OUTPUT_FILE" ]; then
+  exec >&2
+  echo "Changelog written to $OUTPUT_FILE"
+  mv "$TEMP_FILE" "$OUTPUT_FILE"
+fi

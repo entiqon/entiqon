@@ -5,16 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.8.2] - 2025-08-04
+## [v1.9] - Upcoming
 
-### Added
+### Patch releases included:
 
-- Deployment automation script (`deploy-docs-container.sh`) with dynamic CLI flags to specify Docker image name,
-  container name, and port mapping for flexible documentation site deployment.
-- Dockerfile improvements for the documentation site, including symlink dereferencing and cleaning steps to prevent
-  build errors and ensure reliable image builds.
-- Updated documentation package listing, converting it into a Markdown table with icon images and checkbox indicators
-  for guides availability, enhancing visual clarity and usability.
+- [v1.8.2](https://github.com/entiqon/entiqon/releases/tag/v1.8.2)
+  - 3a2998d feat(common): add generic object utilities and enhanced error types (Isidro Lopez)
+  - 39dc4c6 feat(project): add ProcessStageError, ProcessStage guide, deployment automation, and docs table update (Isidro Lopez)
+
+- [v1.8.1](https://github.com/entiqon/entiqon/releases/tag/v1.8.1)
+  - 0b32dbd feat(entiqon): return to monorepo technique (Isidro Lopez)
 
 ## [v1.8.0] - 2025-08-02
 
