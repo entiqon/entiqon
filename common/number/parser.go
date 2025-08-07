@@ -5,6 +5,7 @@ package number
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -13,26 +14,35 @@ import (
 // The input value can be any of the following types:
 //   - int, int8, int16, int32, int64
 //   - uint, uint8, uint16, uint32, uint64 (uint64 values are checked for overflow)
-//   - float32, float64 (fractional parts are truncated)
-//   - string (parsed using strconv.Atoi)
+//   - float32, float64 (fractional parts are checked to be close to integers within a small tolerance if round=false,
+//     or always rounded to nearest int if round=true)
+//   - string (parsed using strconv.Atoi, or strconv.ParseFloat with same rounding rules)
 //   - bool (false = 0, true = 1)
 //
-// If the input is a string, it will be parsed as a base-10 integer.
+// If the input is a string, it will be parsed as a base-10 integer if possible;
+// otherwise parsed as float with rounding behavior controlled by round flag.
 // If the input is a numeric type, it will be converted to int.
 // If the input is a bool, false returns 0, true returns 1.
 // If the input type is unsupported or conversion fails, an error is returned.
 //
-// Note: Conversion from float will truncate the fractional part without rounding.
-//
-// Examples:
-//
-//	ParseFrom("123") => 123, nil
-//	ParseFrom(123.9) => 123, nil
-//	ParseFrom(true) => 1, nil
-//	ParseFrom(false) => 0, nil
+// Parameters:
+//   - value: the input value to parse (any supported type)
+//   - round: if true, always round floats to nearest int;
+//     if false, reject floats not within 1e-9 tolerance of an integer.
 //
 // Returns the parsed integer or an error if parsing/conversion is not possible.
-func ParseFrom(value interface{}) (int, error) {
+func ParseFrom(value interface{}, round bool) (int, error) {
+	const epsilon = 1e-9
+
+	checkFloat := func(f float64) (int, error) {
+		if !round {
+			if diff := math.Abs(f - math.Round(f)); diff > epsilon {
+				return 0, fmt.Errorf("float value %v is not integer within tolerance", f)
+			}
+		}
+		return int(math.Round(f)), nil
+	}
+
 	switch v := value.(type) {
 	case int:
 		return v, nil
@@ -58,15 +68,19 @@ func ParseFrom(value interface{}) (int, error) {
 		}
 		return int(v), nil
 	case float32:
-		return int(v), nil
+		return checkFloat(float64(v))
 	case float64:
-		return int(v), nil
+		return checkFloat(v)
 	case string:
 		i, err := strconv.Atoi(v)
-		if err != nil {
-			return 0, fmt.Errorf("failed to parse string to int: %w", err)
+		if err == nil {
+			return i, nil
 		}
-		return i, nil
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse string to number: %w", err)
+		}
+		return checkFloat(f)
 	case bool:
 		if v {
 			return 1, nil
