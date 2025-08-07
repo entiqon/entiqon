@@ -10,3 +10,7 @@ We are pleased to release version **v1.8.2**, which brings significant improveme
 - **Documentation Improvements** include a revamped package listing for better clarity and visual appeal.
 
 This update aims to boost developer productivity and make your project easier to maintain and extend.
+
+---
+
+© 2025 Entiqon Project — Inspired by Mythology & Legends

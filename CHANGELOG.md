@@ -5,13 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.9] - Upcoming
+## [v1.9.0] - Upcoming
 
 ### Patch releases included:
 
+- On board
+  - 7c6982e feat(common/number): enhance ParseFrom with float string parsing and rounding flag (Isidro Lopez)
+  - 4b204c3 feat(number): extend ParseFrom to support bool values (Isidro Lopez)
+
+- [v1.8.3](https://github.com/entiqon/entiqon/releases/tag/v1.8.3)
+  - 55d24c3 feat(common): add generic object utilities and enhanced error types (Isidro Lopez)
+
 - [v1.8.2](https://github.com/entiqon/entiqon/releases/tag/v1.8.2)
-  - 3a2998d feat(common): add generic object utilities and enhanced error types (Isidro Lopez)
-  - 39dc4c6 feat(project): add ProcessStageError, ProcessStage guide, deployment automation, and docs table update (Isidro Lopez)
+  - 4cd3d28 feat(project): add ProcessStageError, ProcessStage guide, deployment automation, and docs table update (Isidro Lopez)
 
 - [v1.8.1](https://github.com/entiqon/entiqon/releases/tag/v1.8.1)
   - 0b32dbd feat(entiqon): return to monorepo technique (Isidro Lopez)
