@@ -5,10 +5,10 @@ package number_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/common/number"
+	"github.com/entiqon/entiqon/common/math/number"
 )
 
-func TestParseFrom(t *testing.T) {
+func TestNumberParseFrom(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     interface{}
@@ -34,35 +34,35 @@ func TestParseFrom(t *testing.T) {
 		{"uint64Overflow", uint64(1 << 63), false, 0, true},
 
 		// Integer types with round=true (should behave the same)
-		{"int_roundTrue", int(42), true, 42, false},
-		{"int8_roundTrue", int8(-12), true, -12, false},
-		{"int16_roundTrue", int16(1000), true, 1000, false},
-		{"int32_roundTrue", int32(123456), true, 123456, false},
-		{"int64_roundTrue", int64(-987654321), true, -987654321, false},
+		{"intRoundTrue", int(42), true, 42, false},
+		{"int8RoundTrue", int8(-12), true, -12, false},
+		{"int16RoundTrue", int16(1000), true, 1000, false},
+		{"int32RoundTrue", int32(123456), true, 123456, false},
+		{"int64RoundTrue", int64(-987654321), true, -987654321, false},
 
-		{"uint_roundTrue", uint(42), true, 42, false},
-		{"uint8_roundTrue", uint8(255), true, 255, false},
-		{"uint16_roundTrue", uint16(65535), true, 65535, false},
-		{"uint32_roundTrue", uint32(4294967295), true, 4294967295, false},
-		{"uint64Ranged_roundTrue", uint64(1 << 30), true, 1 << 30, false},
+		{"uintRoundTrue", uint(42), true, 42, false},
+		{"uint8RoundTrue", uint8(255), true, 255, false},
+		{"uint16RoundTrue", uint16(65535), true, 65535, false},
+		{"uint32RoundTrue", uint32(4294967295), true, 4294967295, false},
+		{"uint64RangedRoundTrue", uint64(1 << 30), true, 1 << 30, false},
 
-		{"uint64Overflow_roundTrue", uint64(1 << 63), true, 0, true},
+		{"uint64OverflowRoundTrue", uint64(1 << 63), true, 0, true},
 
 		// Bool tests
 		{"boolTrue", true, false, 1, false},
 		{"boolFalse", false, false, 0, false},
-		{"boolTrue_roundTrue", true, true, 1, false},
-		{"boolFalse_roundTrue", false, true, 0, false},
+		{"boolTrueRoundTrue", true, true, 1, false},
+		{"boolFalseRoundTrue", false, true, 0, false},
 
 		// String integers
 		{"stringInt", "12345", false, 12345, false},
 		{"stringIntNegative", "-42", false, -42, false},
-		{"stringInt_roundTrue", "12345", true, 12345, false},
-		{"stringIntNegative_roundTrue", "-42", true, -42, false},
+		{"stringIntRoundTrue", "12345", true, 12345, false},
+		{"stringIntNegativeRoundTrue", "-42", true, -42, false},
 
 		// Invalid string
 		{"stringInvalid", "12abc", false, 0, true},
-		{"stringInvalid_roundTrue", "12abc", true, 0, true},
+		{"stringInvalidRoundTrue", "12abc", true, 0, true},
 
 		// Float strict (round=false)
 		{"float64ExactIntStrict", 42.0, false, 42, false},
@@ -90,7 +90,7 @@ func TestParseFrom(t *testing.T) {
 
 		// Unsupported type
 		{"unsupportedType", struct{}{}, false, 0, true},
-		{"unsupportedType_roundTrue", struct{}{}, true, 0, true},
+		{"unsupportedTypeRoundTrue", struct{}{}, true, 0, true},
 	}
 
 	for _, tt := range tests {
