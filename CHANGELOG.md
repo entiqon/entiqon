@@ -5,22 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.9.0] - Upcoming
+## [v1.8.5](https://github.com/entiqon/entiqon/releases/tag/v1.8.5) - 2025-08-07
 
-### Patch releases included:
+### Added
 
-- On board
-  - 7c6982e feat(common/number): enhance ParseFrom with float string parsing and rounding flag (Isidro Lopez)
-  - 4b204c3 feat(number): extend ParseFrom to support bool values (Isidro Lopez)
+- 09e6632 feat(common/math): add float and decimal parsing packages and update documentation (Isidro Lopez)
 
-- [v1.8.3](https://github.com/entiqon/entiqon/releases/tag/v1.8.3)
-  - 55d24c3 feat(common): add generic object utilities and enhanced error types (Isidro Lopez)
+## [v1.8.4](https://github.com/entiqon/entiqon/releases/tag/v1.8.4) - 2025-08-07
 
-- [v1.8.2](https://github.com/entiqon/entiqon/releases/tag/v1.8.2)
-  - 4cd3d28 feat(project): add ProcessStageError, ProcessStage guide, deployment automation, and docs table update (Isidro Lopez)
+### Added
 
-- [v1.8.1](https://github.com/entiqon/entiqon/releases/tag/v1.8.1)
-  - 0b32dbd feat(entiqon): return to monorepo technique (Isidro Lopez)
+- bb3af79 docs(common/number): add ParseFrom utility details with rounding flag and float string parsing (Isidro
+  Lopez)
+- 7c6982e feat(common/number): enhance ParseFrom with float string parsing and rounding flag (Isidro Lopez)
+- 4b204c3 feat(number): extend ParseFrom to support bool values (Isidro Lopez)
+
+## [v1.8.3](https://github.com/entiqon/entiqon/releases/tag/v1.8.3) - 2025-08-06
+
+### Added
+
+- 55d24c3 feat(common): add generic object utilities and enhanced error types (Isidro Lopez)
+
+## [v1.8.2](https://github.com/entiqon/entiqon/releases/tag/v1.8.2)
+
+### Added
+
+- 4cd3d28 feat(project): add ProcessStageError, ProcessStage guide, deployment automation, and docs table update (
+  Isidro Lopez)
+
+## [v1.8.1](https://github.com/entiqon/entiqon/releases/tag/v1.8.1)
+
+### Added
+
+- 0b32dbd feat(entiqon): return to monorepo technique (Isidro Lopez)
 
 ## [v1.8.0] - 2025-08-02
 

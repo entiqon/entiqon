@@ -41,39 +41,56 @@ func main() {
 
 ---
 
-### 🧩 `common/number`
+### 🧩 `common/math/float`
 
-The **`common/number`** package provides utilities for parsing numeric values flexibly from dynamic input types such as strings, floats, integers, and booleans.
+The **`common/math/float`** package provides utilities for parsing input values into `float64` without rounding.
 
-| Function    | Signature                                                    | Description                                                                                                                                                                                                                                                                                                                    |
-|-------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ParseFrom` | `func ParseFrom(value interface{}, round bool) (int, error)` | Parses an integer from a variety of input types (string, int, float, bool). The `round` flag controls float parsing behavior: if false, floats must be within a small tolerance of an integer; if true, floats are always rounded to the nearest integer. Supports parsing long-form float strings like `"1.000000000000003"`. |
+| Function    | Signature                                            | Description                                                                                                                 |
+|-------------|------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `ParseFrom` | `func ParseFrom(value interface{}) (float64, error)` | Parses various input types (string, numeric, bool) into float64, returning errors on unsupported types or parsing failures. |
 
-#### Example Usage
+---
+
+### 🧩 `common/math/decimal`
+
+The **`common/math/decimal`** package builds upon `common/math/float` to provide decimal rounding utilities.
+
+| Function    | Signature                                                           | Description                                                                                    |
+|-------------|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `ParseFrom` | `func ParseFrom(value interface{}, precision int) (float64, error)` | Parses input and rounds to specified decimal places; if precision < 0, no rounding is applied. |
+
+---
+
+### 🧩 `common/math/number`
+
+The **`common/math/number`** package focuses on integer parsing from flexible input types.
+
+| Function    | Signature                                                    | Description                                                                                                                   |
+|-------------|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `ParseFrom` | `func ParseFrom(value interface{}, round bool) (int, error)` | Parses input into an int, with optional rounding for floats. When round=false, floats must be near integers or parsing fails. |
+
+---
+
+#### Example usage
 
 ```go
 import (
     "fmt"
     
-    "github.com/entiqon/entiqon/common/number"
+    "github.com/entiqon/entiqon/common/math/float"
+    "github.com/entiqon/entiqon/common/math/decimal"
+    "github.com/entiqon/entiqon/common/math/number"
 )
 
 func main() {
-    // Strict mode: reject floats not close enough to integer
-    val, err := number.ParseFrom("1.000000000000003", false)
-    if err != nil {
-        fmt.Println("Error:", err)
-    } else {
-        fmt.Println("Parsed int:", val)
-    }
+    f, err := float.ParseFrom("123.456")
+    fmt.Println(f, err) // 123.456 <nil>
     
-    // Lenient mode: always round floats
-    val2, err := number.ParseFrom("1.5", true)
-    if err != nil {
-        fmt.Println("Error:", err)
-    } else {
-        fmt.Println("Parsed int:", val2) // Outputs 2
-    }
+    d, err := decimal.ParseFrom("123.456789", 3)
+    fmt.Println(d, err) // 123.457 <nil>
+    
+    i, err := number.ParseFrom("123.6", true)
+    fmt.Println(i, err) // 124 <nil>
 }
 ```
 
@@ -82,11 +99,11 @@ func main() {
 The **`common/object`** package provides utilities to manipulate dynamic key-value maps (`map[string]any`) as flexible
 objects.
 
-| Function   | Signature                                                                         | Description                                                                                                                                                      |
-|------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Exists`   | `func Exists(object map[string]any, key string) bool`                             | Checks whether the given key exists in the object.|
-| `GetValue` | `func GetValue[T any](object map[string]any, key string, defaultVal T) T`         | Returns the value for the key cast to type `T`.If the key is missing or the cast fails, returns `defaultVal`.|
-| `SetValue` | `func SetValue[T any](object map[string]any, key string, value T) map[string]any` | Sets `value` into `object[key]` only if the key is missing or the existing value differs (deep equality).Initializes the map if `nil`.Returns the updated map.|
+| Function   | Signature                                                                         | Description                                                                                                                                                    |
+|------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Exists`   | `func Exists(object map[string]any, key string) bool`                             | Checks whether the given key exists in the object.                                                                                                             |
+| `GetValue` | `func GetValue[T any](object map[string]any, key string, defaultVal T) T`         | Returns the value for the key cast to type `T`.If the key is missing or the cast fails, returns `defaultVal`.                                                  |
+| `SetValue` | `func SetValue[T any](object map[string]any, key string, value T) map[string]any` | Sets `value` into `object[key]` only if the key is missing or the existing value differs (deep equality).Initializes the map if `nil`.Returns the updated map. |
 
 #### Example Usage
 
