@@ -14,3 +14,9 @@ overall architecture.
   `go get github.com/entiqon/db`
 
 More packages such as `core`, `auth`, and `http` will be added as the project evolves.
+
+---
+
+## 📄 License
+
+[MIT](../../LICENSE) — © Isidro Lopez / Entiqon Project
