@@ -3,14 +3,36 @@
 package builder_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/builder"
 	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/internal/builder"
 )
 
 func TestSelectBuilder(t *testing.T) {
+	t.Run("EdgeOfCase", func(t *testing.T) {
+		table := "cuno_partnership"
+		tableAlias := "C"
+		id := "560082-aero_amazon"
+		sql, args, err := builder.NewSelect(driver.NewPostgresDialect()).
+			Select("(C.m3_cuno || '-' ||C.partnership_id) AS ID", "*").
+			From(fmt.Sprintf("%s %s", table, tableAlias)).
+			Where("C.m3_cuno || '-' || C.partnership_id = ?", id).
+			Build()
+		if err != nil {
+			t.Fatalf("unexpected error from Build(): %v", err)
+		}
+		if !strings.Contains(sql, table) {
+			t.Errorf("expected SQL to contain %q, got %q", "FROM users", sql)
+		}
+		if len(args) != 1 {
+			t.Errorf("expected 1 args but got %d args", len(args))
+		}
+		fmt.Println(sql, args)
+	})
+
 	t.Run("Usage", func(t *testing.T) {
 		t.Run("Basic", func(t *testing.T) {
 			sql, args, err := builder.NewSelect(nil).From("users").Build()
