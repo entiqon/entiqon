@@ -5,8 +5,8 @@ package builder_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/builder"
 	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/internal/builder"
 	"github.com/stretchr/testify/suite"
 )
 
