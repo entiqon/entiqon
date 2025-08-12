@@ -6,7 +6,7 @@ package decimal
 import (
 	"math"
 
-	"github.com/entiqon/entiqon/common/math/float"
+	"github.com/entiqon/entiqon/common/extension/float"
 )
 
 // ParseFrom converts the input value into a float64, rounding to the specified decimal precision.

@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/entiqon/entiqon/common/math/decimal"
+	"github.com/entiqon/entiqon/common/extension/decimal"
 )
 
 func TestDecimalParseFrom(t *testing.T) {

@@ -5,7 +5,7 @@ package number_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/common/math/number"
+	"github.com/entiqon/entiqon/common/extension/number"
 )
 
 func TestNumberParseFrom(t *testing.T) {

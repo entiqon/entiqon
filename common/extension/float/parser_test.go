@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/entiqon/entiqon/common/math/float"
+	"github.com/entiqon/entiqon/common/extension/float"
 )
 
 func TestParseFrom(t *testing.T) {
