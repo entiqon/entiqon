@@ -14,6 +14,8 @@ package token
 import (
 	"fmt"
 	"strings"
+
+	"github.com/entiqon/entiqon/db/contract"
 )
 
 // Column represents a column or expression in a SELECT clause.
@@ -91,6 +93,16 @@ func (c *Column) Raw() string {
 	return c.Expr
 }
 
+// Render returns the raw SQL snippet for the column.
+// It does not apply any dialect quoting. If an alias is present,
+// it renders "Expr AS Alias"; otherwise it returns Expr as-is.
+func (c *Column) Render() string {
+	if c.IsAliased() {
+		return fmt.Sprintf("%s AS %s", c.Expr, strings.TrimSpace(c.Alias))
+	}
+	return c.Expr
+}
+
 // String returns a human-readable string representation of the Column.
 //
 // It includes a status icon (✅ for valid, ⛔️ for errored), the Name,
@@ -124,3 +136,6 @@ func deriveNameFromExpr(expr string) string {
 	}
 	return strings.ToLower(b.String())
 }
+
+// Ensure Column implements contract.Renderable at compile time.
+var _ contract.Renderable = (*Column)(nil)
