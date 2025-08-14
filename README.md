@@ -1,12 +1,12 @@
-<p align="center">
-    <img src="https://raw.githubusercontent.com/entiqon/entiqon/main/assets/entiqon_black.png" alt="Entiqon Logo" width="200"/>
-</p>
+<h1 align="center">
+    <img src="https://raw.githubusercontent.com/entiqon/entiqon/main/assets/entiqon_logo.png" alt="Entiqon Logo" width="200"/>
+</h1>
 
 <p align="center">
   <a href="https://pkg.go.dev/github.com/entiqon/entiqon"><img src="https://pkg.go.dev/badge/github.com/entiqon/entiqon.svg" alt="Go Reference" /></a>
   <a href="https://goreportcard.com/report/github.com/entiqon/entiqon"><img src="https://goreportcard.com/badge/github.com/entiqon/entiqon" alt="Go Report Card" /></a>
   <a href="https://github.com/entiqon/entiqon/actions/workflows/ci.yml"><img src="https://github.com/entiqon/entiqon/actions/workflows/ci.yml/badge.svg" alt="Build Status" /></a>
-  <a href="https://codecov.io/gh/entiqon/entiqon"><img src="https://codecov.io/gh/entiqon/entiqon/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
+  <a href="https://codecov.io/gh/entiqon/entiqon"><img src="https://codecov.io/gh/entiqon/entiqon/graph/badge.svg?token=6t7ENLuwwt"/></a>
   <a href="https://github.com/entiqon/entiqon/releases"><img src="https://img.shields.io/github/v/release/entiqon/entiqon" alt="Latest Release" /></a>
   <a href="https://entiqon.github.io/entiqon/"><img src="https://img.shields.io/badge/docs-online-blue?logo=github" alt="Documentation" /></a>
   <a href="https://github.com/entiqon/entiqon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/entiqon/entiqon" alt="License" /></a>
@@ -16,8 +16,11 @@
 
 ## 📦 Packages
 
-- <a href="https://github.com/entiqon/entiqon/blob/main/common"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" align="left" height="24" width="24"> Common</a>: Shared utilities and helper functions used across multiple modules. Installation: `go get github.com/entiqon/common`
-- <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">Database</a>: Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`
+- <a href="https://github.com/entiqon/entiqon/blob/main/common"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" align="left" height="24" width="24">
+  Common</a>: Shared utilities and helper functions used across multiple modules. Installation:
+  `go get github.com/entiqon/common`
+- <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
+  Database</a>: Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`
 
 *Future modules such as `core`, `auth`, `http`, and others will be added following the modular architecture.*
 
