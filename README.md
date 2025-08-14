@@ -1,6 +1,7 @@
 <h1 align="center">
-    <img src="https://raw.githubusercontent.com/entiqon/entiqon/main/assets/entiqon_logo.png" alt="Entiqon Logo" width="200"/>
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_logo.png?raw=true" align="left" height="140" width="140"> Entiqon
 </h1>
+<p align="center">A structured, intelligent foundation for building queryable, entity-aware Go systems.</p>
 
 <p align="center">
   <a href="https://pkg.go.dev/github.com/entiqon/entiqon"><img src="https://pkg.go.dev/badge/github.com/entiqon/entiqon.svg" alt="Go Reference" /></a>
@@ -11,8 +12,6 @@
   <a href="https://entiqon.github.io/entiqon/"><img src="https://img.shields.io/badge/docs-online-blue?logo=github" alt="Documentation" /></a>
   <a href="https://github.com/entiqon/entiqon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/entiqon/entiqon" alt="License" /></a>
 </p>
-
-> ⚙️ A structured, intelligent foundation for building queryable, entity-aware Go systems.
 
 ## 📦 Packages
 
