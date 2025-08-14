@@ -22,6 +22,9 @@ import (
 // Ensure Field implements contract.Renderable at compile time.
 var _ contract.Renderable = (*Field)(nil)
 
+// Ensure Field implements contract.Cloanable[*Field] at compile time.
+var _ contract.Cloanable[*Field] = (*Field)(nil)
+
 // Field represents a column/field or expression in a SELECT clause.
 //
 // It holds the original user input, a parsed SQL expression (without alias),
@@ -65,6 +68,16 @@ func NewField(input string, expr string, alias string, isRaw bool) *Field {
 		fd.setError(errors.New("derived field name cannot be empty"))
 	}
 	return fd
+}
+
+// Clone returns a semantic copy of the Field. A nil receiver yields nil.
+// This nil-preserving behavior makes Clone safe to call unconditionally.
+func (f *Field) Clone() *Field {
+	if f == nil {
+		return nil
+	}
+	cp := *f
+	return &cp
 }
 
 // IsAliased reports whether the field has a non-empty alias.
