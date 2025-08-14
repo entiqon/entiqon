@@ -4,6 +4,7 @@ package token_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,153 +13,247 @@ import (
 
 func TestColumn(t *testing.T) {
 	t.Run("Constructors", func(t *testing.T) {
-		t.Run("NewField", func(t *testing.T) {
-			t.Run("Valid", func(t *testing.T) {
-				in := "email"
-				expr := "email"
-				alias := ""
-
-				f := token.NewField(in, expr, alias, false)
-				if f == nil {
-					t.Fatal("expected non-nil Field")
-				}
-				if f.Error != nil {
-					t.Fatalf("unexpected error: %v", f.Error)
-				}
-				if !f.IsValid() {
-					t.Fatal("expected field to be valid")
-				}
-				if f.IsAliased() {
-					t.Error("expected IsAliased to be false")
-				}
-				if f.Name() != "email" {
-					t.Errorf("Name() = %q, want %q", f.Name(), "email")
-				}
-				if f.IsRaw {
-					t.Error("expected IsRaw to be false")
-				}
-				if got := f.Raw(); got != "email" {
-					t.Errorf("Raw() = %q, want %q", got, "email")
-				}
-				if got := f.Render(); got != "email" {
-					t.Errorf("Render() = %q, want %q", got, "email")
-				}
-			})
-
-			t.Run("NoAlias", func(t *testing.T) {
-				in := "email"
-				expr := "email"
-				alias := ""
-
-				f := token.NewField(in, expr, alias, false)
-				if f == nil {
-					t.Fatal("expected non-nil Field")
-				}
-				if f.Error != nil {
-					t.Fatalf("unexpected error: %v", f.Error)
-				}
-				if !f.IsValid() {
-					t.Fatal("expected field to be valid")
-				}
-				if f.IsAliased() {
-					t.Error("expected IsAliased to be false")
-				}
-			})
-
-			t.Run("InlineAlias", func(t *testing.T) {
-				t.Run("AS", func(t *testing.T) {
-					input := "LOWER(m3_cuno || '-' || partnership_id) AS id"
-					expr := "LOWER(m3_cuno || '-' || partnership_id)"
-					alias := "id"
-
-					f := token.NewField(input, expr, alias, true)
-					if f == nil {
-						t.Fatal("expected non-nil Field")
-					}
-					if f.Error != nil {
-						t.Fatalf("unexpected error: %v", f.Error)
-					}
-					if !f.IsValid() {
-						t.Fatal("expected field to be valid")
-					}
-					if !f.IsAliased() {
-						t.Error("expected IsAliased to be true")
-					}
-					if f.Name() != "id" {
-						t.Errorf("Name() = %q, want %q", f.Name(), "id")
-					}
-					if f.Input != input {
-						t.Errorf("Input = %q, want %q", f.Input, input)
-					}
-					if f.Expr != expr {
-						t.Errorf("Expr = %q, want %q", f.Expr, expr)
-					}
-					if f.Alias != alias {
-						t.Errorf("Alias = %q, want %q", f.Alias, alias)
-					}
-					if !f.IsRaw {
-						t.Error("expected IsRaw to be true")
-					}
-					if got, want := f.Raw(), expr+" AS "+alias; got != want {
-						t.Errorf("Raw() = %q, want %q", got, want)
-					}
-					if got, want := f.Render(), expr+" AS "+alias; got != want {
-						t.Errorf("Render() = %q, want %q", got, want)
-					}
-				})
-			})
-
-			t.Run("AliasTrimmed", func(t *testing.T) {
-				in := "created_at AS ts"
-				expr := "created_at"
-				alias := "   Ts   "
-
-				f := token.NewField(in, expr, alias, false)
-
-				if f.Error != nil {
-					t.Fatalf("unexpected error: %v", f.Error)
-				}
-				if f.Alias != "Ts" {
-					t.Errorf("Alias trimmed = %q, want %q", f.Alias, "Ts")
-				}
-				if f.Name() != "ts" {
-					t.Errorf("Name() = %q, want %q", f.Name(), "ts")
-				}
-				if got, want := f.Raw(), "created_at AS Ts"; got != want {
-					t.Errorf("Raw() = %q, want %q", got, want)
-				}
-			})
-
-			t.Run("Invalid", func(t *testing.T) {
-				t.Run("EmptyExpr", func(t *testing.T) {
-					f := token.NewField("", "   ", "", false)
-					if f.Error == nil {
-						t.Fatal("expected error for empty expression, got nil")
-					}
-					if f.IsValid() {
-						t.Error("expected field to be invalid")
-					}
-					if got, want := f.Error.Error(), "expression cannot be empty"; got != want {
-						t.Errorf("error = %q, want %q", got, want)
-					}
-				})
-
-				t.Run("NameEmpty", func(t *testing.T) {
-					// Expr with no alphanumeric chars -> derived name becomes empty
-					f := token.NewField("!@#$", "!@#$", "", false)
-
-					if f.Error == nil {
-						t.Fatal("expected error for empty derived field name, got nil")
-					}
-					if f.IsValid() {
-						t.Error("expected field to be invalid")
-					}
-					if got, want := f.Error.Error(), "derived field name cannot be empty"; got != want {
-						t.Errorf("error = %q, want %q", got, want)
-					}
-				})
-			})
+		t.Run("NoInputs", func(t *testing.T) {
+			f := token.NewField()
+			if f == nil || f.Expr != "" || f.Alias != "" {
+				t.Errorf("expected empty Field, got %+v", f)
+			}
 		})
+
+		t.Run("Expr", func(t *testing.T) {
+
+			t.Run("Field", func(t *testing.T) {
+				src := token.NewField("col1")
+				f := token.NewField(src)
+				if f.Error == nil || !errors.Is(f.Error, f.Error) {
+					t.Errorf("expected error about Clone, got %+v", f.Error)
+				}
+			})
+
+			t.Run("IsRaw", func(t *testing.T) {
+
+				t.Run("WithOperator", func(t *testing.T) {
+					operators := []string{"||", "+", "-", "*", "/"}
+					for _, op := range operators {
+						expr := fmt.Sprintf("col1 %s col2", op)
+						f := token.NewField(expr)
+						if !f.IsRaw {
+							t.Errorf("expected IsRaw = true for expr %q, got false", expr)
+						}
+					}
+				})
+
+				t.Run("WithParenthesis", func(t *testing.T) {
+					src := token.NewField("(col1 || '-' || col2)", " mixed")
+					f := token.NewField(src)
+					if f.Error == nil || !errors.Is(f.Error, f.Error) {
+						t.Errorf("expected error about Clone, got %+v", f.Error)
+					}
+				})
+
+				t.Run("WithAliasRules", func(t *testing.T) {
+					tests := []struct {
+						name        string
+						input       string
+						expectErr   bool
+						expectRaw   bool
+						expectAlias string // expected alias if not error
+					}{
+						{
+							name:        "NoAliasAutoGenerate",
+							input:       "col1 || '-' || col2",
+							expectErr:   false,
+							expectRaw:   true,
+							expectAlias: "",
+						},
+						{
+							name:        "ExplicitAS",
+							input:       "col1 || '-' || col2 AS full_name",
+							expectErr:   false,
+							expectRaw:   true,
+							expectAlias: "full_name",
+						},
+						{
+							name:      "SpaceAliasError",
+							input:     "col1 || '-' || col2 full_name",
+							expectErr: true,
+							expectRaw: true,
+						},
+						{
+							name:        "ComplexExprNoAlias",
+							input:       "(1*rate(principal-balance))",
+							expectErr:   false,
+							expectRaw:   true,
+							expectAlias: "",
+						},
+						{
+							name:        "ComplexExprWithAS",
+							input:       "(1*rate(principal-balance)) AS calc_rate",
+							expectErr:   false,
+							expectRaw:   true,
+							expectAlias: "calc_rate",
+						},
+						{
+							name:      "ComplexExprWithSpaceAliasError",
+							input:     "(1*rate(principal-balance)) calc_rate",
+							expectErr: true,
+							expectRaw: true,
+						},
+					}
+
+					for _, tt := range tests {
+						t.Run(tt.name, func(t *testing.T) {
+							f := token.NewField(tt.input)
+
+							if tt.expectErr {
+								if f.Error == nil {
+									t.Errorf("expected error, got nil")
+								}
+								return
+							}
+
+							if f.Error != nil {
+								t.Errorf("unexpected error: %v", f.Error)
+							}
+
+							if f.IsRaw != tt.expectRaw {
+								t.Errorf("expected IsRaw=%v, got %v", tt.expectRaw, f.IsRaw)
+							}
+
+							if tt.expectAlias != "" {
+								if f.Alias != tt.expectAlias {
+									t.Errorf("expected alias %q, got %q", tt.expectAlias, f.Alias)
+								}
+							} else {
+								if !strings.HasPrefix(f.Alias, "raw_expr_") {
+									t.Errorf("expected auto-generated alias to start with raw_expr_, got %q", f.Alias)
+								}
+								if len(f.Alias) != len("raw_expr_")+6 {
+									t.Errorf("expected alias length %d, got %d", len("raw_expr_")+6, len(f.Alias))
+								}
+							}
+						})
+					}
+				})
+
+				t.Run("HasTrailingAliasWithoutAS", func(t *testing.T) {
+					cases := []struct {
+						Name     string
+						Expr     string
+						Expected bool
+					}{
+						{
+							Name:     "ExplicitAS",
+							Expr:     "col1 || '-' || col2 AS full_name",
+							Expected: false,
+						},
+						{
+							Name:     "SingleToken",
+							Expr:     "col1",
+							Expected: false,
+						},
+						{
+							Name:     "PenultimateOperator",
+							Expr:     "col1 || col2",
+							Expected: false,
+						},
+						{
+							Name:     "AliasWithoutAS",
+							Expr:     "col1 full_name",
+							Expected: true,
+						},
+						{
+							Name:     "NonIdentifierLastToken",
+							Expr:     "col1 'abc'",
+							Expected: false,
+						},
+					}
+
+					for _, c := range cases {
+						t.Run(c.Name, func(t *testing.T) {
+							got := token.HasTrailingAliasWithoutAS(c.Expr)
+							if got != c.Expected {
+								t.Errorf("expected %v, got %v", c.Expected, got)
+							}
+						})
+					}
+				})
+
+			})
+
+			t.Run("UnsupportedType", func(t *testing.T) {
+				f := token.NewField(123)
+				if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+					t.Errorf("expected unsupported expr type error, got %+v", f.Error)
+				}
+			})
+
+		})
+
+		t.Run("OneArgSimpleExpr", func(t *testing.T) {
+			f := token.NewField("col1")
+			if f.Expr != "col1" || f.Alias != "" || f.IsRaw {
+				t.Errorf("unexpected field %+v", f)
+			}
+		})
+
+		t.Run("OneArgWithAS", func(t *testing.T) {
+			f := token.NewField("col1 AS c1")
+			if f.Expr != "col1" || f.Alias != "c1" {
+				t.Errorf("expected expr=col1 alias=c1, got %+v", f)
+			}
+		})
+
+		t.Run("OneArgWithSpaceAlias", func(t *testing.T) {
+			f := token.NewField("col1 c1")
+			if f.Expr != "col1" || f.Alias != "c1" {
+				t.Errorf("expected expr=col1 alias=c1, got %+v", f)
+			}
+		})
+
+		t.Run("TwoArgsExprAlias", func(t *testing.T) {
+			f := token.NewField("col1", "alias1")
+			if f.Expr != "col1" || f.Alias != "alias1" {
+				t.Errorf("expected expr=col1 alias=alias1, got %+v", f)
+			}
+		})
+
+		t.Run("TwoArgsAliasUnsupportedType", func(t *testing.T) {
+			f := token.NewField("col1", 123)
+			if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+				t.Errorf("expected unsupported alias type error, got %+v", f.Error)
+			}
+		})
+
+		t.Run("ThreeArgsValid", func(t *testing.T) {
+			f := token.NewField("input1", "alias1", true)
+			if f.Raw() != "input1 AS alias1" || f.Expr != "input1" || f.Alias != "alias1" || !f.IsRaw {
+				t.Errorf("unexpected field %+v", f)
+			}
+		})
+
+		t.Run("ThreeArgsAliasWrongType", func(t *testing.T) {
+			f := token.NewField("input1", 123, true)
+			if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+				t.Errorf("expected unsupported type error, got %+v", f.Error)
+			}
+		})
+
+		t.Run("ThreeArgsIsRawWrongType", func(t *testing.T) {
+			f := token.NewField("input1", "alias1", "yes")
+			if f.Error == nil || f.Error.Error() != "isRaw must be a bool" {
+				t.Errorf("expected isRaw must be a bool error, got %+v", f.Error)
+			}
+		})
+
+		t.Run("InvalidSignatureFourArgs", func(t *testing.T) {
+			// expr, alias, isRaw
+			f1 := token.NewField("col1", "alias1", true, "yes")
+			if f1.Error == nil || f1.Error.Error() != "invalid NewField signature" {
+				t.Errorf("expected invalid NewField signature error, got %+v", f1.Error)
+			}
+		})
+
 	})
 
 	t.Run("Methods", func(t *testing.T) {
@@ -286,7 +381,7 @@ func TestColumn(t *testing.T) {
 			}
 			f.Alias = "Alias"
 			got = f.String()
-			if !strings.Contains(got, "alias: true") {
+			if !strings.Contains(got, "aliased: true") {
 				t.Errorf("String() with alias got %q, want alias: true", got)
 			}
 			f.Error = errors.New("some error")
