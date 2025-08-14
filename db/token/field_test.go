@@ -162,6 +162,27 @@ func TestColumn(t *testing.T) {
 	})
 
 	t.Run("Methods", func(t *testing.T) {
+		t.Run("Clone", func(t *testing.T) {
+			t.Run("Success", func(t *testing.T) {
+				orig := &token.Field{Input: "i", Expr: "e", Alias: "a", IsRaw: true}
+				cl := orig.Clone()
+				if cl == orig {
+					t.Fatal("expected different pointer")
+				}
+				if *cl != *orig {
+					t.Errorf("clone differs: got %+v, want %+v", *cl, *orig)
+				}
+			})
+
+			t.Run("NilReceiver", func(t *testing.T) {
+				var field *token.Field = nil
+				got := field.Clone()
+				if got != nil {
+					t.Errorf("cloned field = %+v, want %+v", got, field)
+				}
+			})
+		})
+
 		t.Run("IsAliased", func(t *testing.T) {
 			cases := []struct {
 				alias string
