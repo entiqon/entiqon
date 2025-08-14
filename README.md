@@ -45,8 +45,8 @@
 
 ## 📦 Releases
 
-- [v1.8.0 – Atlas](./releases/release-notes-v1.8.0.md)
-- [v1.7.0 – Forge](./releases/release-notes-v1.7.0.md)
+- [v1.10.0](./releases/release-notes-v1.10.0.md)
+- [v1.9.0](./releases/release-notes-v1.9.0.md)
 - [CHANGELOG](./CHANGELOG.md)
 
 ---
