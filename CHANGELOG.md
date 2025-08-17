@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.11.0](https://github.com/entiqon/entiqon/releases/tag/v1.11.0) - 2025-08-17
+
+### Highlights
+
+-   **New parsing façade**: one-line helpers for `Boolean`, `Float`,
+    `Decimal`, and `Date`.
+-   **Deterministic date cleaning**: `CleanAndParse`,
+    `CleanAndParseAsString`, strict `YYYYMMDD` prefix path, and 100%
+    tests.
+-   **Boolean parser++**: extended tokens (`on/off`, `y/n`, `t/f`) and
+    explicit `nil` rejection.
+-   **SQL Builder/Token overhaul**: `Column → Field`, `FieldCollection`,
+    deterministic `NewField` inputs, and Postgres/Base dialects with
+    tests.
+
 ## [v1.10.0](https://github.com/entiqon/entiqon/releases/tag/v1.10.1) - 2025-08-07
 
 - dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro Lopez)

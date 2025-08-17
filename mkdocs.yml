@@ -42,7 +42,7 @@ nav:
 
   - 📦 Releases:
       - Overview: releases/index.md
-      - Lastest: releases/release-notes-v1.10.0.md
+      - Lastest: releases/release-notes-v1.11.0.md
       - Full Changelog: CHANGELOG.md
 
 markdown_extensions:
