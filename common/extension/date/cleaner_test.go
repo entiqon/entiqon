@@ -3,6 +3,7 @@
 package date_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -69,12 +70,21 @@ func TestCleaner(t *testing.T) {
 			t.Run("StrictInvalid", func(t *testing.T) {
 				opts := date.StrictYYYYMMDDOptions()
 				if _, err := date.CleanAndParse("2025A507", opts); err == nil {
-					t.Errorf("expected error")
+					if strings.Contains(err.Error(), "input shorter than 8 characters") {
+						t.Errorf("expected error")
+					}
 				}
 			})
 
 			t.Run("EmptyInput", func(t *testing.T) {
 				if _, err := date.CleanAndParse("   ", nil); err == nil {
+					t.Errorf("expected error")
+				}
+			})
+
+			t.Run("Invalid", func(t *testing.T) {
+				opts := date.StrictYYYYMMDDOptions()
+				if _, err := date.CleanAndParse("2006011", opts); err == nil {
 					t.Errorf("expected error")
 				}
 			})

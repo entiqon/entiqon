@@ -104,24 +104,18 @@ func ParseString(s string) (time.Time, error) {
 				return t, nil
 			}
 		case 8: // YYYYMMDD (with validation)
-			y, _ := strconv.Atoi(in[0:4])
-			m, _ := strconv.Atoi(in[4:6])
-			d, _ := strconv.Atoi(in[6:8])
-
-			if m < 1 || m > 12 {
-				return time.Time{}, errors.New("date.ParseFrom: invalid YYYYMMDD month")
-			}
-			if d < 1 || d > 31 {
-				return time.Time{}, errors.New("date.ParseFrom: invalid YYYYMMDD day")
-			}
-			if !ValidYMD(y, time.Month(m), d) {
+			// Delegate to the already fully covered YYYYMMDD validator
+			// NOTE: ParseYYYYMMDDPrefix handles just the first 8 chars, so plain 8-digit works.
+			t, err := ParseYYYYMMDDPrefix(in)
+			if err != nil {
+				// Keep message style consistent with the prior code
 				return time.Time{}, errors.New("date.ParseFrom: invalid YYYYMMDD date")
 			}
-			return time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.UTC), nil
+			return t, nil
 		}
 	}
 
-	// 3) Fallback layouts (deterministic)
+	// Fallback layouts (deterministic)
 	for _, layout := range DefaultLayouts() {
 		switch layout {
 		// date-only → normalize to UTC midnight
