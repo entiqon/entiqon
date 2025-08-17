@@ -750,27 +750,16 @@ func TestDate(t *testing.T) {
 			})
 		})
 
-		t.Run("RFC3339", func(t *testing.T) {
-			exp := time.Date(2025, 8, 16, 13, 45, 0, 0, time.UTC)
-			got, err := date.ParseFrom("2025-08-16T13:45:00Z")
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if !got.Equal(exp) {
-				t.Fatalf("expected %v, got %v", exp, got)
-			}
-		})
-
-		t.Run("ISODate", func(t *testing.T) {
-			exp := time.Date(2025, 8, 16, 0, 0, 0, 0, time.UTC)
-			got, err := date.ParseFrom("2025-08-16")
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if !got.Equal(exp) {
-				t.Fatalf("expected %v, got %v", exp, got)
-			}
-		})
+		//t.Run("RFC3339", func(t *testing.T) {
+		//	exp := time.Date(2025, 8, 16, 13, 45, 0, 0, time.UTC)
+		//	got, err := date.ParseFrom("2025-08-16T13:45:00Z")
+		//	if err != nil {
+		//		t.Fatalf("unexpected error: %v", err)
+		//	}
+		//	if !got.Equal(exp) {
+		//		t.Fatalf("expected %v, got %v", exp, got)
+		//	}
+		//})
 
 		t.Run("YYYYMMDDInvalidMonth", func(t *testing.T) {
 			_, err := date.ParseFrom("20251301")

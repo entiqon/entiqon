@@ -3,15 +3,16 @@
 package internal_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/entiqon/entiqon/common/extension/date"
 	"github.com/entiqon/entiqon/common/extension/date/internal"
 )
 
 func TestInternal(t *testing.T) {
 	t.Run("Methods", func(t *testing.T) {
-
 		t.Run("ParseRFC3339", func(t *testing.T) {
 			okCases := []string{
 				"2023-11-14T22:13:20Z",
@@ -30,6 +31,18 @@ func TestInternal(t *testing.T) {
 		})
 
 		t.Run("ParseYYYYMMDDPrefix", func(t *testing.T) {
+			t.Run("EmptyInput", func(t *testing.T) {
+				_, err := internal.ParseYYYYMMDDPrefix("")
+				if err == nil {
+					t.Fatalf("expected error for empty input, got nil")
+				}
+
+				_, err = internal.ParseYYYYMMDDPrefix("   ") // whitespace only
+				if err == nil {
+					t.Fatalf("expected error for whitespace input, got nil")
+				}
+			})
+
 			t.Run("Valid", func(t *testing.T) {
 				got, err := internal.ParseYYYYMMDDPrefix("20240229.suffix")
 				if err != nil {
@@ -117,11 +130,12 @@ func TestInternal(t *testing.T) {
 		})
 
 		t.Run("ParseString", func(t *testing.T) {
-			t.Run("RFC3339", func(t *testing.T) {
-				got, err := internal.ParseString("2023-11-14T22:13:20Z")
-				if err != nil || got.IsZero() {
-					t.Errorf("unexpected failure: %v %v", got, err)
+			t.Run("Empty", func(t *testing.T) {
+				got, err := internal.ParseString("")
+				if err != nil && !strings.Contains(err.Error(), "empty string") {
+					t.Errorf("unexpected result: %v %v", got, err)
 				}
+
 			})
 
 			t.Run("Epoch", func(t *testing.T) {
@@ -132,10 +146,116 @@ func TestInternal(t *testing.T) {
 			})
 
 			t.Run("YYYYMMDD", func(t *testing.T) {
-				got, err := internal.ParseString("20240229")
-				if err != nil || got.Year() != 2024 {
-					t.Errorf("unexpected result: %v %v", got, err)
+				t.Run("Valid", func(t *testing.T) {
+					got, err := internal.ParseString("20240229")
+					if err != nil || got.Year() != 2024 {
+						t.Errorf("unexpected result: %v %v", got, err)
+					}
+				})
+
+				t.Run("InvalidMonth", func(t *testing.T) {
+					_, err := date.ParseFrom("20251301") // month=13
+					if err == nil {
+						t.Fatalf("expected error")
+					}
+					if err.Error() != "date.ParseFrom: invalid YYYYMMDD date" {
+						t.Fatalf("want generic YYYYMMDD error, got %q", err.Error())
+					}
+				})
+
+				t.Run("InvalidDayRange", func(t *testing.T) {
+					_, err := date.ParseFrom("20250132") // day=32
+					if err == nil {
+						t.Fatalf("expected error")
+					}
+					if err.Error() != "date.ParseFrom: invalid YYYYMMDD date" {
+						t.Fatalf("want generic YYYYMMDD error, got %q", err.Error())
+					}
+				})
+
+				t.Run("InvalidCalendarDate", func(t *testing.T) {
+					_, err := date.ParseFrom("20250230") // Feb 30 (fails ValidYMD)
+					if err == nil {
+						t.Fatalf("expected error")
+					}
+					if err.Error() != "date.ParseFrom: invalid YYYYMMDD date" {
+						t.Fatalf("want generic YYYYMMDD error, got %q", err.Error())
+					}
+				})
+
+				t.Run("Pointer", func(t *testing.T) {
+					t.Run("DelegatedError", func(t *testing.T) {
+						s := "20250230"
+						var x any = &s
+						_, err := date.ParseFrom(x)
+						if err == nil {
+							t.Fatalf("expected error")
+						}
+						if err.Error() != "date.ParseFrom: invalid YYYYMMDD date" {
+							t.Fatalf("want generic YYYYMMDD error, got %q", err.Error())
+						}
+					})
+				})
+			})
+
+			t.Run("RFC3339", func(t *testing.T) {
+				exp := time.Date(2025, 8, 16, 13, 45, 0, 0, time.UTC)
+				got, err := internal.ParseString("2025-08-16T13:45:00Z")
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
 				}
+				if !got.Equal(exp) {
+					t.Fatalf("expected %v, got %v", exp, got)
+				}
+			})
+
+			t.Run("ISO", func(t *testing.T) {
+				t.Run("Date", func(t *testing.T) {
+					exp := time.Date(2006, 1, 2, 0, 0, 0, 0, time.UTC)
+					got, err := internal.ParseString("2006-01-02")
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
+					}
+					if !got.Equal(exp) {
+						t.Fatalf("expected %v, got %v", exp, got)
+					}
+				})
+
+				t.Run("Zoneless", func(t *testing.T) {
+					in := "2006-01-02 15:00:00"
+					got, err := internal.ParseString(in)
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
+					}
+
+					// Parse in Local, then convert manually to UTC (mirrors ParseString behavior)
+					localParsed, _ := time.ParseInLocation("2006-01-02 15:04:05", in, time.Local)
+					exp := localParsed.UTC()
+
+					if !got.Equal(exp) {
+						t.Fatalf("expected %v, got %v", exp, got)
+					}
+				})
+
+				t.Run("ParseZoned", func(t *testing.T) {
+					in := "Tue, 14 Nov 2023 22:13:20 UTC"
+
+					got, err := internal.ParseString(in)
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
+					}
+
+					// Assert we actually parsed via the zoned branch (location preserved).
+					if name, off := got.Zone(); name != "UTC" || off != 0 {
+						t.Fatalf("expected zone UTC(+0000), got %s(%+d)", name, off)
+					}
+
+					// Sanity on fields
+					if got.Year() != 2023 || got.Month() != time.November || got.Day() != 14 ||
+						got.Hour() != 22 || got.Minute() != 13 || got.Second() != 20 {
+						t.Fatalf("unexpected parsed value: %v", got)
+					}
+				})
 			})
 
 			t.Run("DateOnlyDashed", func(t *testing.T) {
