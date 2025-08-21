@@ -167,47 +167,7 @@ func (b *SelectBuilder) String() string {
 	return fmt.Sprintf("Status ✅: SQL=%s, Params=%s", sql, "")
 }
 
-// isRaw detects whether the expression contains raw SQL indicators.
-func isRaw(expr string) bool {
-	if strings.ContainsAny(expr, "()") {
-		return true
-	}
-
-	operators := []string{"||", "+", "-", "*", "/"}
-	for _, op := range operators {
-		if strings.Contains(expr, op) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// parseInput extracts expression and optional alias from the input string.
-func parseInput(s string) (expr, alias string) {
-	upper := strings.ToUpper(s)
-	if idx := strings.Index(upper, " AS "); idx >= 0 {
-		expr = strings.TrimSpace(s[:idx])
-		alias = strings.TrimSpace(s[idx+4:])
-		return
-	}
-
-	lastSpace := strings.LastIndex(s, " ")
-	if lastSpace > 0 {
-		expr = strings.TrimSpace(s[:lastSpace])
-		alias = strings.TrimSpace(s[lastSpace+1:])
-		return
-	}
-
-	expr = strings.TrimSpace(s)
-	alias = ""
-	return
-}
-
 func splitAndTrim(s, sep string) []string {
-	if len(s) == 0 {
-		return nil
-	}
 	parts := strings.Split(s, sep)
 	var result []string
 	for _, part := range parts {
