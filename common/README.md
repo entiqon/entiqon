@@ -22,8 +22,17 @@ go get github.com/entiqon/entiqon
 | [🧩 common/errors](../common/errors/README.md)         | Extended error types with cause, reason, and process stage.   |
 | [🧩 common/extension](../common/extension/README.md)   | Type parsers, collections, object helpers, and shortcuts.     |
 
+
 ---
+
+## 📘 Developer Guides
+
+- [ProcessStage](../../docs/packages/common/guides/ProcessStage_Developer_Guide.md) — Dialects, StageToken, ParamBinder integration
+
+
+---
+
 
 ## 📄 License
 
-[MIT](../../LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../../LICENSE) — © Entiqon Project

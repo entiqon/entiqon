@@ -15,6 +15,7 @@ COPY common/extension/boolean/README.md    docs/packages/common/extension/boolea
 COPY common/extension/date/README.md       docs/packages/common/extension/date.md
 COPY common/extension/decimal/README.md    docs/packages/common/extension/decimal.md
 COPY common/extension/float/README.md      docs/packages/common/extension/float.md
+COPY common/extension/integer/README.md    docs/packages/common/extension/integer.md
 COPY common/extension/number/README.md     docs/packages/common/extension/number.md
 COPY common/extension/object/README.md     docs/packages/common/extension/object.md
 COPY common/extension/collection/README.md docs/packages/common/extension/collection.md
