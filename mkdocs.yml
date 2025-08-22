@@ -25,7 +25,7 @@ nav:
       - Overview: packages/overview.md
       - Common:
           - Overview: packages/common/overview.md
-          - Error: packages/common/error/overview.md
+          - Error: packages/common/errors/overview.md
           - Extension:
               - Boolean: packages/common/extension/boolean.md
               - Collection: packages/common/extension/collection.md
@@ -34,7 +34,7 @@ nav:
               - Float: packages/common/extension/float.md
               - Number: packages/common/extension/number.md
               - Object: packages/common/extension/object.md
-      - Database: packages/database.md
+      - Database: packages/db/overview.md
 
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
@@ -48,6 +48,12 @@ nav:
       - InsertBuilder: dev/builder/insert_builder.md
       - UpdateBuilder: dev/builder/update_builder.md
       - DeleteBuilder: dev/builder/delete_builder.md
+      - UpsertBuilder: dev/builder/upsert_builder.md
+
+  - 📦 Releases:
+      - Overview: releases/index.md
+      - Lastest: releases/release-notes-v1.11.0.md
+      - Full Changelog: CHANGELOG.md
 
 markdown_extensions:
   - toc:

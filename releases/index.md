@@ -6,6 +6,7 @@ Welcome to the complete history of Entiqon SQL Builder releases.
 
 ## 📦 Versions
 
+- [v1.12.0](release-notes-v1.12.0.md)
 - [v1.11.0](release-notes-v1.11.0.md)
 - [v1.10.0](release-notes-v1.10.0.md)
 - [v1.9.0](release-notes-v1.9.0.md)
