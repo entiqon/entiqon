@@ -213,29 +213,5 @@ func ParseFrom(value any) (time.Time, error) {
 // Returns:
 //   - string: the date formatted according to `layout`, or empty string if parsing fails.
 func ParseAndFormat(value, layout string) string {
-	if layout == "" {
-		layout = "2006-01-02"
-	}
-
-	fallbackLayouts := []string{"2006-01-02", "2006/01/02", "20060102"}
-
-	// Prepend requested layout if it's not already in fallbackLayouts
-	found := false
-	for _, l := range fallbackLayouts {
-		if l == layout {
-			found = true
-			break
-		}
-	}
-	if !found {
-		fallbackLayouts = append([]string{layout}, fallbackLayouts...)
-	}
-
-	for _, l := range fallbackLayouts {
-		if parsed, err := time.Parse(l, value); err == nil {
-			return parsed.Format(layout)
-		}
-	}
-
-	return ""
+	return CleanAndParseAsString(value, layout)
 }
