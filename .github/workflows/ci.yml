@@ -27,8 +27,8 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          chmod +x ./run-tests.sh
-          ./run-tests.sh --with-coverage
+          chmod +x ./bin/gotestx
+          ./bin/gotestx -cq
 
       - name: Show coverage %
         run: |

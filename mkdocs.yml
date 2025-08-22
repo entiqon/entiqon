@@ -32,6 +32,7 @@ nav:
               - Date: packages/common/extension/date.md
               - Decimal: packages/common/extension/decimal.md
               - Float: packages/common/extension/float.md
+              - Integer: packages/common/extension/integer.md
               - Number: packages/common/extension/number.md
               - Object: packages/common/extension/object.md
       - Database: packages/db/overview.md

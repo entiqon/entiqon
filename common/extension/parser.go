@@ -7,6 +7,7 @@ import (
 	"github.com/entiqon/entiqon/common/extension/date"
 	"github.com/entiqon/entiqon/common/extension/decimal"
 	"github.com/entiqon/entiqon/common/extension/float"
+	"github.com/entiqon/entiqon/common/extension/integer"
 	"github.com/entiqon/entiqon/common/extension/number"
 )
 
@@ -30,40 +31,20 @@ func BooleanOr(value any, def bool) bool {
 	return v
 }
 
-// Number parses a value into an int.
-// Returns 0 if parsing fails.
-func Number(value any) int {
-	v, err := number.ParseFrom(value, false)
+// Date parses a value into a time.Time.
+// Returns zero time if parsing fails.
+func Date(value any) time.Time {
+	v, err := date.ParseFrom(value)
 	if err != nil {
-		return 0
+		return time.Time{}
 	}
 	return v
 }
 
-// NumberOr parses a value into an int.
+// DateOr parses a value into a time.Time.
 // Returns the provided default if parsing fails.
-func NumberOr(value any, def int) int {
-	v, err := number.ParseFrom(value, false)
-	if err != nil {
-		return def
-	}
-	return v
-}
-
-// Float parses a value into a float64.
-// Returns 0 if parsing fails.
-func Float(value any) float64 {
-	v, err := float.ParseFrom(value)
-	if err != nil {
-		return 0
-	}
-	return v
-}
-
-// FloatOr parses a value into a float64.
-// Returns the provided default if parsing fails.
-func FloatOr(value any, def float64) float64 {
-	v, err := float.ParseFrom(value)
+func DateOr(value any, def time.Time) time.Time {
+	v, err := date.ParseFrom(value)
 	if err != nil {
 		return def
 	}
@@ -90,20 +71,60 @@ func DecimalOr(value any, precision int, def float64) float64 {
 	return v
 }
 
-// Date parses a value into a time.Time.
-// Returns zero time if parsing fails.
-func Date(value any) time.Time {
-	v, err := date.ParseFrom(value)
+// Float parses a value into a float64.
+// Returns 0 if parsing fails.
+func Float(value any) float64 {
+	v, err := float.ParseFrom(value)
 	if err != nil {
-		return time.Time{}
+		return 0
 	}
 	return v
 }
 
-// DateOr parses a value into a time.Time.
+// FloatOr parses a value into a float64.
 // Returns the provided default if parsing fails.
-func DateOr(value any, def time.Time) time.Time {
-	v, err := date.ParseFrom(value)
+func FloatOr(value any, def float64) float64 {
+	v, err := float.ParseFrom(value)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+// Integer parses a value into an int.
+// Returns 0 if parsing fails.
+func Integer(value any) int {
+	v, err := integer.ParseFrom(value)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// IntegerOr parses a value into an int.
+// Returns the provided default if parsing fails.
+func IntegerOr(value any, def int) int {
+	v, err := integer.ParseFrom(value)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+// Number parses a value into an int.
+// Returns 0 if parsing fails.
+func Number(value any) int {
+	v, err := number.ParseFrom(value, false)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// NumberOr parses a value into an int.
+// Returns the provided default if parsing fails.
+func NumberOr(value any, def int) int {
+	v, err := number.ParseFrom(value, false)
 	if err != nil {
 		return def
 	}

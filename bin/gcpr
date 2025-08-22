@@ -1,0 +1,113 @@
+#!/bin/bash
+# gcpr
+# Creates a GitHub Pull Request using GitHub CLI (gh)
+# Author: Entiqon Team
+# Version: 1.10.0
+
+VERSION="1.10.0"
+TOOL_NAME="gcpr"
+AUTHOR="Entiqon Team"
+DESCRIPTION="Creates a GitHub Pull Request using GitHub CLI (gh)"
+
+show_help() {
+    cat << EOF
+$TOOL_NAME v$VERSION
+$DESCRIPTION
+Author: $AUTHOR
+
+Usage: $0 [options]
+
+Options:
+  -b, --branch          Branch name to create or use for the PR (required)
+  -t, --title           Title of the pull request (required)
+  -d, --description     Description/body of the pull request (optional)
+  -c, --commit-changes  Stage & commit all current changes before creating PR (default: false)
+  -h, --help            Show this help message and exit
+  -v, --version         Show version information and exit
+
+Example:
+  $0 -b feature/new-api -t "feat: add new API endpoints" -d "Implements new endpoints" -c
+EOF
+}
+
+show_version() {
+    echo "$VERSION"
+    echo
+    echo "$TOOL_NAME"
+    echo "$DESCRIPTION"
+    echo "Author: $AUTHOR"
+    echo "Version: $VERSION"
+    echo "Processor: $(uname -m) ($(uname -s))"
+}
+
+# Default values
+BRANCH=""
+TITLE=""
+DESCRIPTION_TEXT=""
+COMMIT_CHANGES=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -b|--branch)
+            BRANCH="$2"
+            shift 2
+            ;;
+        -t|--title)
+            TITLE="$2"
+            shift 2
+            ;;
+        -d|--description)
+            DESCRIPTION_TEXT="$2"
+            shift 2
+            ;;
+        -c|--commit-changes)
+            COMMIT_CHANGES=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -v|--version)
+            show_version
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use -h or --help for usage information."
+            exit 1
+            ;;
+    esac
+done
+
+# Validation
+if [[ -z "$BRANCH" || -z "$TITLE" ]]; then
+    echo "Error: Branch and title are required."
+    echo "Use -h or --help for usage information."
+    exit 1
+fi
+
+# Ensure GitHub CLI is installed
+if ! command -v gh &>/dev/null; then
+    echo "Error: GitHub CLI (gh) is not installed."
+    exit 1
+fi
+
+# Checkout or create the branch
+git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+
+# Commit changes if requested
+if [[ "$COMMIT_CHANGES" == true ]]; then
+    git add .
+    git commit -m "$TITLE"
+fi
+
+# Push branch
+git push -u origin "$BRANCH"
+
+# Create PR
+gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "${DESCRIPTION_TEXT:-No description provided}"
+
+# Open PR in browser
+gh pr view --web

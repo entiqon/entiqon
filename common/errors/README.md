@@ -1,4 +1,9 @@
-# 🛑 Errors — Entiqon Common
+<h1 align="left">
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true" align="left" height="96" width="96"> Errors
+</h1>
+<h6 align="left">Part of the <a href="https://github.com/entiqon/entiqon">Entiqon</a>::<span>Common</span> toolkit.</h6>
+
+## 🌱 Overview
 
 The `errors` package provides extended error handling utilities for Entiqon.
 It builds on Go's standard `error` interface by introducing structured
