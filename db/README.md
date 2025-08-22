@@ -1,6 +1,4 @@
-<p align="center"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_black.png?raw=true.png" align="center" height="48" /></p>
-
-<h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="64" width="64"> DB Module</h1>
+<h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="center" height="64" width="64"> Common Module</h1>
 
 ## 🌱 Overview
 
