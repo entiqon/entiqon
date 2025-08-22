@@ -5,71 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-21
+## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 
 ### Highlights
 
-- **Parsing façade extended**: Added `Or` variants for all shortcuts
-  (`BooleanOr`, `NumberOr`, `FloatOr`, `DecimalOr`, `DateOr`) to allow
-  explicit fallback values.
-- **Extension packages documented**: Each extension (`boolean`, `date`,
-  `decimal`, `float`, `number`, `object`, `collection`) now ships with:
-  `README.md`, `doc.go`, and `examples_test.go` for developer guides.
-- **Dockerfile update**: Docs build now copies package-level READMEs
-  into `docs/packages/extension/*` so they appear in the site.
-- **Changelog and site docs**: Navigation updated with alphabetized
-  extension packages.
+- **Parser Shortcuts**: Added `Or` variants (`BooleanOr`, `NumberOr`, `FloatOr`, `DecimalOr`, `DateOr`) to allow explicit fallback values.
+- **Extension Documentation**: Each extension subpackage (`boolean`, `date`, `decimal`, `float`, `number`, `object`, `collection`) now ships with `README.md`, `doc.go`, and `example_test.go`.
+- **Object Helpers**: Normalized and moved from `common/object` → `common/extension/object`.
+- **Deprecations**:
+    - `BoolToStr` has been renamed to `BoolToString` and moved into `common/extension/boolean`.
+    - Existing usages of `BoolToStr` will continue to work but are discouraged.
+
+### Documentation
+
+- Added root-level `doc.go` for `common` describing purpose and structure.
+- Added `README.md` for `common`, linking subpackages `errors` and `extension`.
+- Added package-level READMEs and examples across all `common/extension` subpackages.
+- Dockerfile updated to copy package-level READMEs into site docs.
+- Navigation updated with alphabetized extension packages.
 
 ### Internal
 
-- Unified test coverage for all parsing helpers and `Or` fallbacks
-  (100% branch coverage).
-- Refactored Dockerfile to preserve original base image but add package
-  READMEs automatically.
-
-### Date Parsing
-
-- Clarified supported input formats in `date.ParseAndFormat` examples.  
-  Only `YYYY-MM-DD`, `YYYY/MM/DD`, and `YYYYMMDD` layouts are supported by default.
-- Updated GoDoc examples to align with supported formats, removing unsupported `dd/MM/yyyy` usage.
-- `CleanAndParse` and `CleanAndParseAsString` continue to provide broader parsing capabilities, including epoch
-  timestamps and strict `YYYYMMDD`.
-
-### Object Helpers
-
-- The `object` utilities (`Exists`, `GetValue`, `SetValue`) have been **moved and normalized** into  
-  `common/extension/object` for consistency with other value parsers.
-- Existing imports from `common/object` should be updated to:
-  ```go
-  import "github.com/entiqon/entiqon/common/extension/object"
-
-### Deprecations & Moves
-
-- **BoolToStr → BoolToString**  
-  The helper `BoolToStr` has been **deprecated** and renamed to `BoolToString` for clarity.
-    - Location has also changed: moved from `common` root into `common/extension/boolean`.
-    - Existing usages of `BoolToStr` will continue to work but are discouraged.
-    - Update imports to use `common/extension/boolean.BoolToString`.
+- Unified test coverage for all parsing helpers and `Or` fallbacks.
+- Refactored Dockerfile to preserve base image but copy documentation automatically.
+- Clarified supported input formats in `date.ParseAndFormat` examples.
 
 ## [v1.11.0](https://github.com/entiqon/entiqon/releases/tag/v1.11.0) - 2025-08-17
 
 ### Highlights
 
-- **New parsing façade**: one-line helpers for `Boolean`, `Float`,
-  `Decimal`, and `Date`.
-- **Deterministic date cleaning**: `CleanAndParse`,
-  `CleanAndParseAsString`, strict `YYYYMMDD` prefix path, and 100%
-  tests.
-- **Boolean parser++**: extended tokens (`on/off`, `y/n`, `t/f`) and
-  explicit `nil` rejection.
-- **SQL Builder/Token overhaul**: `Column → Field`, `FieldCollection`,
-  deterministic `NewField` inputs, and Postgres/Base dialects with
-  tests.
+-   **New parsing façade**: one-line helpers for `Boolean`, `Float`,
+    `Decimal`, and `Date`.
+-   **Deterministic date cleaning**: `CleanAndParse`,
+    `CleanAndParseAsString`, strict `YYYYMMDD` prefix path, and 100%
+    tests.
+-   **Boolean parser++**: extended tokens (`on/off`, `y/n`, `t/f`) and
+    explicit `nil` rejection.
+-   **SQL Builder/Token overhaul**: `Column → Field`, `FieldCollection`,
+    deterministic `NewField` inputs, and Postgres/Base dialects with
+    tests.
 
 ## [v1.10.0](https://github.com/entiqon/entiqon/releases/tag/v1.10.1) - 2025-08-07
 
-- dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro
-  Lopez)
+- dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro Lopez)
 
 ## [v1.9.0](https://github.com/entiqon/entiqon/releases/tag/v1.9.0) - 2025-08-07
 
