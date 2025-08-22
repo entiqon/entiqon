@@ -1,6 +1,5 @@
 // File: common/math/float/parser.go
 
-// Package float provides utilities to parse various input types into float64 values.
 package float
 
 import (
