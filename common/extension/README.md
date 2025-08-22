@@ -29,7 +29,7 @@ func example() {
 
 ## 📘 Developer Guides
 
-- [ProcessStage](../docs/packages/common/guides/ProcessStage_Developer_Guide.md) — Dialects, StageToken, ParamBinder integration
+- [ProcessStage](../../docs/packages/common/guides/ProcessStage_Developer_Guide.md) — Dialects, StageToken, ParamBinder integration
 
 ---
 
@@ -137,4 +137,4 @@ Reason: %s
 
 ## 📄 License
 
-[MIT](../LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../../LICENSE) — © Isidro Lopez / Entiqon Project

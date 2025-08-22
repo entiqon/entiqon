@@ -1,14 +1,3 @@
-// File: common/extension/parser.go
-
-// Package extension provides convenience wrappers for parsing values into
-// common types. These are thin shortcuts around the subpackages:
-//
-//	Boolean(v) → boolean.ParseFrom(v)
-//	Float(v)   → float.ParseFrom(v)
-//	Decimal(v, precision) → decimal.ParseFrom(v, precision)
-//	Date(v)    → date.ParseFrom(v)
-//
-// Import subpackages directly if you need advanced features.
 package extension
 
 import (
@@ -18,28 +7,105 @@ import (
 	"github.com/entiqon/entiqon/common/extension/date"
 	"github.com/entiqon/entiqon/common/extension/decimal"
 	"github.com/entiqon/entiqon/common/extension/float"
+	"github.com/entiqon/entiqon/common/extension/number"
 )
 
-func Boolean(value any) (bool, error) {
-	return boolean.ParseFrom(value)
+// Boolean parses a value into a bool.
+// Returns false if parsing fails.
+func Boolean(value any) bool {
+	v, err := boolean.ParseFrom(value)
+	if err != nil {
+		return false
+	}
+	return v
 }
 
-func Float(value any) (float64, error) {
-	return float.ParseFrom(value)
+// BooleanOr parses a value into a bool.
+// Returns the provided default if parsing fails.
+func BooleanOr(value any, def bool) bool {
+	v, err := boolean.ParseFrom(value)
+	if err != nil {
+		return def
+	}
+	return v
 }
 
-//func Integer(value any) (int, error) {
-//	return number.ParseFrom(value)
-//}
-
-func Decimal(value any, precision int) (float64, error) {
-	return decimal.ParseFrom(value, precision)
+// Number parses a value into an int.
+// Returns 0 if parsing fails.
+func Number(value any) int {
+	v, err := number.ParseFrom(value, false)
+	if err != nil {
+		return 0
+	}
+	return v
 }
 
-func Date(value any) (time.Time, error) {
-	return date.ParseFrom(value)
+// NumberOr parses a value into an int.
+// Returns the provided default if parsing fails.
+func NumberOr(value any, def int) int {
+	v, err := number.ParseFrom(value, false)
+	if err != nil {
+		return def
+	}
+	return v
 }
 
-//func String(value any) (string, error) {
-//	return string.ParseFrom(value)
-//}
+// Float parses a value into a float64.
+// Returns 0 if parsing fails.
+func Float(value any) float64 {
+	v, err := float.ParseFrom(value)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// FloatOr parses a value into a float64.
+// Returns the provided default if parsing fails.
+func FloatOr(value any, def float64) float64 {
+	v, err := float.ParseFrom(value)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+// Decimal parses a value into a float64 with precision.
+// Precision must be provided explicitly. Returns 0 if parsing fails.
+func Decimal(value any, precision int) float64 {
+	v, err := decimal.ParseFrom(value, precision)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// DecimalOr parses a value into a float64 with precision.
+// Returns the provided default if parsing fails.
+func DecimalOr(value any, precision int, def float64) float64 {
+	v, err := decimal.ParseFrom(value, precision)
+	if err != nil {
+		return def
+	}
+	return v
+}
+
+// Date parses a value into a time.Time.
+// Returns zero time if parsing fails.
+func Date(value any) time.Time {
+	v, err := date.ParseFrom(value)
+	if err != nil {
+		return time.Time{}
+	}
+	return v
+}
+
+// DateOr parses a value into a time.Time.
+// Returns the provided default if parsing fails.
+func DateOr(value any, def time.Time) time.Time {
+	v, err := date.ParseFrom(value)
+	if err != nil {
+		return def
+	}
+	return v
+}

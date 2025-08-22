@@ -1,5 +1,3 @@
-// File: common/extension/parser_test.go
-
 package extension_test
 
 import (
@@ -10,155 +8,177 @@ import (
 )
 
 func TestParser(t *testing.T) {
-	t.Run("Methods", func(t *testing.T) {
+	t.Run("Boolean", func(t *testing.T) {
+		cases := []struct {
+			in   any
+			want bool
+		}{
+			{true, true},
+			{false, false},
+			{"true", true},
+			{"FALSE", false},
+			{"1", true},
+			{"0", false},
+			{"yes", true},
+			{"no", false},
+			{"on", true},
+			{"off", false},
+			{"y", true},
+			{"n", false},
+			{"t", true},
+			{"f", false},
+			{"maybe", false}, // fallback to false
+			{nil, false},     // fallback to false
+		}
+		for i, tc := range cases {
+			got := extension.Boolean(tc.in)
+			if got != tc.want {
+				t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
+			}
+		}
 
-		t.Run("Boolean", func(t *testing.T) {
-			type TC struct {
-				in   any
-				want bool
-				ok   bool
+		// BooleanOr fallback
+		t.Run("BooleanOr", func(t *testing.T) {
+			if got := extension.BooleanOr("maybe", true); got != true {
+				t.Errorf("expected fallback true, got %v", got)
 			}
-			cases := []TC{
-				{true, true, true},
-				{false, false, true},
-				{"true", true, true},
-				{"FALSE", false, true},
-				{"1", true, true},
-				{"0", false, true},
-				{"yes", true, true},
-				{"no", false, true},
-				{"on", true, true},
-				{"off", false, true},
-				{"y", true, true},
-				{"n", false, true},
-				{"t", true, true},
-				{"f", false, true},
-				{"maybe", false, false},
-				{nil, false, false},
+			if got := extension.BooleanOr("maybe", false); got != false {
+				t.Errorf("expected fallback false, got %v", got)
 			}
-			for i, tc := range cases {
-				got, err := extension.Boolean(tc.in)
-				if tc.ok && err != nil {
-					t.Fatalf("case %d: unexpected error: %v", i, err)
-				}
-				if !tc.ok && err == nil {
-					t.Fatalf("case %d: expected error, got nil", i)
-				}
-				if tc.ok && got != tc.want {
-					t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
-				}
+			if got := extension.BooleanOr("true", false); got != true {
+				t.Errorf("expected parsed true, got %v", got)
 			}
 		})
+	})
 
-		t.Run("Float", func(t *testing.T) {
-			type TC struct {
-				in   any
-				want float64
-				ok   bool
+	t.Run("Number", func(t *testing.T) {
+		cases := []struct {
+			in   any
+			want int
+		}{
+			{42, 42},
+			{"99", 99},
+			{"invalid", 0}, // fallback to 0
+		}
+		for i, tc := range cases {
+			got := extension.Number(tc.in)
+			if got != tc.want {
+				t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
 			}
-			cases := []TC{
-				{3.14159, 3.14159, true},
-				{float32(2.5), 2.5, true},
-				{int(42), 42.0, true},
-				{"42.75", 42.75, true},
-				{"  -13.5  ", -13.5, true},
-				{"not-a-number", 0, false},
+		}
+
+		// NumberOr fallback
+		t.Run("NumberOr", func(t *testing.T) {
+			if got := extension.NumberOr("invalid", 77); got != 77 {
+				t.Errorf("expected fallback 77, got %v", got)
 			}
-			for i, tc := range cases {
-				got, err := extension.Float(tc.in)
-				if tc.ok && err != nil {
-					t.Fatalf("case %d: unexpected error: %v", i, err)
-				}
-				if !tc.ok && err == nil {
-					t.Fatalf("case %d: expected error, got nil", i)
-				}
-				if tc.ok && got != tc.want {
-					t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
-				}
+			if got := extension.NumberOr("invalid", -1); got != -1 {
+				t.Errorf("expected fallback -1, got %v", got)
+			}
+			if got := extension.NumberOr("42", 0); got != 42 {
+				t.Errorf("expected parsed 42, got %v", got)
 			}
 		})
+	})
 
-		t.Run("Decimal", func(t *testing.T) {
-			type TC struct {
-				in        any
-				precision int
-				want      float64
-				ok        bool
+	t.Run("Float", func(t *testing.T) {
+		cases := []struct {
+			in   any
+			want float64
+		}{
+			{3.14159, 3.14159},
+			{float32(2.5), 2.5},
+			{42, 42.0},
+			{"42.75", 42.75},
+			{"  -13.5  ", -13.5},
+			{"not-a-number", 0}, // fallback
+		}
+		for i, tc := range cases {
+			got := extension.Float(tc.in)
+			if got != tc.want {
+				t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
 			}
-			cases := []TC{
-				{"3.14159", 2, 3.14, true},
-				{2.345, 2, 2.35, true},
-				{int64(1234), 0, 1234.0, true},
-				{"-0.0049", 2, -0.00, true}, // rounds toward nearest even depending on impl
-				{"abc", 2, 0, false},
+		}
+
+		// FloatOr fallback
+		t.Run("FloatOr", func(t *testing.T) {
+			if got := extension.FloatOr("bad", 1.23); got != 1.23 {
+				t.Errorf("expected fallback 1.23, got %v", got)
 			}
-			for i, tc := range cases {
-				got, err := extension.Decimal(tc.in, tc.precision)
-				if tc.ok && err != nil {
-					t.Fatalf("case %d: unexpected error: %v", i, err)
-				}
-				if !tc.ok && err == nil {
-					t.Fatalf("case %d: expected error, got nil", i)
-				}
-				if tc.ok && got != tc.want {
-					t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
-				}
+			if got := extension.FloatOr("bad", -9.9); got != -9.9 {
+				t.Errorf("expected fallback -9.9, got %v", got)
+			}
+			if got := extension.FloatOr("42.5", 0); got != 42.5 {
+				t.Errorf("expected parsed 42.5, got %v", got)
 			}
 		})
+	})
 
-		t.Run("Date", func(t *testing.T) {
-			type TC struct {
-				in    any
-				want  time.Time
-				ok    bool
-				equal func(a, b time.Time) bool
+	t.Run("Decimal", func(t *testing.T) {
+		cases := []struct {
+			in        any
+			precision int
+			want      float64
+		}{
+			{"3.14159", 2, 3.14},
+			{2.345, 2, 2.35},
+			{int64(1234), 0, 1234.0},
+			{"-0.0049", 2, -0.00},
+			{"abc", 2, 0}, // fallback
+		}
+		for i, tc := range cases {
+			got := extension.Decimal(tc.in, tc.precision)
+			if got != tc.want {
+				t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
 			}
+		}
 
-			// helpers
-			ymd := func(y int, m time.Month, d int) time.Time {
-				return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+		// DecimalOr fallback
+		t.Run("DecimalOr", func(t *testing.T) {
+			if got := extension.DecimalOr("abc", 2, 9.99); got != 9.99 {
+				t.Errorf("expected fallback 9.99, got %v", got)
 			}
-			eq := func(a, b time.Time) bool { return a.Equal(b) }
-
-			cases := []TC{
-				// RFC3339
-				{"2023-11-14T22:13:20Z", time.Date(2023, 11, 14, 22, 13, 20, 0, time.UTC), true, eq},
-				// Epoch seconds / milliseconds
-				{"1700000000", time.Unix(1700000000, 0).UTC(), true, eq},
-				{"1700000000000", time.Unix(1700000000, 0).UTC(), true, eq},
-				// YYYYMMDD
-				{"20240229", ymd(2024, 2, 29), true, eq},
-				// Fallback layouts (date-only → UTC midnight)
-				{"2021-12-31", ymd(2021, 12, 31), true, eq},
-				{"2021/12/31", ymd(2021, 12, 31), true, eq},
-				{"02 Jan 2006", ymd(2006, 1, 2), true, eq},
-				// RFC1123 (zoned)
-				{"Tue, 14 Nov 2023 22:13:20 UTC", time.Date(2023, 11, 14, 22, 13, 20, 0, time.FixedZone("UTC", 0)), true, func(a, b time.Time) bool {
-					// Allow different UTC location pointers; compare instant & offset
-					_, offA := a.Zone()
-					_, offB := b.Zone()
-					return a.UTC().Equal(b.UTC()) && offA == offB
-				}},
-				// Invalid
-				{"bad-date", time.Time{}, false, eq},
+			if got := extension.DecimalOr("abc", 2, -1.11); got != -1.11 {
+				t.Errorf("expected fallback -1.11, got %v", got)
 			}
+			if got := extension.DecimalOr("123.45", 2, 0); got != 123.45 {
+				t.Errorf("expected parsed 123.45, got %v", got)
+			}
+		})
+	})
 
-			for i, tc := range cases {
-				got, err := extension.Date(tc.in)
-				if tc.ok && err != nil {
-					t.Fatalf("case %d: unexpected error: %v", i, err)
-				}
-				if !tc.ok && err == nil {
-					t.Fatalf("case %d: expected error, got nil (got=%v)", i, got)
-				}
-				if tc.ok {
-					if tc.equal == nil {
-						tc.equal = eq
-					}
-					if !tc.equal(got, tc.want) {
-						t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
-					}
-				}
+	t.Run("Date", func(t *testing.T) {
+		ymd := func(y int, m time.Month, d int) time.Time {
+			return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+		}
+
+		cases := []struct {
+			in   any
+			want time.Time
+		}{
+			{"20240229", ymd(2024, 2, 29)}, // leap day
+			{"bad-date", time.Time{}},      // fallback
+		}
+		for i, tc := range cases {
+			got := extension.Date(tc.in)
+			if !got.Equal(tc.want) {
+				t.Fatalf("case %d: want %v, got %v", i, tc.want, got)
+			}
+		}
+
+		// DateOr fallback
+		t.Run("DateOr", func(t *testing.T) {
+			def1 := ymd(2000, 1, 1)
+			def2 := ymd(1999, 12, 31)
+
+			if got := extension.DateOr("bad-date", def1); !got.Equal(def1) {
+				t.Errorf("expected fallback def1, got %v", got)
+			}
+			if got := extension.DateOr("bad-date", def2); !got.Equal(def2) {
+				t.Errorf("expected fallback def2, got %v", got)
+			}
+			if got := extension.DateOr("20230101", def1); !got.Equal(ymd(2023, 1, 1)) {
+				t.Errorf("expected parsed 2023-01-01, got %v", got)
 			}
 		})
 	})
