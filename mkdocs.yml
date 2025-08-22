@@ -12,7 +12,7 @@ theme:
     - search.highlight
     - content.code.copy
 
-docs_dir: docs-site
+docs_dir: docs
 use_directory_urls: true
 
 extra:
@@ -23,7 +23,17 @@ nav:
 
   - 📦 Packages:
       - Overview: packages/overview.md
-      - Common: packages/common/overview.md
+      - Common:
+          - Overview: packages/common/overview.md
+          - Error: packages/common/error/overview.md
+          - Extension:
+              - Boolean: packages/common/extension/boolean.md
+              - Collection: packages/common/extension/collection.md
+              - Date: packages/common/extension/date.md
+              - Decimal: packages/common/extension/decimal.md
+              - Float: packages/common/extension/float.md
+              - Number: packages/common/extension/number.md
+              - Object: packages/common/extension/object.md
       - Database: packages/database.md
 
   - 📘 Architecture:
@@ -38,12 +48,6 @@ nav:
       - InsertBuilder: dev/builder/insert_builder.md
       - UpdateBuilder: dev/builder/update_builder.md
       - DeleteBuilder: dev/builder/delete_builder.md
-      - UpsertBuilder: dev/builder/upsert_builder.md
-
-  - 📦 Releases:
-      - Overview: releases/index.md
-      - Lastest: releases/release-notes-v1.11.0.md
-      - Full Changelog: CHANGELOG.md
 
 markdown_extensions:
   - toc:
