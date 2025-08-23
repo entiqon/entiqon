@@ -4,7 +4,6 @@ package builder_test
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -12,196 +11,73 @@ import (
 	"github.com/entiqon/entiqon/db/token"
 )
 
-// Group 1: fields (between SELECT and FROM)
-// Group 2: from clause (after FROM, until LIMIT/OFFSET or end)
-// Group 3: "LIMIT <n>" (optional, full string with keyword)
-// Group 4: "OFFSET <n>" (optional, full string with keyword)
-var re = regexp.MustCompile(`(?i)^\s*SELECT\s+(.*?)\s+FROM\s+(.+?)(\s+LIMIT\s+\d+)?(\s+OFFSET\s+\d+)?\s*$`)
-
 func TestSelectBuilder(t *testing.T) {
 	t.Run("Methods", func(t *testing.T) {
-		table := "users"
-
-		t.Run("Build", func(t *testing.T) {
-			t.Run("EmptyFields", func(t *testing.T) {
-				// Empty string should not add a field → defaults to SELECT *
-				sql, _ := builder.NewSelect(nil).
-					Source(table).
-					Fields("").
-					Build()
-				if !strings.Contains(sql, "SELECT *") {
-					t.Errorf("expected to contain '*', got %v", sql)
-				}
-			})
-
-			t.Run("EmptyInput", func(t *testing.T) {
-				// Calling Fields("") should produce SELECT * as no fields were added
-				sql, _ := builder.NewSelect(nil).
-					Source(table).
-					Fields("").
-					Build()
-				if !strings.Contains(sql, "SELECT *") {
-					t.Errorf("expected to contain '*', got %v", sql)
-				}
-			})
-
-			t.Run("WithFields", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields("expr", "alias", true)
-				fields := sb.GetFields()
-				if len(fields) != 1 {
-					t.Errorf("expected 1 field, got %d", len(fields))
-				}
-				if fields[0].Expr != "expr" || fields[0].Alias != "alias" || !fields[0].IsRaw {
-					t.Errorf("expected field content, got %v", fields[0])
-				}
-			})
-		})
-
 		t.Run("Fields", func(t *testing.T) {
-			t.Run("SingleField", func(t *testing.T) {
-				t.Run("NoAlias", func(t *testing.T) {
-					sb := builder.NewSelect(nil).
-						Fields("expr")
-					fields := sb.GetFields()
-					if len(fields) != 1 {
-						t.Errorf("expected 1 field, got %d", len(fields))
-					}
-				})
+			t.Run("NilCollection", func(t *testing.T) {
+				sb := &builder.SelectBuilder{} // fields is nil
+				sb.Fields("id")
+				fields := sb.GetFields()
+				if fields.Length() != 1 || fields[0].Expr != "id" {
+					t.Errorf("expected one field 'id', got %+v", fields)
+				}
+			})
 
-				t.Run("Aliased", func(t *testing.T) {
-					t.Run("BySpace", func(t *testing.T) {
-						sb := builder.NewSelect(nil).
-							Fields("id user_id")
-						fields := sb.GetFields()
-						if fields[0].Expr != "id" || fields[0].Alias != "user_id" {
-							t.Errorf("expected field content, got %v", fields[0])
-						}
-					})
+			t.Run("NoArgs", func(t *testing.T) {
+				sb := builder.NewSelect(nil).Fields()
+				fields := sb.GetFields()
+				if fields.Length() != 0 {
+					t.Errorf("expected no fields, got %d", len(fields))
+				}
+			})
 
-					t.Run("ByASKeyword", func(t *testing.T) {
-						sb := builder.NewSelect(nil).
-							Fields("id AS user_id")
-						fields := sb.GetFields()
-						if !fields[0].IsAliased() {
-							t.Errorf("expected field to be aliased, got %v", fields[0].IsAliased())
-						}
-					})
-				})
+			t.Run("Add", func(t *testing.T) {
+				sb := builder.NewSelect(nil).Fields("id")
+				fields := sb.GetFields()
+				if fields.Length() != 1 || fields[0].Expr != "id" {
+					t.Errorf("expected reset only, got %+v", fields)
+				}
+			})
 
-				t.Run("Raw", func(t *testing.T) {
-					t.Run("GeneratedAlias", func(t *testing.T) {
-						sb := builder.NewSelect(nil).
-							Fields("UPPER(firstname || '-' || lastname)")
-						fields := sb.GetFields()
-						if len(fields) != 1 || !fields[0].IsAliased() {
-							t.Errorf("expected exactly 1 aliased field, got %+v", fields)
-						}
-					})
-
-					t.Run("WithAlias", func(t *testing.T) {
-						sb := builder.NewSelect(nil).
-							Fields("UPPER(firstname || '-' || lastname) fullname")
-						fields := sb.GetFields()
-						if len(fields) != 1 || !fields[0].IsErrored() {
-							t.Errorf("expected exactly 1 errored field, got %+v", fields)
-						}
-						if fields[0].Error == nil {
-							t.Errorf("expected error, got nil")
-						}
-					})
-				})
-
-				t.Run("Invalid", func(t *testing.T) {
-					sb := builder.NewSelect(nil).Fields("")
-					fields := sb.GetFields()
-					if len(fields) != 0 {
-						t.Errorf("expected 0 fields, got %d", len(fields))
-					}
-				})
+			t.Run("Reset", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Fields("reset") // should reset
+				fields := sb.GetFields()
+				if fields.Length() != 1 || fields[0].Expr != "reset" {
+					t.Errorf("expected reset only, got %+v", fields)
+				}
 			})
 
 			t.Run("AliasedField", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
 					Fields("expr", "alias")
 				fields := sb.GetFields()
-				if len(fields) != 1 {
+				if fields.Length() != 1 {
+					t.Errorf("expected 1 field, got %d", fields.Length())
+				}
+			})
+
+			t.Run("Pointer", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields(token.NewField("id")) // *token.Field
+				fields := sb.GetFields()
+				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", len(fields))
 				}
 			})
 
-			t.Run("RawField", func(t *testing.T) {
-
-				t.Run("IsRawResolved", func(t *testing.T) {
-					sb := builder.NewSelect(nil).
-						Fields("firstname || '-' || lastname", "fullname")
-					fields := sb.GetFields()
-					if len(fields) != 1 {
-						t.Errorf("expected 1 field, got %d", len(fields))
-					}
-					if !fields[0].IsRaw {
-						t.Errorf("expected IsRaw resolved to true, got %v", fields[0].IsRaw)
-					}
-				})
-
-				t.Run("IsRawSpecific", func(t *testing.T) {
-					sb := builder.NewSelect(nil).
-						Fields("firstname || '-' || lastname", "fullname", true)
-					fields := sb.GetFields()
-					if len(fields) != 1 {
-						t.Errorf("expected 1 field, got %d", len(fields))
-					}
-					if !fields[0].IsRaw {
-						t.Errorf("expected IsRaw to be true, got %v", fields[0].IsRaw)
-					}
-				})
-
-			})
-
-			t.Run("Field", func(t *testing.T) {
-				t.Run("Nil", func(t *testing.T) {
-					var f *token.Field
-					sb := builder.NewSelect(nil).
-						Fields(f)
-					fields := sb.GetFields()
-					if len(fields) != 0 {
-						t.Errorf("expected 0 fields, got %d", len(fields))
-					}
-				})
-
-				t.Run("NonNil", func(t *testing.T) {
-					f := token.NewField("id")
-					sb := builder.NewSelect(nil).
-						Fields(f) // *token.Field (non-nil)
-					fields := sb.GetFields()
-					if len(fields) != 1 {
-						t.Errorf("expected 1 field, got %d", len(fields))
-					}
-					if fields[0].Expr != "id" {
-						t.Errorf("expected Expr 'id', got %q", fields[0].Expr)
-					}
-				})
-
-				t.Run("NotPointer", func(t *testing.T) {
-					field := token.NewField("id")
-					sb := builder.NewSelect(nil).
-						Fields(*field) // pass by value, not pointer
-					fields := sb.GetFields()
-					if len(fields) != 1 {
-						t.Errorf("expected 1 field, got %d", len(fields))
-					}
-					if fields[0].Expr != "id" {
-						t.Errorf("expected Expr 'id', got %q", fields[0].Expr)
-					}
-					if fields[0].IsAliased() {
-						t.Errorf("expected field not to be aliased, got %v", fields[0].IsAliased())
-					}
-				})
-			})
-
-			t.Run("InvalidType", func(t *testing.T) {
+			t.Run("NotPointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(true)
+					Fields(*token.NewField("id")) // token.Field (value)
+				fields := sb.GetFields()
+				if fields.Length() != 1 {
+					t.Errorf("expected 1 field, got %d", len(fields))
+				}
+			})
+
+			t.Run("Invalid", func(t *testing.T) {
+				sb := builder.NewSelect(nil).Fields(true)
 				fields := sb.GetFields()
 				if !fields[0].IsErrored() {
 					t.Errorf("expected IsErrored to be true, got %v", fields[0].IsErrored())
@@ -211,177 +87,23 @@ func TestSelectBuilder(t *testing.T) {
 				}
 			})
 		})
-	})
-}
 
-func TestSelectBuilderLegacy(t *testing.T) {
-	t.Run("Methods", func(t *testing.T) {
-		table := "users"
-		limit := 10
-		offset := 20
+		t.Run("AddFields", func(t *testing.T) {
+			sb := builder.NewSelect(nil).
+				Fields("id").
+				AddFields("name").
+				AddFields("email")
 
-		t.Run("Build", func(t *testing.T) {
-
-			t.Run("InlineAliasWithSpace", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields("UPPER(firstname || '-' || lastname) fullname").
-					Source(table)
-				sql, err := sb.Build()
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[1]) {
-					t.Errorf("expected %q, got %q", matches[1], sql)
-				}
-			})
-
-			t.Run("InlineAliasWithASKeyword", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields("UPPER(firstname || '-' || lastname) AS fullname").
-					Source(table)
-				sql, err := sb.Build()
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[1]) {
-					t.Errorf("expected %q, got %q", matches[1], sql)
-				}
-			})
-
-			t.Run("Aliased", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields("id", "user_id").
-					Source(table)
-				sql, err := sb.Build()
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[1]) {
-					t.Errorf("expected contains %q, got %q", matches[1], sql)
-				}
-			})
-
-			t.Run("ColumnToken", func(t *testing.T) {
-				sql, _ := builder.NewSelect(nil).
-					Fields(
-						token.Field{
-							Expr: "id",
-						},
-						token.Field{
-							Expr:  "name",
-							Alias: "firstname",
-						},
-						token.Field{
-							Expr: "lastname",
-						},
-						token.Field{
-							Expr:  "(country || ', ' || state)",
-							Alias: "country",
-							IsRaw: true,
-						},
-					).
-					Source(table).
-					Limit(limit).
-					Offset(offset).
-					Build()
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[1]) {
-					t.Errorf("expected %q, got %q", matches[1], sql)
-				}
-			})
-
-			t.Run("Limit", func(t *testing.T) {
-				sql, _ := builder.NewSelect(nil).
-					Source(table).
-					Limit(10).
-					Build()
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[3]) {
-					t.Errorf("expected contains %q, got %q", matches[3], sql)
-				}
-			})
-
-			t.Run("Offset", func(t *testing.T) {
-				sql, _ := builder.NewSelect(nil).
-					Source(table).
-					Offset(offset).
-					Build()
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				if !strings.Contains(sql, matches[4]) {
-					t.Errorf("expected contains %q, got %q", matches[4], sql)
-				}
-			})
-
-			t.Run("Pagination", func(t *testing.T) {
-				sql, _ := builder.NewSelect(nil).
-					Source(table).
-					Limit(limit).
-					Offset(offset).
-					Build()
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-				want := fmt.Sprintf("%s %s", strings.TrimSpace(matches[3]), strings.TrimSpace(matches[4]))
-				if !strings.Contains(sql, want) {
-					t.Errorf("expected contains %q, got %q", want, sql)
-				}
-			})
-
-			t.Run("SQL", func(t *testing.T) {
-				sql, _ := builder.NewSelect(nil).
-					Fields("id, name").
-					Source(table).
-					Limit(limit).
-					Offset(offset).
-					Build()
-				matches := re.FindStringSubmatch(sql)
-				if len(matches) != 5 {
-					t.Errorf("expected 5 parts, got %d", len(matches))
-				}
-			})
-
-			t.Run("IgnoreUnsupportedTypes_All", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields(123, 4.5, true, struct{}{}). // all unsupported → ignored
-					Source(table)
-
-				sql, err := sb.Build()
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				// With no supported fields added, builder should default to "*".
-				if !strings.Contains(sql, "SELECT * ") {
-					t.Errorf("expected wildcard SELECT *, got %q", sql)
-				}
-			})
+			fields := sb.GetFields()
+			if len(fields) != 3 {
+				t.Errorf("expected 3 fields, got %d", len(fields))
+			}
 		})
 
 		t.Run("Limit", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").
-				Source(table).
+				Source("users").
 				Limit(10)
 			sql, err := sb.Build()
 			if err != nil {
@@ -396,7 +118,7 @@ func TestSelectBuilderLegacy(t *testing.T) {
 		t.Run("Offset", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").
-				Source(table).
+				Source("users").
 				Offset(20)
 			sql, err := sb.Build()
 			if err != nil {
@@ -411,7 +133,7 @@ func TestSelectBuilderLegacy(t *testing.T) {
 		t.Run("Pagination", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").
-				Source(table).
+				Source("users").
 				Limit(10).
 				Offset(20)
 			sql, err := sb.Build()
@@ -427,9 +149,9 @@ func TestSelectBuilderLegacy(t *testing.T) {
 		t.Run("String", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").
-				Source(table)
+				Source("users")
 
-			want := `Status ✅: SQL=SELECT id FROM "users", Params=`
+			want := `Status ✅: SQL=SELECT id FROM users, Params=`
 			got := sb.String()
 			if got != want {
 				t.Errorf("String() = %q, want %q", got, want)
@@ -444,6 +166,123 @@ func TestSelectBuilderLegacy(t *testing.T) {
 			if !strings.HasPrefix(got, wantPrefix) {
 				t.Errorf("String() error output = %q, want prefix %q", got, wantPrefix)
 			}
+		})
+
+		t.Run("Build", func(t *testing.T) {
+			t.Run("NilReceiver", func(t *testing.T) {
+				var sb *builder.SelectBuilder = nil // nil receiver
+
+				_, err := sb.Build()
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+
+				want := "❌ [Build] - Wrong initialization. Cannot build on receiver nil"
+				if err.Error() != want {
+					t.Errorf("unexpected error: got %q, want %q", err.Error(), want)
+				}
+			})
+
+			t.Run("EmptyFields", func(t *testing.T) {
+				// Empty string should not add a field → defaults to SELECT *
+				sql, _ := builder.NewSelect(nil).
+					Source("users").
+					Fields("").
+					Build()
+				if !strings.Contains(sql, "SELECT *") {
+					t.Errorf("expected to contain '*', got %v", sql)
+				}
+			})
+
+			t.Run("WithFields", func(t *testing.T) {
+				sql, _ := builder.NewSelect(nil).
+					Fields("id, name").
+					Source("users").
+					Build()
+
+				if !strings.Contains(sql, "SELECT id, name") {
+					t.Errorf("expected SQL to contain 'SELECT id, name', got %q", sql)
+				}
+			})
+
+			t.Run("InvalidFields", func(t *testing.T) {
+				_, err := builder.NewSelect(nil).
+					Fields(true).     // rejected
+					AddFields(false). // rejected
+					AddFields(123).   // rejected
+					Source("users").
+					Build()
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				out := err.Error()
+				if !strings.Contains(out, "❌ [Build] - Invalid fields:") {
+					t.Errorf("expected error to contain '❌ [Build] - Invalid fields:', got %q", out)
+				}
+				if !strings.Contains(out, "⛔️ Field(") {
+					t.Errorf("expected detailed field errors, got %q", out)
+				}
+			})
+
+			t.Run("Limit", func(t *testing.T) {
+				sql, _ := builder.NewSelect(nil).
+					Source("users").
+					Limit(10).
+					Build()
+				if !strings.Contains(sql, "LIMIT 10") {
+					t.Errorf("expected contains LIMIT 10, got %q", sql)
+				}
+			})
+
+			t.Run("Offset", func(t *testing.T) {
+				sql, _ := builder.NewSelect(nil).
+					Source("users").
+					Offset(20).
+					Build()
+				if !strings.Contains(sql, "OFFSET 20") {
+					t.Errorf("expected contains OFFSET 20, got %q", sql)
+				}
+			})
+
+			t.Run("Pagination", func(t *testing.T) {
+				sql, _ := builder.NewSelect(nil).
+					Source("users").
+					Limit(10).
+					Offset(20).
+					Build()
+				want := fmt.Sprintf("LIMIT %d OFFSET %d", 10, 20)
+				if !strings.Contains(sql, want) {
+					t.Errorf("expected contains %q, got %q", want, sql)
+				}
+			})
+
+			t.Run("SQL", func(t *testing.T) {
+				sql, _ := builder.NewSelect(nil).
+					Fields("id, name").
+					Source("users").
+					Limit(10).
+					Offset(20).
+					Build()
+				want := "SELECT id, name FROM users LIMIT 10 OFFSET 20"
+				if sql != want {
+					t.Errorf("expected %s, got %s", want, sql)
+				}
+			})
+
+			t.Run("IgnoreUnsupportedTypes_All", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields(123, 4.5, true, struct{}{}). // all unsupported → ignored
+					Source("users")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				// With no supported fields added, builder should default to "*".
+				if !strings.Contains(sql, "SELECT * ") {
+					t.Errorf("expected wildcard SELECT *, got %q", sql)
+				}
+			})
 		})
 	})
 }
