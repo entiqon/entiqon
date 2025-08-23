@@ -65,7 +65,9 @@ func NewField(inputs ...any) *Field {
 
 	// Validate expr/input type
 	if err := validateType(inputs[0]); err != nil {
-		fd := &Field{}
+		fd := &Field{
+			Input: fmt.Sprint(inputs[0]),
+		}
 		if err.Error() == "input is a Field" {
 			fd.setError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
 		} else {
@@ -79,11 +81,10 @@ func NewField(inputs ...any) *Field {
 	case 3:
 		// input, alias, isRawExpr
 		if err := validateType(inputs[1]); err != nil {
-			fd := &Field{
+			return &Field{
 				Input: expr,
+				Error: fmt.Errorf("%s: %s", err.Error(), "alias must be a string"),
 			}
-			fd.setError(fmt.Errorf("%s: %s", err.Error(), "alias must be a string"))
-			return fd
 		}
 		alias := strings.TrimSpace(inputs[1].(string))
 
@@ -106,9 +107,10 @@ func NewField(inputs ...any) *Field {
 	case 2:
 		// expr, alias
 		if err := validateType(inputs[1]); err != nil {
-			fd := &Field{}
-			fd.setError(err)
-			return fd
+			return &Field{
+				Input: expr,
+				Error: err,
+			}
 		}
 		alias := strings.TrimSpace(inputs[1].(string))
 		return &Field{
@@ -245,7 +247,7 @@ func (f *Field) String() string {
 	}
 
 	base := fmt.Sprintf(
-		"%s Field(%q) [raw: %t, aliased: %t, errored: %t]",
+		"%s Field(%q): [raw: %t, aliased: %t, errored: %t]",
 		icon,
 		f.Name(),
 		f.IsRaw,
@@ -357,6 +359,6 @@ func validateType(input any) error {
 	case string:
 		return nil
 	default:
-		return fmt.Errorf("unsupported type: %T", v)
+		return fmt.Errorf("input type unsupported: %T", v)
 	}
 }

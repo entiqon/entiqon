@@ -11,7 +11,7 @@ import (
 	"github.com/entiqon/entiqon/db/token"
 )
 
-func TestColumn(t *testing.T) {
+func TestField(t *testing.T) {
 	t.Run("Constructors", func(t *testing.T) {
 		t.Run("NoInputs", func(t *testing.T) {
 			f := token.NewField()
@@ -21,7 +21,6 @@ func TestColumn(t *testing.T) {
 		})
 
 		t.Run("Expr", func(t *testing.T) {
-
 			t.Run("Field", func(t *testing.T) {
 				src := token.NewField("col1")
 				f := token.NewField(src)
@@ -178,12 +177,11 @@ func TestColumn(t *testing.T) {
 						})
 					}
 				})
-
 			})
 
 			t.Run("UnsupportedType", func(t *testing.T) {
 				f := token.NewField(123)
-				if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+				if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
 					t.Errorf("expected unsupported expr type error, got %+v", f.Error)
 				}
 			})
@@ -220,7 +218,7 @@ func TestColumn(t *testing.T) {
 
 		t.Run("TwoArgsAliasUnsupportedType", func(t *testing.T) {
 			f := token.NewField("col1", 123)
-			if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+			if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
 				t.Errorf("expected unsupported alias type error, got %+v", f.Error)
 			}
 		})
@@ -234,7 +232,7 @@ func TestColumn(t *testing.T) {
 
 		t.Run("ThreeArgsAliasWrongType", func(t *testing.T) {
 			f := token.NewField("input1", 123, true)
-			if f.Error == nil || !strings.Contains(f.Error.Error(), "unsupported type: int") {
+			if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
 				t.Errorf("expected unsupported type error, got %+v", f.Error)
 			}
 		})
