@@ -16,12 +16,19 @@
     - `ThenGroupBy(...string)`: appends grouping fields
     - Graceful handling of nil collections
     - Ignores empty or whitespace-only values
-    - `Build()` renders `GROUP BY` between `WHERE` and `ORDER BY`
+    - `Build()` renders `GROUP BY` between `WHERE` and `HAVING`
+  - **Having**
+    - `Having(...string)`: resets HAVING conditions
+    - `AndHaving(...string)`: appends with `AND`
+    - `OrHaving(...string)`: appends with `OR`
+    - Multiple conditions in a single `Having` call are normalized with `AND`
+    - Ignores empty or whitespace-only inputs
+    - `Build()` renders `HAVING` immediately after `GROUP BY`
   - **Ordering**
     - `OrderBy(...string)`: resets ordering fields
     - `ThenOrderBy(...string)`: appends ordering fields
     - Ignores empty or whitespace-only values
-    - `Build()` renders `ORDER BY` after `WHERE` / `GROUP BY`
+    - `Build()` renders `ORDER BY` after `WHERE` / `GROUP BY` / `HAVING`
 
 ### Enhanced
 - **Field diagnostics**
@@ -57,7 +64,7 @@
   - Integer parsing (valid, invalid, defaults)
 
 ## Documentation
-- **Database README.md** updated with Conditions, Grouping, Ordering, and Field Rules
+- **Database README.md** updated with Conditions, Grouping, Having, Ordering, and Field Rules
 - **Common/Extension README.md** updated with integer parser, usage table, and shortcuts
 - **Database doc.go** extended with clause usage examples
 - **Database example_test.go** enhanced with runnable examples:
@@ -65,5 +72,6 @@
   - `ExampleSelectBuilder_andOr`
   - `ExampleSelectBuilder_ordering`
   - `ExampleSelectBuilder_grouping`
+  - `ExampleSelectBuilder_having`
 - **Common example_test.go** enhanced with runnable examples:
   - `ExampleIntegerParseFrom` and shortcut usage

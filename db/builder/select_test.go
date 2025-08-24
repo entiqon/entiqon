@@ -118,21 +118,6 @@ func TestSelectBuilder(t *testing.T) {
 			})
 
 			t.Run("Where", func(t *testing.T) {
-				t.Run("Default", func(t *testing.T) {
-					sb := builder.NewSelect(nil).
-						Fields("id user_id"). // correct: alias, not two args
-						Source("users")
-
-					sql, err := sb.Build()
-					if err != nil {
-						t.Fatalf("expected no error, got %v", err)
-					}
-					expected := "SELECT id AS user_id FROM users"
-					if sql != expected {
-						t.Errorf("expected %q, got %q", expected, sql)
-					}
-				})
-
 				t.Run("SingleCondition", func(t *testing.T) {
 					sb := builder.NewSelect(nil).
 						Fields("id").
@@ -144,6 +129,23 @@ func TestSelectBuilder(t *testing.T) {
 						t.Fatalf("expected no error, got %v", err)
 					}
 					expected := "SELECT id FROM users WHERE age > 18"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("ResetCollection", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("age > 45").
+						Where("age < 50")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE age < 50"
 					if sql != expected {
 						t.Errorf("expected %q, got %q", expected, sql)
 					}
@@ -335,6 +337,169 @@ func TestSelectBuilder(t *testing.T) {
 				if sql != expected {
 					t.Errorf("expected %q, got %q", expected, sql)
 				}
+			})
+		})
+
+		t.Run("Having", func(t *testing.T) {
+			t.Run("NilCollection", func(t *testing.T) {
+				sb := &builder.SelectBuilder{}
+				sb.Fields("id")
+				sb.Source("users")
+				sb.GroupBy("role")
+				sb.Having("COUNT(*) > 5")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) > 5"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("SingleCondition", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("role").
+					Having("COUNT(*) > 5")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) > 5"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("ResetCollection", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("role").
+					Having("COUNT(*) > 5").
+					Having("COUNT(*) < 10")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) < 10"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("MultipleConditions", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("role").
+					Having("COUNT(*) > 5", "AVG(age) > 30")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) > 5 AND AVG(age) > 30"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("IgnoreEmptyConditions", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("role").
+					Having("   ", "SUM(salary) > 1000")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role HAVING SUM(salary) > 1000"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("And", func(t *testing.T) {
+				t.Run("Appends", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						GroupBy("role").
+						Having("COUNT(*) > 5").
+						AndHaving("AVG(age) > 30")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) > 5 AND AVG(age) > 30"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("AsFirstCondition", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						GroupBy("role").
+						AndHaving("AVG(age) > 30")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users GROUP BY role HAVING AVG(age) > 30"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+			})
+
+			t.Run("Or", func(t *testing.T) {
+				t.Run("Appends", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						GroupBy("role").
+						Having("COUNT(*) > 5").
+						OrHaving("AVG(age) > 30").
+						OrHaving("SUM(salary) > 1000")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users GROUP BY role HAVING COUNT(*) > 5 OR AVG(age) > 30 OR SUM(salary) > 1000"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("AsFirstCondition", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						GroupBy("role").
+						OrHaving("SUM(salary) > 1000")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users GROUP BY role HAVING SUM(salary) > 1000"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
 			})
 		})
 

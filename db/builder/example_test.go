@@ -137,3 +137,20 @@ func ExampleSelectBuilder_grouping() {
 	fmt.Println(sql)
 	// Output: SELECT department, COUNT(*) AS total FROM users GROUP BY department, role
 }
+
+// ExampleSelectBuilder_having demonstrates how to use Having, AndHaving,
+// and OrHaving to build a HAVING clause in a SELECT statement.
+func ExampleSelectBuilder_having() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("department, COUNT(*) AS total").
+		Source("users").
+		GroupBy("department").
+		Having("COUNT(*) > 5").
+		AndHaving("AVG(age) > 30").
+		OrHaving("SUM(salary) > 100000").
+		Build()
+
+	fmt.Println(sql)
+	// Output:
+	// SELECT department, COUNT(*) AS total FROM users GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
+}
