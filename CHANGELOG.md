@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-23
+
+### ✨ Features
+- **token/field**: add `Debug()` for compact diagnostics and enhance `String()` with ✅/⛔️ icons
+- **db/builder/select**: improve error reporting for invalid usage (clearer messages for unsupported inputs, missing sources, etc.)
+- **common/extension/integer**: introduce integer parser with full tests, examples, and parser shortcuts
+
+### 🧪 Tests
+- **builder/select**: reach 100% coverage for `SelectBuilder`
+
+### 🛠 Internal
+- **gench utility**: add `gench` bash tool to automate changelog entry generation
+
 ## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 
 ### Highlights

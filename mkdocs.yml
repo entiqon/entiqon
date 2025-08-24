@@ -35,7 +35,12 @@ nav:
               - Integer: packages/common/extension/integer.md
               - Number: packages/common/extension/number.md
               - Object: packages/common/extension/object.md
-      - Database: packages/db/overview.md
+      - Database:
+          - Overview: packages/db/overview.md
+          - Builders:
+              - Select: packages/db/builder/overview.md
+          - Tokens:
+              Field: packages/db/token/field.md
 
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
@@ -44,16 +49,9 @@ nav:
       - Dialect: dev/driver/dialect.md
       - Styling: dev/driver/styling.md
 
-  - 🧱 Builders:
-      - SelectBuilder: dev/builder/select_builder.md
-      - InsertBuilder: dev/builder/insert_builder.md
-      - UpdateBuilder: dev/builder/update_builder.md
-      - DeleteBuilder: dev/builder/delete_builder.md
-      - UpsertBuilder: dev/builder/upsert_builder.md
-
   - 📦 Releases:
       - Overview: releases/index.md
-      - Lastest: releases/release-notes-v1.11.0.md
+      - Lastest: releases/release-notes-v1.13.0.md
       - Full Changelog: CHANGELOG.md
 
 markdown_extensions:

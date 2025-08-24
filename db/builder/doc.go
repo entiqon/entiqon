@@ -1,7 +1,7 @@
 // Package builder provides a fluent API to construct SQL SELECT queries.
 //
 // The SelectBuilder type allows incremental composition of SELECT statements
-// with support for fields, sources, limits, and offsets. It is intended to be
+// with support for fields, sources, conditions, limits, and offsets. It is
 // simple, extensible, and dialect-aware.
 //
 // # Overview
@@ -22,6 +22,9 @@
 //   - Fields(...interface{}): reset and set fields for the select clause.
 //   - AddFields(...interface{}): append fields without resetting.
 //   - Source(string): set the source table.
+//   - Where(...string): reset and set conditions for the WHERE clause.
+//   - And(...string): append conditions with AND.
+//   - Or(...string): append conditions with OR.
 //   - Limit(int): apply LIMIT.
 //   - Offset(int): apply OFFSET.
 //   - Build(): construct the SQL string or return an error.
@@ -38,6 +41,27 @@
 // Unsupported inputs are rejected and recorded as errored fields.
 // Build() will collect all invalid fields and return a descriptive error.
 //
+// # Conditions
+//
+// Conditions are expressed as raw strings. They are combined as follows:
+//
+//   - Where() clears existing conditions and sets new ones.
+//   - And() appends conditions joined by AND.
+//   - Or() appends conditions joined by OR.
+//   - Multiple conditions in one call to Where() are normalized with AND.
+//
+// For example:
+//
+//	sb := builder.NewSelect(nil).
+//		Fields("id", "name").
+//		Source("users").
+//		Where("age > 18", "status = 'active'").
+//		Or("role = 'admin'").
+//		And("country = 'US'")
+//
+//	sql, _ := sb.Build()
+//	// SELECT id, name FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
+//
 // # Error Handling
 //
 // Build() may return an error in the following cases:
@@ -50,13 +74,14 @@
 //	sql, err := builder.NewSelect(nil).
 //		Fields("id, name").
 //		Source("users").
+//		Where("age > 18").
 //		Limit(10).
 //		Offset(20).
 //		Build()
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	fmt.Println(sql) // SELECT id, name FROM users LIMIT 10 OFFSET 20
+//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 LIMIT 10 OFFSET 20
 //
 // With no fields specified, the builder defaults to:
 //

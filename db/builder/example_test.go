@@ -68,3 +68,44 @@ func ExampleSelectBuilder_invalidFields() {
 	//	⛔️ Field("false"): input type unsupported: bool
 	//	⛔️ Field("123"): input type unsupported: int
 }
+
+func ExampleSelectBuilder_where() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("id, name").
+		Source("users").
+		Where("age > 18", "status = 'active'").
+		Build()
+
+	fmt.Println(sql)
+	// Output:
+	// SELECT id, name FROM users WHERE age > 18 AND status = 'active'
+}
+
+func ExampleSelectBuilder_andOr() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("id").
+		Source("users").
+		Where("age > 18").
+		And("status = 'active'").
+		Or("role = 'admin'").
+		And("country = 'US'").
+		Build()
+
+	fmt.Println(sql)
+	// Output:
+	// SELECT id FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
+}
+
+func ExampleSelectBuilder_whereReset() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("id").
+		Source("users").
+		Where("age > 18").
+		And("status = 'active'").
+		Where("role = 'admin'"). // resets previous conditions
+		Build()
+
+	fmt.Println(sql)
+	// Output:
+	// SELECT id FROM users WHERE role = 'admin'
+}

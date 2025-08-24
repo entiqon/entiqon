@@ -6,18 +6,19 @@
 # 🌱 Overview
 
 The `builder` package provides a fluent API to construct SQL `SELECT` queries.  
-It is designed to be simple, safe, and dialect-aware.
+It is designed to be **simple**, **strict**, and **dialect-aware**.
 
 ## 🧩 Features
 
 - **SelectBuilder** for building `SELECT` queries.
 - Support for:
-  - Fields (`Fields`, `AddFields`)
+  - Fields (`Fields`, `AddFields`) with strict rules
   - Source (`Source`)
+  - Conditions (`Where`, `And`, `Or`)
   - Pagination (`Limit`, `Offset`)
   - SQL rendering (`Build`, `String`)
 - Default fallback to `SELECT *` if no fields are specified.
-- Aggregated error reporting when invalid fields are provided.
+- Aggregated error reporting when invalid fields or invalid usage are provided.
 
 ## Usage
 
@@ -34,21 +35,91 @@ if err != nil {
     log.Fatal(err)
 }
 fmt.Println(sql)
-// Output: SELECT id, name FROM "users" LIMIT 10 OFFSET 20
+// Output: SELECT id, name FROM users LIMIT 10 OFFSET 20
 ```
 
-### Fields Handling
+---
 
-- **Fields**: resets the field collection and replaces existing fields.
-- **AddFields**: appends to the existing field collection.
+### Field Rules (Strict)
 
-Supported inputs:
-- `string`: single expression, comma-separated list, inline alias with `AS` or space
-- `token.Field` / `*token.Field`
-- `expr, alias`
-- `expr, alias, isRaw`
+Fields are always normalized into a `token.Field`. The following rules are enforced:
 
-Invalid inputs are collected and reported at build time.
+1. **Single string**
+   - `"id"` → one field  
+   - `"id, name, email"` → multiple fields (comma split)  
+   - `"id user_id"` → field with alias (`id AS user_id`)  
+   - `"id AS user_id"` → field with alias (`id AS user_id`)  
+   - `"COUNT(id) AS total"` → raw expression with alias  
+   ⚠️ If a raw expression has a trailing alias without `AS`, it is rejected:
+   ```go
+   .Fields("(field1 || field2) alias")
+   // Error: raw expressions must use explicit AS for alias
+   ```
+
+2. **Two arguments (`string, string`)**
+   - `.Fields("id", "user_id")` → `id AS user_id`  
+   ⚠️ This does not mean “two fields.” If you want two fields, use:
+   ```go
+   .Fields("id, user_id")
+   ```
+
+3. **Three arguments (`string, string, bool`)**
+   - `.Fields("COUNT(*)", "total", true)` → raw expression with alias  
+
+4. **Multiple `Field` objects**
+   - `.Fields(*token.NewField("id"), *token.NewField("name"))`  
+   ⚠️ Passing a `Field` into `NewField` is rejected; use `.Clone()` instead.
+
+---
+
+### Conditions
+
+You can build `WHERE` clauses using `Where`, `And`, and `Or`:
+
+```go
+sql, _ := builder.NewSelect(nil).
+    Fields("id", "name").
+    Source("users").
+    Where("age > 18", "status = 'active'"). // normalized with AND
+    Or("role = 'admin'").
+    And("country = 'US'").
+    Build()
+
+fmt.Println(sql)
+// Output: SELECT id, name FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
+```
+
+Rules:
+- `Where` resets conditions (like `Fields`).
+- `And` appends with `AND`.
+- `Or` appends with `OR`.
+- Multiple conditions in one `Where(...)` are normalized with `AND`.
+
+---
+
+### Debugging Fields
+
+Use `String()` and `Debug()` to understand how a field was parsed:
+
+```go
+f := token.NewField("COUNT(*) AS total")
+
+fmt.Println(f.String())
+// ✅ Field("COUNT(*) AS total")
+
+fmt.Println(f.Debug())
+// ✅ Field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]
+
+f2 := token.NewField(true)
+
+fmt.Println(f2.String())
+// ⛔️ Field("true"): input type unsupported: bool
+
+fmt.Println(f2.Debug())
+// ⛔️ Field("true"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
+```
+
+---
 
 ### Error Cases
 
@@ -56,26 +127,41 @@ Invalid inputs are collected and reported at build time.
   ```
   ❌ [Build] - Wrong initialization. Cannot build on receiver nil
   ```
+
 - No source specified:
   ```
   ❌ [Build] - No source specified
   ```
-- Invalid fields:
+
+- Invalid fields (detailed diagnostics):
   ```
   ❌ [Build] - Invalid fields:
-      ⛔️ Field("true"): unsupported type
-      ⛔️ Field("123"): unsupported type
+      ⛔️ Field("true"): input type unsupported: bool
+      ⛔️ Field("false"): input type unsupported: bool
+      ⛔️ Field("123"): input type unsupported: int
   ```
+
+- Raw expression with alias but without explicit `AS`:
+  ```
+  ⛔️ Field("(field1 || field2) alias"): [raw: true, aliased: false, errored: true] – raw expressions must use explicit AS for alias
+  ```
+
+---
 
 ## Status
 
 Currently, supports:
-- Field selection and aliasing
+- Field selection and aliasing (strict rules enforced)
 - Single source
+- WHERE conditions with AND/OR composition
 - Limit and offset
-- Error reporting for invalid fields
+- Error reporting for invalid fields with ✅/⛔️ diagnostics
 
-Planned extensions include joins, ordering, grouping, and parameters.
+Planned extensions include:
+- Joins
+- Ordering
+- Grouping
+- Parameter binding
 
 ---
 
