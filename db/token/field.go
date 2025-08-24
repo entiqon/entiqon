@@ -1,14 +1,5 @@
 // File: db/token/field.go
 
-// Package token defines SQL token types used by the query builder,
-// such as fields (columns), tables, conditions, joins, and more.
-//
-// Tokens encapsulate parsed components of SQL statements, preserving both
-// raw user input and normalized representations to enable structured,
-// safe, and extensible SQL generation.
-//
-// Field represents a column/field or expression within a SELECT list,
-// including its expression, optional alias, and flags relevant to rendering.
 package token
 
 import (
@@ -124,31 +115,29 @@ func NewField(inputs ...any) *Field {
 		isRaw := isRawExpr(expr)
 
 		if isRaw {
-			parsedExpr := expr // always preserve full expression
-
 			// Explicit AS → parse alias
 			if strings.Contains(strings.ToUpper(expr), " AS ") {
-				_, parsedAlias, _ := parseAlias(expr)
+				parsedExpr, parsedAlias, raw := parseAlias(expr)
 				return &Field{
 					Input: expr,
 					Expr:  parsedExpr,
 					Alias: parsedAlias,
-					IsRaw: true,
+					IsRaw: raw,
 				}
 			}
 
 			// Has space but no AS → error (alias without AS is invalid for raw)
 			if HasTrailingAliasWithoutAS(expr) {
-				fd := &Field{Input: parsedExpr}
+				fd := &Field{Input: expr}
 				fd.setError(errors.New("raw expressions must use explicit AS for alias"))
 				return fd
 			}
 
 			// No alias at all → auto-generate
-			auto := autoAlias(parsedExpr)
+			auto := autoAlias(expr)
 			return &Field{
-				Input: fmt.Sprintf("%s AS %s", parsedExpr, auto),
-				Expr:  parsedExpr,
+				Input: fmt.Sprintf("%s AS %s", expr, auto),
+				Expr:  expr,
 				Alias: auto,
 				IsRaw: true,
 			}
@@ -177,6 +166,33 @@ func (f *Field) Clone() *Field {
 	}
 	cp := *f
 	return &cp
+}
+
+// Debug returns a compact diagnostic view of the Field.
+//
+// Example (valid):
+//
+//	✅ Field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]
+//
+// Example (invalid):
+//
+//	⛔️ Field("false"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
+func (f *Field) Debug() string {
+	if f == nil {
+		return "⛔️ Field(<nil>): [raw: false, aliased: false, errored: true] – nil Field"
+	}
+
+	flags := fmt.Sprintf(
+		"[raw: %v, aliased: %v, errored: %v]",
+		f.IsRaw,
+		f.IsAliased(),
+		f.IsErrored(),
+	)
+
+	if f.Error != nil {
+		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.Input, flags, f.Error)
+	}
+	return fmt.Sprintf("✅ Field(%q): %s", f.Input, flags)
 }
 
 // IsAliased reports whether the field has a non-empty alias.
@@ -234,30 +250,28 @@ func (f *Field) Render() string {
 	return f.Raw()
 }
 
-// String returns a human-readable representation of the field, including a
-// status icon (✅ when valid, ⛔️ when invalid), the resolved Name, whether
-// it is aliased, and error state. If errored, the error message is appended.
+// String implements fmt.Stringer and returns a concise description
+// suitable for logs and error aggregation.
+//
+// Example (valid):
+//
+//	✅ Field("id")
+//
+// Example (invalid or wrong initialization):
+//
+//	⛔️ Field("true"): input type unsupported: bool
+//	⛔️ Field(<nil>): wrong initialization
 func (f *Field) String() string {
-	aliased := f.IsAliased()
-	errored := !f.IsValid()
-
-	icon := "✅"
-	if errored {
-		icon = "⛔️"
+	if f == nil {
+		return "⛔️ Field(<nil>): wrong initialization"
 	}
-
-	base := fmt.Sprintf(
-		"%s Field(%q): [raw: %t, aliased: %t, errored: %t]",
-		icon,
-		f.Name(),
-		f.IsRaw,
-		aliased,
-		errored,
-	)
-	if errored && f.Error != nil {
-		return base + " – " + f.Error.Error()
+	if f.Error != nil {
+		return fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error)
 	}
-	return base
+	if f.Alias != "" {
+		return fmt.Sprintf("✅ Field(%q)", fmt.Sprintf("%s AS %s", f.Expr, f.Alias))
+	}
+	return fmt.Sprintf("✅ Field(%q)", f.Expr)
 }
 
 // deriveNameFromExpr derives a normalized identifier from an expression by

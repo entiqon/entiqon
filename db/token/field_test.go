@@ -379,7 +379,7 @@ func TestField(t *testing.T) {
 			}
 			f.Alias = "Alias"
 			got = f.String()
-			if !strings.Contains(got, "aliased: true") {
+			if !strings.Contains(got, "field AS Alias") {
 				t.Errorf("String() with alias got %q, want alias: true", got)
 			}
 			f.Error = errors.New("some error")

@@ -122,7 +122,6 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	parts := make([]string, 0, b.fields.Length())
 	var bad []string
-
 	for _, field := range b.fields.Items() {
 		if field.IsErrored() {
 			bad = append(bad,
@@ -131,7 +130,6 @@ func (b *SelectBuilder) Build() (string, error) {
 		}
 		parts = append(parts, field.Render())
 	}
-
 	if len(bad) > 0 {
 		return "", fmt.Errorf("❌ [Build] - Invalid fields:\n\t%s", strings.Join(bad, "\n\t"))
 	}
