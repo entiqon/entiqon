@@ -52,6 +52,20 @@
 
 ---
 
+## 🤝 Contributing
+
+We welcome contributions! 🎉
+
+Please read the [CONTRIBUTING.md](./.github/CONTRIBUTING.md) guide for details on:
+- Writing tests
+- Commit message conventions
+- Documentation updates
+- Release process
+
+For a quick checklist, see [CONTRIBUTING_QUICK.md](./.github/CONTRIBUTING_QUICK.md).
+
+---
+
 ## 📄 License
 
 💡 Originally created by [Isidro Lopez](https://github.com/ialopezg)  
