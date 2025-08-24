@@ -1,34 +1,25 @@
 // File: db/contract/renderable.go
+//
+// Renderable defines machine-facing SQL output. See package-level
+// documentation in doc.go for an overview of all contracts and
+// their distinct purposes.
 
 package contract
 
-// Renderable defines the behavior for types that can be rendered into a
-// string representation.
+// Renderable defines the contract for objects that can produce a canonical,
+// machine-facing string representation of themselves.
 //
-// Implementations of Renderable are responsible for producing a valid,
-// human-readable or machine-consumable string output that reflects the
-// current state of the object.
+// Render() is expected to return a stable, context-independent string
+// suitable for use in query builders, SQL fragments, or any serialization
+// where accuracy and consistency matter.
 //
-// The specific rendering format is determined by the implementing type,
-// and may vary depending on the context in which the type is used.
+// Example:
 //
-// Example usage:
-//
-//	type SQLExpression struct {
-//	    Expr string
-//	}
-//
-//	func (e SQLExpression) Render() string {
-//	    return e.Expr
-//	}
-//
-//	func main() {
-//	    var r contract.Renderable = SQLExpression{Expr: "SELECT * FROM users"}
-//	    fmt.Println(r.Render()) // Output: SELECT * FROM users
-//	}
+//	// Machine-facing: safe for SQL generation
+//	fmt.Println(field.Render()) // Output: "users.id"
 type Renderable interface {
-	// Render returns the string representation of the implementing type.
-	// The returned string should be a valid representation of the type's
-	// state, suitable for the context in which the Renderable is used.
+	// Render returns the canonical, machine-facing representation
+	// of the object (e.g., SQL fragment). Must be stable and
+	// consistent for use in query building.
 	Render() string
 }

@@ -26,7 +26,7 @@
     -   `dd173da` feat: introduce **Cleaning**, **ParseAndFormat**, and
         **ParseFrom** with full coverage
 -   **contract / token / builder / dialect**
-    -   `b2b47ca` feat(contract): add generic **Cloanable** interface;
+    -   `b2b47ca` feat(contract): add generic **Clonable** interface;
         assert `Field` compliance
     -   `d140010` feat(token): **FieldCollection** with full ops + tests
     -   `d4c0905` feat(token): implement **Column.Render** and satisfy
