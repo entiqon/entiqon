@@ -29,6 +29,7 @@ type SelectBuilder struct {
 	conditions *collection.Collection[string]
 	limit      int
 	offset     int
+	sorting    *collection.Collection[string]
 }
 
 // NewSelect creates a new SelectBuilder with the provided dialect.
@@ -41,6 +42,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 		dialect:    d,
 		fields:     collection.New[token.Field](),
 		conditions: collection.New[string](),
+		sorting:    collection.New[string](),
 	}
 }
 
@@ -96,6 +98,16 @@ func (b *SelectBuilder) And(conditions ...string) *SelectBuilder {
 // If this is the first condition, it behaves like Where().
 func (b *SelectBuilder) Or(conditions ...string) *SelectBuilder {
 	return b.addConditions("OR", false, conditions...)
+}
+
+// OrderBy sets the ORDER BY clause, replacing existing order fields.
+func (b *SelectBuilder) OrderBy(fields ...string) *SelectBuilder {
+	return b.addOrderBy(true, fields...)
+}
+
+// ThenOrderBy appends additional ORDER BY fields, preserving existing ones.
+func (b *SelectBuilder) ThenOrderBy(fields ...string) *SelectBuilder {
+	return b.addOrderBy(false, fields...)
 }
 
 // Limit sets the LIMIT clause.
@@ -169,8 +181,12 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	sql := strings.Join(tokens, " ")
 
-	if b.conditions.Length() > 0 {
+	if b.conditions != nil && b.conditions.Length() > 0 {
 		sql += " WHERE " + strings.Join(b.conditions.Items(), " ")
+	}
+
+	if b.sorting != nil && b.sorting.Length() > 0 {
+		sql += " ORDER BY " + strings.Join(b.sorting.Items(), ", ")
 	}
 
 	if b.limit > 0 {
@@ -235,7 +251,10 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 // addConditions adds one or more conditions to the builder.
 // prefix is "", "AND", or "OR" depending on caller semantics.
 // If reset is true, the collection is cleared first.
-func (b *SelectBuilder) addConditions(prefix string, reset bool, conditions ...string) *SelectBuilder {
+func (b *SelectBuilder) addConditions(
+	prefix string,
+	reset bool, conditions ...string,
+) *SelectBuilder {
 	if b.conditions == nil {
 		b.conditions = collection.New[string]()
 	} else if reset {
@@ -260,6 +279,23 @@ func (b *SelectBuilder) addConditions(prefix string, reset bool, conditions ...s
 		} else {
 			// If no prefix (Where with multiple args), default to AND
 			b.conditions.Add("AND " + trimmed)
+		}
+	}
+	return b
+}
+
+// addOrderBy ensures init and handles reset
+func (b *SelectBuilder) addOrderBy(reset bool, fields ...string) *SelectBuilder {
+	if b.sorting == nil {
+		b.sorting = collection.New[string]()
+	} else if reset {
+		b.sorting.Clear()
+	}
+
+	for _, f := range fields {
+		trimmed := strings.TrimSpace(f)
+		if trimmed != "" {
+			b.sorting.Add(trimmed)
 		}
 	}
 	return b

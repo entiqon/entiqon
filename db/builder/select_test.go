@@ -254,6 +254,90 @@ func TestSelectBuilder(t *testing.T) {
 			})
 		})
 
+		t.Run("Sorting", func(t *testing.T) {
+			t.Run("NilCollection", func(t *testing.T) {
+				sb := &builder.SelectBuilder{} // sorting is nil
+				sb.Fields("id")
+				sb.Source("users")
+				sb.OrderBy("name ASC")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users ORDER BY name ASC"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("OrderBy", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					OrderBy("created_at DESC")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users ORDER BY created_at DESC"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("ThenSort", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					OrderBy("created_at DESC").
+					ThenOrderBy("id ASC")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users ORDER BY created_at DESC, id ASC"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("ResetWithSortBy", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					OrderBy("name ASC").
+					OrderBy("email DESC") // should reset
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users ORDER BY email DESC"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("IgnoreEmptySorting", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					OrderBy("   ", "updated_at ASC")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users ORDER BY updated_at ASC"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+		})
+
 		t.Run("Limit", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").

@@ -109,3 +109,17 @@ func ExampleSelectBuilder_whereReset() {
 	// Output:
 	// SELECT id FROM users WHERE role = 'admin'
 }
+
+// ExampleSelectBuilder_ordering demonstrates how to use OrderBy and ThenOrderBy
+// to build an ORDER BY clause in a SELECT statement.
+func ExampleSelectBuilder_ordering() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("id, name").
+		Source("users").
+		OrderBy("created_at DESC").
+		ThenOrderBy("id ASC").
+		Build()
+
+	fmt.Println(sql)
+	// Output: SELECT id, name FROM users ORDER BY created_at DESC, id ASC
+}

@@ -15,6 +15,7 @@ It is designed to be **simple**, **strict**, and **dialect-aware**.
   - Fields (`Fields`, `AddFields`) with strict rules
   - Source (`Source`)
   - Conditions (`Where`, `And`, `Or`)
+  - Ordering (`OrderBy`, `ThenOrderBy`)
   - Pagination (`Limit`, `Offset`)
   - SQL rendering (`Build`, `String`)
 - Default fallback to `SELECT *` if no fields are specified.
@@ -78,7 +79,7 @@ You can build `WHERE` clauses using `Where`, `And`, and `Or`:
 
 ```go
 sql, _ := builder.NewSelect(nil).
-    Fields("id", "name").
+    Fields("id, name").
     Source("users").
     Where("age > 18", "status = 'active'"). // normalized with AND
     Or("role = 'admin'").
@@ -94,6 +95,29 @@ Rules:
 - `And` appends with `AND`.
 - `Or` appends with `OR`.
 - Multiple conditions in one `Where(...)` are normalized with `AND`.
+
+---
+
+### Ordering
+
+You can build `ORDER BY` clauses using `OrderBy` and `ThenOrderBy`:
+
+```go
+sql, _ := builder.NewSelect(nil).
+    Fields("id, name").
+    Source("users").
+    OrderBy("created_at DESC").
+    ThenOrderBy("id ASC").
+    Build()
+
+fmt.Println(sql)
+// Output: SELECT id, name FROM users ORDER BY created_at DESC, id ASC
+```
+
+Rules:
+- `OrderBy` resets ordering (like `Fields`).
+- `ThenOrderBy` appends additional fields.
+- Empty or whitespace values are ignored.
 
 ---
 
@@ -154,12 +178,12 @@ Currently, supports:
 - Field selection and aliasing (strict rules enforced)
 - Single source
 - WHERE conditions with AND/OR composition
+- ORDER BY with multiple fields
 - Limit and offset
 - Error reporting for invalid fields with ✅/⛔️ diagnostics
 
 Planned extensions include:
 - Joins
-- Ordering
 - Grouping
 - Parameter binding
 
