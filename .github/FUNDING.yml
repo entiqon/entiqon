@@ -10,6 +10,6 @@ liberapay: # Replace with a single Liberapay username
 issuehunt: # Replace with a single IssueHunt username
 otechie: # Replace with a single Otechie username
 custom:
-  - "https://www.paypal.com/donate/?hosted_button_id=GSZ7HDBKGNPPJ"
+  - "https://www.paypal.com/ncp/payment/GSZ7HDBKGNPPJ"
   - "https://buymeacoffee.com/entiqon"
   - "https://entiqon.dev/sponsor"
