@@ -9,6 +9,7 @@ import (
 
 	"github.com/entiqon/entiqon/db/builder"
 	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/token/table"
 )
 
 func TestSelectBuilder(t *testing.T) {
@@ -18,7 +19,8 @@ func TestSelectBuilder(t *testing.T) {
 				sb := &builder.SelectBuilder{} // fields is nil
 				sb.Fields("id")
 				fields := sb.GetFields()
-				if fields.Length() != 1 || fields[0].Expr != "id" {
+				field, _ := fields.At(0)
+				if fields.Length() != 1 || field.Expr != "id" {
 					t.Errorf("expected one field 'id', got %+v", fields)
 				}
 			})
@@ -27,14 +29,15 @@ func TestSelectBuilder(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields()
 				fields := sb.GetFields()
 				if fields.Length() != 0 {
-					t.Errorf("expected no fields, got %d", len(fields))
+					t.Errorf("expected no fields, got %d", fields.Length())
 				}
 			})
 
 			t.Run("Add", func(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields("id")
 				fields := sb.GetFields()
-				if fields.Length() != 1 || fields[0].Expr != "id" {
+				field, _ := fields.At(0)
+				if fields.Length() != 1 || field.Expr != "id" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -44,7 +47,8 @@ func TestSelectBuilder(t *testing.T) {
 					Fields("id").
 					Fields("reset") // should reset
 				fields := sb.GetFields()
-				if fields.Length() != 1 || fields[0].Expr != "reset" {
+				field, _ := fields.At(0)
+				if fields.Length() != 1 || field.Expr != "reset" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -63,7 +67,7 @@ func TestSelectBuilder(t *testing.T) {
 					Fields(token.NewField("id")) // *token.Field
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
-					t.Errorf("expected 1 field, got %d", len(fields))
+					t.Errorf("expected 1 field, got %d", fields.Length())
 				}
 			})
 
@@ -72,19 +76,91 @@ func TestSelectBuilder(t *testing.T) {
 					Fields(*token.NewField("id")) // token.Field (value)
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
-					t.Errorf("expected 1 field, got %d", len(fields))
+					t.Errorf("expected 1 field, got %d", fields.Length())
 				}
 			})
 
 			t.Run("Invalid", func(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields(true)
 				fields := sb.GetFields()
-				if !fields[0].IsErrored() {
-					t.Errorf("expected IsErrored to be true, got %v", fields[0].IsErrored())
+				field, _ := fields.At(0)
+				if !field.IsErrored() {
+					t.Errorf("expected IsErrored to be true, got %v", field.IsErrored())
 				}
-				if fields[0].Error == nil {
+				if field.Error == nil {
 					t.Errorf("expected Error to be set, got nil")
 				}
+			})
+		})
+
+		t.Run("From", func(t *testing.T) {
+			t.Run("InlineAlias", func(t *testing.T) {
+				sql, err := builder.NewSelect(nil).
+					Source("users u").
+					Build()
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				want := "SELECT * FROM users AS u"
+				if sql != want {
+					t.Errorf("got %q, want %q", sql, want)
+				}
+			})
+
+			t.Run("ExplicitAlias", func(t *testing.T) {
+				sql, err := builder.NewSelect(nil).
+					Source("users", "u").
+					Build()
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				want := "SELECT * FROM users AS u"
+				if sql != want {
+					t.Errorf("got %q, want %q", sql, want)
+				}
+			})
+
+			t.Run("Table", func(t *testing.T) {
+				sql, err := builder.NewSelect(nil).
+					Source(table.New("users")).
+					Build()
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				want := "SELECT * FROM users"
+				if sql != want {
+					t.Errorf("got %q, want %q", sql, want)
+				}
+			})
+
+			t.Run("Error", func(t *testing.T) {
+				t.Run("MultipleSource", func(t *testing.T) {
+					got := builder.NewSelect(nil).
+						Source(table.New("users"), "account").
+						String()
+					want := "no source specified"
+					if !strings.Contains(got, want) {
+						t.Errorf("got %q, want %q", got, want)
+					}
+				})
+
+				t.Run("InvalidName", func(t *testing.T) {
+					_, err := builder.NewSelect(nil).
+						Source(12345).
+						Build()
+					if err != nil {
+						t.Errorf("expected no error, got %v", err)
+					}
+				})
+
+				t.Run("InvalidAlias", func(t *testing.T) {
+					_, err := builder.NewSelect(nil).
+						Source("users", false).
+						Build()
+					if err != nil {
+						t.Errorf("expected no error, got %v", err)
+					}
+				})
 			})
 		})
 
@@ -95,8 +171,8 @@ func TestSelectBuilder(t *testing.T) {
 				AddFields("email")
 
 			fields := sb.GetFields()
-			if len(fields) != 3 {
-				t.Errorf("expected 3 fields, got %d", len(fields))
+			if fields.Length() != 3 {
+				t.Errorf("expected 3 fields, got %d", fields.Length())
 			}
 		})
 
@@ -633,43 +709,97 @@ func TestSelectBuilder(t *testing.T) {
 			}
 		})
 
-		t.Run("String", func(t *testing.T) {
-			sb := builder.NewSelect(nil).
-				Fields("id").
-				Source("users")
-
-			want := `Status ✅: SQL=SELECT id FROM users, Params=`
-			got := sb.String()
-			if got != want {
-				t.Errorf("String() = %q, want %q", got, want)
-			}
-
-			// Test error case when no source
-			sb = builder.NewSelect(nil).
-				Fields("id")
-
-			wantPrefix := "Status ❌: Error building SQL"
-			got = sb.String()
-			if !strings.HasPrefix(got, wantPrefix) {
-				t.Errorf("String() error output = %q, want prefix %q", got, wantPrefix)
-			}
-		})
-
-		t.Run("Build", func(t *testing.T) {
-			t.Run("NilReceiver", func(t *testing.T) {
-				var sb *builder.SelectBuilder = nil // nil receiver
-
-				_, err := sb.Build()
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-
-				want := "❌ [Build] - Wrong initialization. Cannot build on receiver nil"
-				if err.Error() != want {
-					t.Errorf("unexpected error: got %q, want %q", err.Error(), want)
+		t.Run("Debug", func(t *testing.T) {
+			t.Run("WithSource", func(t *testing.T) {
+				sb := builder.NewSelect(nil).Source("users")
+				got := sb.Debug()
+				want := "✅ SelectBuilder{fields:0, source: ✅ Table(users), where:0, groupBy:0, having:0, orderBy:0}"
+				if got != want {
+					t.Errorf("expected %q, got %q", want, got)
 				}
 			})
 
+			t.Run("WithHaving", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Source("orders").
+					Having("SUM(quantity) > 2")
+				got := sb.Debug()
+				want := "✅ SelectBuilder{fields:0, source: ✅ Table(orders), where:0, groupBy:0, having:1, orderBy:0}"
+				if got != want {
+					t.Errorf("expected %q, got %q", want, got)
+				}
+			})
+
+			t.Run("Errors", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var sb *builder.SelectBuilder = nil // nil receiver
+					got := sb.Debug()
+					want := "❌ SelectBuilder(nil)"
+					if got != want {
+						t.Errorf("expected %q, got %q", want, got)
+					}
+				})
+
+				t.Run("EmptySource", func(t *testing.T) {
+					sb := builder.NewSelect(nil)
+					got := sb.Debug()
+					want := "❌ SelectBuilder{fields:0, source:<nil>, where:0, groupBy:0, having:0, orderBy:0}"
+					if got != want {
+						t.Errorf("expected %q, got %q", want, got)
+					}
+				})
+			})
+		})
+
+		t.Run("String", func(t *testing.T) {
+			t.Run("Default", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users")
+
+				want := "✅ SelectBuilder: status: ready, fields=1, no conditions, grouped=false, sorted=false"
+				got := sb.String()
+				if got != want {
+					t.Errorf("String() = %q, want %q", got, want)
+				}
+
+				// Test error case when no source
+				sb = builder.NewSelect(nil).
+					Fields("id")
+
+				wantPrefix := "❌"
+				got = sb.String()
+				if !strings.HasPrefix(got, wantPrefix) {
+					t.Errorf("String() error output = %q, want prefix %q", got, wantPrefix)
+				}
+			})
+
+			t.Run("Conditions", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("SUM(quantity)").
+					Source("orders").
+					Having("SUM(quantity) > 0")
+
+				want := "✅ SelectBuilder: status: ready, fields=1, conditions=1, grouped=false, sorted=false"
+				got := sb.String()
+				if got != want {
+					t.Errorf("String() = %q, want %q", got, want)
+				}
+			})
+
+			t.Run("Errors", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var sb *builder.SelectBuilder = nil // nil receiver
+
+					want := sb.String()
+					if want == "" {
+						t.Errorf("String() error output = %q, want non-empty", want)
+					}
+				})
+			})
+		})
+
+		t.Run("Build", func(t *testing.T) {
 			t.Run("EmptyFields", func(t *testing.T) {
 				// Empty string should not add a field → defaults to SELECT *
 				sql, _ := builder.NewSelect(nil).
@@ -769,6 +899,31 @@ func TestSelectBuilder(t *testing.T) {
 				if !strings.Contains(sql, "SELECT * ") {
 					t.Errorf("expected wildcard SELECT *, got %q", sql)
 				}
+			})
+
+			t.Run("Errors", func(t *testing.T) {
+				t.Run("NilReceiver", func(t *testing.T) {
+					var sb *builder.SelectBuilder = nil // nil receiver
+
+					_, err := sb.Build()
+					if err == nil {
+						t.Fatal("expected error, got nil")
+					}
+
+					want := "❌ [Build] - Wrong initialization. Cannot build on receiver nil"
+					if err.Error() != want {
+						t.Errorf("unexpected error: got %q, want %q", err.Error(), want)
+					}
+				})
+
+				t.Run("NoSource", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id")
+					_, err := sb.Build()
+					if err == nil && !strings.Contains(err.Error(), "no source specified") {
+						t.Errorf("expected error, got nil")
+					}
+				})
 			})
 		})
 	})

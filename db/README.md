@@ -1,4 +1,7 @@
-<h1><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="center" height="64" width="64"> Common Module</h1>
+<h1 align="left">
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="82" width="82" alt=""> Database
+</h1>
+<h6 align="left">Part of the <a href="https://github.com/entiqon/entiqon">Entiqon Core</a> toolkit.</h6>
 
 ## 🌱 Overview
 
