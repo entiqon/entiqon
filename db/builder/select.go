@@ -23,11 +23,12 @@ import (
 
 // SelectBuilder builds simple SELECT queries.
 type SelectBuilder struct {
-	dialect dialect.Dialect
-	fields  *collection.Collection[token.Field]
-	table   string
-	limit   int
-	offset  int
+	dialect    dialect.Dialect
+	fields     *collection.Collection[token.Field]
+	table      string
+	conditions *collection.Collection[string]
+	limit      int
+	offset     int
 }
 
 // NewSelect creates a new SelectBuilder with the provided dialect.
@@ -37,8 +38,9 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 		d = &dialect.BaseDialect{}
 	}
 	return &SelectBuilder{
-		dialect: d,
-		fields:  collection.New[token.Field](),
+		dialect:    d,
+		fields:     collection.New[token.Field](),
+		conditions: collection.New[string](),
 	}
 }
 
@@ -74,6 +76,26 @@ func (b *SelectBuilder) GetFields() token.FieldCollection {
 func (b *SelectBuilder) Source(table string) *SelectBuilder {
 	b.table = table
 	return b
+}
+
+// Where sets the initial WHERE clause conditions, replacing any existing ones.
+// Empty or whitespace-only expressions are ignored.
+func (b *SelectBuilder) Where(conditions ...string) *SelectBuilder {
+	return b.addConditions("", true, conditions...)
+}
+
+// And appends additional conditions to the WHERE clause.
+// Empty or whitespace-only expressions are ignored.
+func (b *SelectBuilder) And(conditions ...string) *SelectBuilder {
+	return b.addConditions("AND", false, conditions...)
+}
+
+// Or appends additional conditions to the WHERE clause with OR.
+// Empty or whitespace-only expressions are ignored.
+// Or appends additional conditions joined with OR.
+// If this is the first condition, it behaves like Where().
+func (b *SelectBuilder) Or(conditions ...string) *SelectBuilder {
+	return b.addConditions("OR", false, conditions...)
 }
 
 // Limit sets the LIMIT clause.
@@ -147,6 +169,10 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	sql := strings.Join(tokens, " ")
 
+	if b.conditions.Length() > 0 {
+		sql += " WHERE " + strings.Join(b.conditions.Items(), " ")
+	}
+
 	if b.limit > 0 {
 		sql += fmt.Sprintf(" LIMIT %d", b.limit)
 	}
@@ -199,6 +225,42 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 		}
 	case 2, 3:
 		b.fields.Add(*token.NewField(cols...))
+	}
+	return b
+}
+
+// addConditions adds one or more conditions to the builder.
+// prefix is "", "AND", or "OR" depending on caller semantics.
+// If prefix == "" and reset == true, the collection is cleared.
+// addConditions adds one or more conditions to the builder.
+// prefix is "", "AND", or "OR" depending on caller semantics.
+// If reset is true, the collection is cleared first.
+func (b *SelectBuilder) addConditions(prefix string, reset bool, conditions ...string) *SelectBuilder {
+	if b.conditions == nil {
+		b.conditions = collection.New[string]()
+	} else if reset {
+		b.conditions.Clear()
+	}
+
+	for _, cond := range conditions {
+		trimmed := strings.TrimSpace(cond)
+		if trimmed == "" {
+			continue
+		}
+
+		// First condition → always stored without prefix
+		if b.conditions.Length() == 0 {
+			b.conditions.Add(trimmed)
+			continue
+		}
+
+		// Subsequent conditions
+		if prefix != "" {
+			b.conditions.Add(prefix + " " + trimmed)
+		} else {
+			// If no prefix (Where with multiple args), default to AND
+			b.conditions.Add("AND " + trimmed)
+		}
 	}
 	return b
 }

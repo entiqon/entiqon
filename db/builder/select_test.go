@@ -100,6 +100,160 @@ func TestSelectBuilder(t *testing.T) {
 			}
 		})
 
+		t.Run("Conditions", func(t *testing.T) {
+			t.Run("NilCollection", func(t *testing.T) {
+				sb := &builder.SelectBuilder{}
+				sb.Fields("id")
+				sb.Source("users")
+				sb.Where("age > 18")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users WHERE age > 18"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("Where", func(t *testing.T) {
+				t.Run("Default", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id user_id"). // correct: alias, not two args
+						Source("users")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id AS user_id FROM users"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("SingleCondition", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("age > 18")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE age > 18"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("MultipleConditions", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("age > 18", "status = 'active'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE age > 18 AND status = 'active'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("IgnoreEmptyConditions", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("   ", "role = 'admin'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE role = 'admin'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+			})
+
+			t.Run("And", func(t *testing.T) {
+				t.Run("Appends", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("age > 18").
+						And("status = 'active'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE age > 18 AND status = 'active'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("AsFirstCondition", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						And("status = 'active'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE status = 'active'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+			})
+
+			t.Run("Or", func(t *testing.T) {
+				t.Run("Appends", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Where("age > 18").
+						Or("status = 'active'").
+						Or("role = 'admin'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE age > 18 OR status = 'active' OR role = 'admin'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+
+				t.Run("AsFirstCondition", func(t *testing.T) {
+					sb := builder.NewSelect(nil).
+						Fields("id").
+						Source("users").
+						Or("status = 'active'")
+
+					sql, err := sb.Build()
+					if err != nil {
+						t.Fatalf("expected no error, got %v", err)
+					}
+					expected := "SELECT id FROM users WHERE status = 'active'"
+					if sql != expected {
+						t.Errorf("expected %q, got %q", expected, sql)
+					}
+				})
+			})
+		})
+
 		t.Run("Limit", func(t *testing.T) {
 			sb := builder.NewSelect(nil).
 				Fields("id").
