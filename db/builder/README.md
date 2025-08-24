@@ -1,7 +1,7 @@
 <h1 align="left">
   <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="96" width="96"> SelectBuilder
 </h1>
-<h6 align="left">Part of the <a href="https://github.com/entiqon/entiqon">Entiqon</a>::<span>Database</span> toolkit.</h6>
+<p align="left">Part of the <strong><a href="https://github.com/entiqon/entiqon">Entiqon</a></strong> / <a href="">Database</a> toolkit.</p>
 
 # 🌱 Overview
 

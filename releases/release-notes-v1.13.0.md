@@ -45,6 +45,18 @@
     - ✅ successful SQL string with params
     - ❌ error message when build fails
 
+## Database Package (token/table)
+
+### Added
+- Introduced `token.Table` type to represent SQL sources in builders:
+  - Provides constructors for tables, aliases, and raw inputs
+  - Consistent rendering across dialects
+  - Validation of invalid/empty inputs with clear error reporting
+- Added full unit test coverage (constructors, methods, edge cases)
+- Added `doc.go` with package overview and usage guidelines
+- Added `example_test.go` with runnable examples
+- Added `README.md` describing purpose, design, and usage
+
 ## Common Package (extension/integer)
 
 ### Added
@@ -58,20 +70,23 @@
 - Updated parser documentation under `common/extension` README
 
 ## Tests
-- Comprehensive unit tests across `db/builder/select` and `common/extension/integer` ensuring 100% coverage:
+- Comprehensive unit tests across `db/builder/select`, `token/table`, and `common/extension/integer` ensuring 100% coverage:
   - Clause handling (nil, reset, append, overwrite, ignore-empty)
   - Field validation and error aggregation
+  - Table token construction, aliasing, and rendering
   - Integer parsing (valid, invalid, defaults)
 
 ## Documentation
-- **Database README.md** updated with Conditions, Grouping, Having, Ordering, and Field Rules
+- **Database README.md** updated with Conditions, Grouping, Having, Ordering, Field Rules, and Table token section
 - **Common/Extension README.md** updated with integer parser, usage table, and shortcuts
-- **Database doc.go** extended with clause usage examples
+- **Database doc.go** extended with clause usage and table token examples
 - **Database example_test.go** enhanced with runnable examples:
   - `ExampleSelectBuilder_where`
   - `ExampleSelectBuilder_andOr`
   - `ExampleSelectBuilder_ordering`
   - `ExampleSelectBuilder_grouping`
   - `ExampleSelectBuilder_having`
+  - `ExampleTable_basic`
 - **Common example_test.go** enhanced with runnable examples:
   - `ExampleIntegerParseFrom` and shortcut usage
+

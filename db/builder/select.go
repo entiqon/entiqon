@@ -6,26 +6,28 @@
 // to generate safe, database-specific SQL statements.
 //
 // SelectBuilder is the primary type for building SELECT queries, allowing
-// incremental addition of fields, table source, limits, and offsets.
+// incremental addition of fields, source table, limits, and offsets.
 //
 // This package is designed to be extensible and easy to integrate with
 // various SQL dialects via the dialect package.
 package builder
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/entiqon/entiqon/common/extension/collection"
 	"github.com/entiqon/entiqon/db/dialect"
 	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/token/table"
 )
 
 // SelectBuilder builds simple SELECT queries.
 type SelectBuilder struct {
 	dialect    dialect.Dialect
 	fields     *collection.Collection[token.Field]
-	table      string
+	source     *table.Table
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
 	sorting    *collection.Collection[string]
@@ -73,13 +75,38 @@ func (b *SelectBuilder) AddFields(cols ...interface{}) *SelectBuilder {
 
 // GetFields returns the current list of fields in the builder.
 // It returns them by value to avoid external modification of the internal slice.
-func (b *SelectBuilder) GetFields() token.FieldCollection {
-	return b.fields.Items()
+func (b *SelectBuilder) GetFields() *collection.Collection[token.Field] {
+	return b.fields
 }
 
-// Source sets the table name.
-func (b *SelectBuilder) Source(table string) *SelectBuilder {
-	b.table = table
+// Source sets the source table for the SELECT statement.
+// Accepts the same argument patterns as table.New:
+//   - Source("users")
+//   - Source("users u")
+//   - Source("users AS u")
+//   - Source("users", "u")
+//   - Source("(SELECT ...)", "t")
+//   - Source(table.New("orders", "o"))
+func (b *SelectBuilder) Source(args ...any) *SelectBuilder {
+	switch v := args[0].(type) {
+	case string:
+		strArgs := make([]string, 0, len(args))
+		for _, a := range args {
+			strArgs = append(strArgs, fmt.Sprintf("%v", a))
+		}
+		b.source = table.New(strArgs...)
+	case *table.Table:
+		if len(args) == 1 {
+			b.source = v
+		} else {
+			// multiple args but first is *table.Table → invalid
+			b.source = table.New("too many arguments")
+		}
+	default:
+		// anything else → fallback to errored table
+		b.source = table.New(fmt.Sprintf("%v", v))
+	}
+
 	return b
 }
 
@@ -150,29 +177,130 @@ func (b *SelectBuilder) Offset(offset int) *SelectBuilder {
 	return b
 }
 
-// String implements fmt.Stringer for convenient status output.
-func (b *SelectBuilder) String() string {
-	sql, err := b.Build()
-	if err != nil {
-		return fmt.Sprintf("Status ❌: Error building SQL: %v", err)
+// Debug returns a developer-facing representation of the SelectBuilder.
+//
+// The output is verbose and intended for diagnostics, showing the
+// internal state including counts of fields, clauses, and the current
+// source. It does not attempt to render SQL, unlike Build().
+//
+// Unlike String(), which is intended for concise human-facing audit logs,
+// Debug() exposes detailed state primarily for developers.
+//
+// Example output:
+//
+//	✅ SelectBuilder{fields:2, source:✅ Table(users AS u), where:0, groupBy:0, having:0, orderBy:0}
+//	❌ SelectBuilder{fields:0, source:<nil>, where:0, groupBy:0, having:0, orderBy:0}
+//
+// Example usage:
+//
+//	sb := builder.NewSelect().
+//	    Fields("id", "name").
+//	    Source("users u")
+//
+//	fmt.Println(sb.Debug())
+//	// Output: ✅ SelectBuilder{fields:2, source:✅ Table(users AS u), where:0, groupBy:0, having:0, orderBy:0}
+func (b *SelectBuilder) Debug() string {
+	if b == nil {
+		return "❌ SelectBuilder(nil)"
 	}
 
-	// TODO: update with actual parameters once supported
-	//params := []interface{}{}
-	//
-	//paramsStr := ""
-	//if len(params) > 0 {
-	//	paramsStr = fmt.Sprintf("%v", params)
-	//}
+	status := "✅"
+	if b.source == nil || b.source.IsErrored() {
+		status = "❌"
+	}
 
-	//return fmt.Sprintf("Status ✅: SQL=%s, Params=%s", sql /*, paramsStr*/)
-	return fmt.Sprintf("Status ✅: SQL=%s, Params=%s", sql, "")
+	src := "source:<nil>"
+	if b.source != nil {
+		src = fmt.Sprintf("source: %s", b.source.String())
+	}
+
+	fieldsLen, whereLen, groupLen, havingLen, orderLen := 0, 0, 0, 0, 0
+	if b.fields != nil {
+		fieldsLen = b.fields.Length()
+	}
+	if b.conditions != nil {
+		whereLen = b.conditions.Length()
+	}
+	if b.groupings != nil {
+		groupLen = b.groupings.Length()
+	}
+	if b.having != nil {
+		havingLen = b.having.Length()
+	}
+	if b.sorting != nil {
+		orderLen = b.sorting.Length()
+	}
+
+	return fmt.Sprintf(
+		"%s SelectBuilder{fields:%d, %s, where:%d, groupBy:%d, having:%d, orderBy:%d}",
+		status,
+		fieldsLen,
+		src,
+		whereLen,
+		groupLen,
+		havingLen,
+		orderLen,
+	)
+}
+
+// String returns the human-facing representation of the SelectBuilder.
+//
+// It provides a concise status log of the builder, suitable for audits
+// and logs. Unlike Build(), it does not attempt to render SQL.
+//
+// The conditions count is the sum of WHERE and HAVING clauses.
+//
+// Example output:
+//
+//	✅ SelectBuilder: status: ready, fields=3, no conditions, grouped=false, sorted=true
+//	❌ SelectBuilder: status: invalid, no selected fields, no conditions, grouped=false, sorted=false
+//	✅ SelectBuilder: status: ready, fields=3, conditions=2, grouped=true, sorted=false
+func (b *SelectBuilder) String() string {
+	if b == nil {
+		return "❌ SelectBuilder: status=<nil> – wrong initialization"
+	}
+
+	status, icon := "ready", "✅"
+	if b.source == nil || !b.source.IsValid() {
+		return fmt.Sprintf("❌ SelectBuilder: status=invalid – no source specified")
+	}
+
+	fieldsStr := "no selected fields"
+	if b.fields != nil && b.fields.Length() > 0 {
+		fieldsStr = fmt.Sprintf("fields=%d", b.fields.Length())
+	}
+
+	// total conditions = WHERE + HAVING
+	totalConditions := 0
+	if b.conditions != nil {
+		totalConditions += b.conditions.Length()
+	}
+	if b.having != nil {
+		totalConditions += b.having.Length()
+	}
+
+	conditionsStr := "no conditions"
+	if totalConditions > 0 {
+		conditionsStr = fmt.Sprintf("conditions=%d", totalConditions)
+	}
+
+	grouped := b.groupings != nil && b.groupings.Length() > 0
+	sorted := b.sorting != nil && b.sorting.Length() > 0
+
+	return fmt.Sprintf(
+		"%s SelectBuilder: status: %s, %s, %s, grouped=%v, sorted=%v",
+		icon, status, fieldsStr, conditionsStr, grouped, sorted,
+	)
 }
 
 // Build constructs the SQL query string.
 func (b *SelectBuilder) Build() (string, error) {
 	if b == nil {
 		return "", fmt.Errorf("❌ [Build] - Wrong initialization. Cannot build on receiver nil")
+	}
+
+	if b.source == nil || !b.source.IsValid() {
+		return "", errors.New(b.String())
 	}
 
 	if b.fields.Length() == 0 {
@@ -196,15 +324,11 @@ func (b *SelectBuilder) Build() (string, error) {
 		return "", fmt.Errorf("❌ [Build] - Invalid fields:\n\t%s", strings.Join(bad, "\n\t"))
 	}
 
-	if b.table == "" {
-		return "", fmt.Errorf("❌ [Build] - No source specified")
-	}
-
 	tokens := []string{
 		"SELECT",
 		strings.Join(parts, ", "),
 		"FROM",
-		b.table,
+		b.source.Render(),
 	}
 
 	sql := strings.Join(tokens, " ")

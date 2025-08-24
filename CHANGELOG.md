@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - `Debug()` and `String()` improved with ✅/⛔️ status markers.
     - `Build()` aggregates invalid fields, detects nil receiver and missing source, with clear ❌ messages.
 
+### Database (token/table)
+- Introduced **Table token** to represent SQL sources in builders:
+    - Provides constructors and helpers to define tables, aliases, and raw inputs.
+    - Supports consistent rendering across dialects.
+    - Ensures validation of invalid/empty inputs with clear error reporting.
+- Added **unit tests** covering constructors, methods, and edge cases with 100% coverage.
+- Added **doc.go** with package overview and usage guidelines.
+- Added **example_test.go** with runnable examples.
+- Added **README.md** documenting purpose, design, and usage of token.Table.
+
+
 ### Common (extension/integer)
 - Introduced **integer parser**:
     - `ParseFrom(any)` converts input safely to int, rejects invalid types.

@@ -25,7 +25,7 @@
 
 ---
 
-## 📏 Principles & Best Practices
+## 📏 Best Practices
 
 * 🧼 Clarity over brevity — use explicit method names
 * 🚫 Deprecations are tested and clearly marked
@@ -34,12 +34,19 @@
 
 ---
 
-## 🧩 Design Philosophy
+## 🧩 Design Patter
 
 * 📐 Chain → Validate → Compile
 * 🧠 Tag errors with `StageToken`
 * ⚙️ Compose with safe abstractions
 * 📂 Group test methods visually
+
+## 🧠 Philosophy & Principles
+
+- **Never panic** — always returns a `*Table`, even if errored.
+- **Auditability** — preserves original input for logs.
+- **Strict enforcement** — invalid inputs are rejected immediately.
+- **Delegation** — parsing rules live in `table.New`, not in builders.
 
 ---
 

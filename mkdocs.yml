@@ -41,6 +41,7 @@ nav:
               - Select: packages/db/builder/overview.md
           - Tokens:
               Field: packages/db/token/field.md
+              Table: packages/db/token/table/table.md
 
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md
