@@ -16,8 +16,8 @@ import (
 // Ensure Field implements contract.Renderable at compile time.
 var _ contract.Renderable = (*Field)(nil)
 
-// Ensure Field implements contract.Cloanable[*Field] at compile time.
-var _ contract.Cloanable[*Field] = (*Field)(nil)
+// Ensure Field implements contract.Clonable[*Field] at compile time.
+var _ contract.Clonable[*Field] = (*Field)(nil)
 
 // Field represents a column/field or expression in a SELECT clause.
 //
