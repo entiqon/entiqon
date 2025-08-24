@@ -1,5 +1,5 @@
 <h1 align="left">
-  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="96" width="96"> Builder
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="96" width="96"> SelectBuilder
 </h1>
 <h6 align="left">Part of the <a href="https://github.com/entiqon/entiqon">Entiqon</a>::<span>Database</span> toolkit.</h6>
 
@@ -15,6 +15,7 @@ It is designed to be **simple**, **strict**, and **dialect-aware**.
   - Fields (`Fields`, `AddFields`) with strict rules
   - Source (`Source`)
   - Conditions (`Where`, `And`, `Or`)
+  - Grouping (`GroupBy`, `ThenGroupBy`)
   - Ordering (`OrderBy`, `ThenOrderBy`)
   - Pagination (`Limit`, `Offset`)
   - SQL rendering (`Build`, `String`)
@@ -121,6 +122,29 @@ Rules:
 
 ---
 
+### Grouping
+
+You can build `GROUP BY` clauses using `GroupBy` and `ThenGroupBy`:
+
+```go
+sql, _ := builder.NewSelect(nil).
+    Fields("id, COUNT(*) AS total").
+    Source("users").
+    GroupBy("department").
+    ThenGroupBy("role").
+    Build()
+
+fmt.Println(sql)
+// Output: SELECT id, COUNT(*) AS total FROM users GROUP BY department, role
+```
+
+Rules:
+- `GroupBy` resets grouping (like `Fields`).
+- `ThenGroupBy` appends additional grouping fields.
+- Empty or whitespace values are ignored.
+
+---
+
 ### Debugging Fields
 
 Use `String()` and `Debug()` to understand how a field was parsed:
@@ -178,13 +202,13 @@ Currently, supports:
 - Field selection and aliasing (strict rules enforced)
 - Single source
 - WHERE conditions with AND/OR composition
+- GROUP BY with multiple fields
 - ORDER BY with multiple fields
 - Limit and offset
 - Error reporting for invalid fields with ✅/⛔️ diagnostics
 
 Planned extensions include:
 - Joins
-- Grouping
 - Parameter binding
 
 ---

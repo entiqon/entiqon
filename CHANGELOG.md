@@ -5,18 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-23
+## [v1.13.0] - Upcoming
 
-### ✨ Features
-- **token/field**: add `Debug()` for compact diagnostics and enhance `String()` with ✅/⛔️ icons
-- **db/builder/select**: improve error reporting for invalid usage (clearer messages for unsupported inputs, missing sources, etc.)
-- **common/extension/integer**: introduce integer parser with full tests, examples, and parser shortcuts
+### Database (builder/select)
+- Added full clause support:
+    - **Conditions**: `Where`, `And`, `Or` (reset, append, normalize with AND, ignore empty).
+    - **Grouping**: `GroupBy`, `ThenGroupBy` (reset/append, ignore empty, rendered between WHERE and ORDER BY).
+    - **Ordering**: `OrderBy`, `ThenOrderBy` (reset/append, ignore empty, rendered after WHERE/GROUP BY).
+- Enhanced diagnostics & reporting:
+    - Invalid fields produce consistent `⛔️ Field("<expr>"): input type unsupported: <type>` errors.
+    - `Debug()` and `String()` improved with ✅/⛔️ status markers.
+    - `Build()` aggregates invalid fields, detects nil receiver and missing source, with clear ❌ messages.
 
-### 🧪 Tests
-- **builder/select**: reach 100% coverage for `SelectBuilder`
+### Common (extension/integer)
+- Introduced **integer parser**:
+    - `ParseFrom(any)` converts input safely to int, rejects invalid types.
+    - `IntegerOr` shortcut with defaults.
+    - Consistent with `boolean`, `float`, and `decimal` parsers.
 
-### 🛠 Internal
-- **gench utility**: add `gench` bash tool to automate changelog entry generation
+### Tests & Docs
+- Comprehensive unit tests across Database and Common ensuring 100% coverage.
+- **README.md** and **doc.go** updated with Conditions, Grouping, Ordering, and Integer parser sections.
+- Added runnable examples in `example_test.go` for all new features.
 
 ## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 
