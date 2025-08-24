@@ -29,6 +29,7 @@ type SelectBuilder struct {
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
 	sorting    *collection.Collection[string]
+	having     *collection.Collection[string]
 	limit      int
 	offset     int
 }
@@ -115,6 +116,21 @@ func (b *SelectBuilder) ThenGroupBy(fields ...string) *SelectBuilder {
 // OrderBy sets the ORDER BY clause, replacing existing order fields.
 func (b *SelectBuilder) OrderBy(fields ...string) *SelectBuilder {
 	return b.addOrderBy(true, fields...)
+}
+
+// Having sets the HAVING clause, replacing any existing conditions.
+func (b *SelectBuilder) Having(conditions ...string) *SelectBuilder {
+	return b.addHaving("", true, conditions...)
+}
+
+// AndHaving appends additional conditions with AND.
+func (b *SelectBuilder) AndHaving(conditions ...string) *SelectBuilder {
+	return b.addHaving("AND", false, conditions...)
+}
+
+// OrHaving appends additional conditions with OR.
+func (b *SelectBuilder) OrHaving(conditions ...string) *SelectBuilder {
+	return b.addHaving("OR", false, conditions...)
 }
 
 // ThenOrderBy appends additional ORDER BY fields, preserving existing ones.
@@ -205,6 +221,10 @@ func (b *SelectBuilder) Build() (string, error) {
 		sql += " ORDER BY " + strings.Join(b.sorting.Items(), ", ")
 	}
 
+	if b.having != nil && b.having.Length() > 0 {
+		sql += " HAVING " + strings.Join(b.having.Items(), " ")
+	}
+
 	if b.limit > 0 {
 		sql += fmt.Sprintf(" LIMIT %d", b.limit)
 	}
@@ -263,9 +283,6 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 
 // addConditions adds one or more conditions to the builder.
 // prefix is "", "AND", or "OR" depending on caller semantics.
-// If prefix == "" and reset == true, the collection is cleared.
-// addConditions adds one or more conditions to the builder.
-// prefix is "", "AND", or "OR" depending on caller semantics.
 // If reset is true, the collection is cleared first.
 func (b *SelectBuilder) addConditions(
 	prefix string,
@@ -312,6 +329,34 @@ func (b *SelectBuilder) addGroupBy(reset bool, fields ...string) *SelectBuilder 
 		trimmed := strings.TrimSpace(f)
 		if trimmed != "" {
 			b.groupings.Add(trimmed)
+		}
+	}
+	return b
+}
+
+// addHaving adds one or more conditions to the builder.
+// prefix is "", "AND", or "OR" depending on caller semantics.
+// If reset is true, the collection is cleared first.
+func (b *SelectBuilder) addHaving(prefix string, reset bool, conditions ...string) *SelectBuilder {
+	if b.having == nil {
+		b.having = collection.New[string]()
+	} else if reset {
+		b.having.Clear()
+	}
+
+	for _, cond := range conditions {
+		trimmed := strings.TrimSpace(cond)
+		if trimmed == "" {
+			continue
+		}
+
+		if b.having.Length() == 0 {
+			b.having.Add(trimmed)
+		} else if prefix != "" {
+			b.having.Add(prefix + " " + trimmed)
+		} else {
+			// default joiner for multiple conditions in Having is AND
+			b.having.Add("AND " + trimmed)
 		}
 	}
 	return b

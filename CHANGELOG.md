@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Database (builder/select)
 - Added full clause support:
     - **Conditions**: `Where`, `And`, `Or` (reset, append, normalize with AND, ignore empty).
-    - **Grouping**: `GroupBy`, `ThenGroupBy` (reset/append, ignore empty, rendered between WHERE and ORDER BY).
-    - **Ordering**: `OrderBy`, `ThenOrderBy` (reset/append, ignore empty, rendered after WHERE/GROUP BY).
+    - **Grouping**: `GroupBy`, `ThenGroupBy` (reset/append, ignore empty, rendered between WHERE and HAVING).
+    - **Having**: `Having`, `AndHaving`, `OrHaving` (reset/append, normalize with AND, ignore empty, rendered after GROUP BY).
+    - **Ordering**: `OrderBy`, `ThenOrderBy` (reset/append, ignore empty, rendered after GROUP BY/HAVING).
 - Enhanced diagnostics & reporting:
     - Invalid fields produce consistent `⛔️ Field("<expr>"): input type unsupported: <type>` errors.
     - `Debug()` and `String()` improved with ✅/⛔️ status markers.
@@ -25,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Tests & Docs
 - Comprehensive unit tests across Database and Common ensuring 100% coverage.
-- **README.md** and **doc.go** updated with Conditions, Grouping, Ordering, and Integer parser sections.
-- Added runnable examples in `example_test.go` for all new features.
+- **README.md**, **doc.go**, and **example_test.go** updated with Conditions, Grouping, Having, Ordering, and Integer parser sections.
+- Added runnable examples in `example_test.go` demonstrating new Having clause.
 
 ## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 
@@ -224,7 +225,7 @@ It's the first practical application of the previously introduced `AliasableToke
 
 ---
 
-## \[v1.3.0] - 2025-05-19
+## [v1.3.0] - 2025-05-19
 
 ### ✨ Added
 
@@ -252,7 +253,7 @@ It's the first practical application of the previously introduced `AliasableToke
 
 ---
 
-## \[v1.2.0] - 2025-05-18
+## [v1.2.0] - 2025-05-18
 
 ### 📚 Documentation
 
@@ -280,7 +281,7 @@ operations.
 
 ---
 
-## \[v1.1.0] - 2025-05-17
+## [v1.1.0] - 2025-05-17
 
 ### ✨ Added
 
@@ -313,10 +314,10 @@ future engines.
 
 ---
 
-## \[v1.0.0] - 2025-05-16
+## [v1.0.0] - 2025-05-16
 
 ### Added
 
 * `SelectBuilder` upgraded to support argument binding and structured condition handling
 * Consistent `Build() (string, []any, error)` signature across all builders
-* Enhanced \`ConditionToken
+* Enhanced `ConditionToken

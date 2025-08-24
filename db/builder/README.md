@@ -16,6 +16,7 @@ It is designed to be **simple**, **strict**, and **dialect-aware**.
   - Source (`Source`)
   - Conditions (`Where`, `And`, `Or`)
   - Grouping (`GroupBy`, `ThenGroupBy`)
+  - Having (`Having`, `AndHaving`, `OrHaving`)
   - Ordering (`OrderBy`, `ThenOrderBy`)
   - Pagination (`Limit`, `Offset`)
   - SQL rendering (`Build`, `String`)
@@ -145,6 +146,33 @@ Rules:
 
 ---
 
+### Having
+
+You can build `HAVING` clauses using `Having`, `AndHaving`, and `OrHaving`:
+
+```go
+sql, _ := builder.NewSelect(nil).
+    Fields("department, COUNT(*) AS total").
+    Source("users").
+    GroupBy("department").
+    Having("COUNT(*) > 5").
+    AndHaving("AVG(age) > 30").
+    OrHaving("SUM(salary) > 100000").
+    Build()
+
+fmt.Println(sql)
+// Output: SELECT department, COUNT(*) AS total FROM users GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
+```
+
+Rules:
+- `Having` resets conditions (like `Where`).
+- `AndHaving` appends with `AND`.
+- `OrHaving` appends with `OR`.
+- Multiple conditions in one `Having(...)` are normalized with `AND`.
+- Empty or whitespace values are ignored.
+
+---
+
 ### Debugging Fields
 
 Use `String()` and `Debug()` to understand how a field was parsed:
@@ -203,6 +231,7 @@ Currently, supports:
 - Single source
 - WHERE conditions with AND/OR composition
 - GROUP BY with multiple fields
+- HAVING with AND/OR composition
 - ORDER BY with multiple fields
 - Limit and offset
 - Error reporting for invalid fields with ✅/⛔️ diagnostics

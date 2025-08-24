@@ -1,7 +1,7 @@
 // Package builder provides a fluent API to construct SQL SELECT queries.
 //
 // The SelectBuilder type allows incremental composition of SELECT statements
-// with support for fields, sources, conditions, grouping, ordering, limits, and offsets.
+// with support for fields, sources, conditions, grouping, having, ordering, limits, and offsets.
 // It is simple, extensible, and dialect-aware.
 //
 // # Overview
@@ -27,6 +27,9 @@
 //   - Or(...string): append conditions with OR.
 //   - GroupBy(...string): reset and set fields for the GROUP BY clause.
 //   - ThenGroupBy(...string): append additional GROUP BY fields.
+//   - Having(...string): reset and set conditions for the HAVING clause.
+//   - AndHaving(...string): append conditions with AND.
+//   - OrHaving(...string): append conditions with OR.
 //   - OrderBy(...string): reset and set fields for the ORDER BY clause.
 //   - ThenOrderBy(...string): append additional ORDER BY fields.
 //   - Limit(int): apply LIMIT.
@@ -85,6 +88,29 @@
 //	sql, _ := sb.Build()
 //	// SELECT id, COUNT(*) AS total FROM users GROUP BY department, role
 //
+// # Having
+//
+// Having is expressed as raw strings (e.g. "COUNT(*) > 5"). They are combined as follows:
+//
+//   - Having() clears existing conditions and sets new ones.
+//   - AndHaving() appends conditions joined by AND.
+//   - OrHaving() appends conditions joined by OR.
+//   - Multiple conditions in one call to Having() are normalized with AND.
+//   - Empty or whitespace-only strings are ignored.
+//
+// For example:
+//
+//	sb := builder.NewSelect(nil).
+//		Fields("department, COUNT(*) AS total").
+//		Source("users").
+//		GroupBy("department").
+//		Having("COUNT(*) > 5", "AVG(age) > 30").
+//		OrHaving("SUM(salary) > 100000")
+//
+//	sql, _ := sb.Build()
+//	// SELECT department, COUNT(*) AS total FROM users
+//	// GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
+//
 // # Ordering
 //
 // Ordering is expressed as raw strings (e.g. "created_at DESC"). They are combined as follows:
@@ -118,6 +144,7 @@
 //		Source("users").
 //		Where("age > 18").
 //		GroupBy("department").
+//		Having("COUNT(*) > 5").
 //		OrderBy("created_at DESC").
 //		Limit(10).
 //		Offset(20).
@@ -125,7 +152,7 @@
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 GROUP BY department ORDER BY created_at DESC LIMIT 10 OFFSET 20
+//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 GROUP BY department HAVING COUNT(*) > 5 ORDER BY created_at DESC LIMIT 10 OFFSET 20
 //
 // With no fields specified, the builder defaults to:
 //
