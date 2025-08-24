@@ -1,47 +1,69 @@
-# Release v1.13.0 — Builder Conditions & Field Diagnostics
+# Release Notes — v1.13.0
 
-## 🚀 Features
+## Database Package (builder/select)
 
-- **db/builder/select**
-  - Introduced `Where()`, `And()`, and `Or()` methods for building `WHERE` clauses
-  - Normalization of multiple conditions:  
-    `Where("a", "b")` → `WHERE a AND b`
-  - `Where()` clears existing conditions (like `Fields()`), while `And()`/`Or()` append
-  - Defensive handling of manual initialization (`&SelectBuilder{}`)
-  - Simplified `Build()` logic for condition rendering
+### Added
+- Extended `SelectBuilder` with full clause support:
+  - **Conditions**
+    - `Where(...string)`: resets conditions
+    - `And(...string)`: appends with `AND`
+    - `Or(...string)`: appends with `OR`
+    - Multiple conditions in a single `Where` call are normalized with `AND`
+    - Ignores empty or whitespace-only inputs
+    - `Build()` renders conditions immediately after `FROM`
+  - **Grouping**
+    - `GroupBy(...string)`: resets grouping fields
+    - `ThenGroupBy(...string)`: appends grouping fields
+    - Graceful handling of nil collections
+    - Ignores empty or whitespace-only values
+    - `Build()` renders `GROUP BY` between `WHERE` and `ORDER BY`
+  - **Ordering**
+    - `OrderBy(...string)`: resets ordering fields
+    - `ThenOrderBy(...string)`: appends ordering fields
+    - Ignores empty or whitespace-only values
+    - `Build()` renders `ORDER BY` after `WHERE` / `GROUP BY`
 
-- **token/field**
-  - Added `Debug()` for compact diagnostic output:  
-    `✅ Field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]`  
-    `⛔️ Field("true"): [raw: false, aliased: false, errored: true] – input type unsupported: bool`
-  - Enhanced `String()` with ✅/⛔️ icons and explicit *wrong initialization* handling
+### Enhanced
+- **Field diagnostics**
+  - Invalid fields now produce consistent error messages
+  - Example: `⛔️ Field("true"): input type unsupported: bool`
+  - `Debug()` method on `token.Field` shows structured state with ✅/⛔️ markers
+  - `String()` enhanced for clarity and consistency with Debug output
+- **SelectBuilder reporting**
+  - `Build()` aggregates invalid field errors into a single descriptive block
+  - Clearer error messages when:
+    - No source specified (`❌ [Build] - No source specified`)
+    - Nil receiver (`❌ [Build] - Wrong initialization. Cannot build on receiver nil`)
+  - `String()` provides status-style output:
+    - ✅ successful SQL string with params
+    - ❌ error message when build fails
 
-## 🧪 Tests
+## Common Package (extension/integer)
 
-- 100% coverage for `SelectBuilder` and `token.Field`
-- Added test cases for:
-  - Defaults, single/multiple conditions, ignore empty
-  - `Where` reset behavior
-  - `And`/`Or` appends
-  - Edge case: mixed `AND` + `OR`
-  - Manual initialization (`&SelectBuilder{}`)
+### Added
+- Introduced integer parser with full support:
+  - `ParseFrom(any)` converts generic input into integer values
+  - Rejects non-integer inputs with clear error reporting
+  - Consistent behavior with existing parsers (`boolean`, `float`, `decimal`)
+  - Added parser shortcuts (`IntegerOr`) for default values
+- Full test coverage in `integer/parser_test.go`
+- Added runnable examples and integrated into `example_test.go`
+- Updated parser documentation under `common/extension` README
 
-## 📖 Documentation
+## Tests
+- Comprehensive unit tests across `db/builder/select` and `common/extension/integer` ensuring 100% coverage:
+  - Clause handling (nil, reset, append, overwrite, ignore-empty)
+  - Field validation and error aggregation
+  - Integer parsing (valid, invalid, defaults)
 
-- Updated `doc.go` for `builder` with conditions section
-- Added new `example_test.go` examples covering `Where`, `And`, `Or`, and reset semantics
-- Updated `field.md` guide with new `String()`/`Debug()` documentation
-- Updated `README.md` with:
-  - Strict **Field Rules**
-  - Examples of `Where`/`And`/`Or`
-  - Debugging output (`String()`/`Debug()`)
-  - Revised error cases
-  - Updated Status section
-
----
-
-## 📄 Summary
-
-This release introduces **full WHERE clause support** with `Where`/`And`/`Or` methods,  
-improves **diagnostics for fields** with ✅/⛔️ outputs, and ensures **100% test coverage**.  
-All docs (README, guides, examples) have been updated accordingly.
+## Documentation
+- **Database README.md** updated with Conditions, Grouping, Ordering, and Field Rules
+- **Common/Extension README.md** updated with integer parser, usage table, and shortcuts
+- **Database doc.go** extended with clause usage examples
+- **Database example_test.go** enhanced with runnable examples:
+  - `ExampleSelectBuilder_where`
+  - `ExampleSelectBuilder_andOr`
+  - `ExampleSelectBuilder_ordering`
+  - `ExampleSelectBuilder_grouping`
+- **Common example_test.go** enhanced with runnable examples:
+  - `ExampleIntegerParseFrom` and shortcut usage

@@ -1,7 +1,7 @@
 // Package builder provides a fluent API to construct SQL SELECT queries.
 //
 // The SelectBuilder type allows incremental composition of SELECT statements
-// with support for fields, sources, conditions, ordering, limits, and offsets.
+// with support for fields, sources, conditions, grouping, ordering, limits, and offsets.
 // It is simple, extensible, and dialect-aware.
 //
 // # Overview
@@ -25,6 +25,8 @@
 //   - Where(...string): reset and set conditions for the WHERE clause.
 //   - And(...string): append conditions with AND.
 //   - Or(...string): append conditions with OR.
+//   - GroupBy(...string): reset and set fields for the GROUP BY clause.
+//   - ThenGroupBy(...string): append additional GROUP BY fields.
 //   - OrderBy(...string): reset and set fields for the ORDER BY clause.
 //   - ThenOrderBy(...string): append additional ORDER BY fields.
 //   - Limit(int): apply LIMIT.
@@ -64,6 +66,25 @@
 //	sql, _ := sb.Build()
 //	// SELECT id, name FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
 //
+// # Grouping
+//
+// Grouping is expressed as raw strings (e.g. "department"). They are combined as follows:
+//
+//   - GroupBy() clears existing grouping and sets new ones.
+//   - ThenGroupBy() appends additional GROUP BY fields.
+//   - Empty or whitespace-only strings are ignored.
+//
+// For example:
+//
+//	sb := builder.NewSelect(nil).
+//		Fields("id, COUNT(*) AS total").
+//		Source("users").
+//		GroupBy("department").
+//		ThenGroupBy("role")
+//
+//	sql, _ := sb.Build()
+//	// SELECT id, COUNT(*) AS total FROM users GROUP BY department, role
+//
 // # Ordering
 //
 // Ordering is expressed as raw strings (e.g. "created_at DESC"). They are combined as follows:
@@ -96,6 +117,7 @@
 //		Fields("id, name").
 //		Source("users").
 //		Where("age > 18").
+//		GroupBy("department").
 //		OrderBy("created_at DESC").
 //		Limit(10).
 //		Offset(20).
@@ -103,7 +125,7 @@
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 ORDER BY created_at DESC LIMIT 10 OFFSET 20
+//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 GROUP BY department ORDER BY created_at DESC LIMIT 10 OFFSET 20
 //
 // With no fields specified, the builder defaults to:
 //

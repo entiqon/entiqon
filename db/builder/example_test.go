@@ -123,3 +123,17 @@ func ExampleSelectBuilder_ordering() {
 	fmt.Println(sql)
 	// Output: SELECT id, name FROM users ORDER BY created_at DESC, id ASC
 }
+
+// ExampleSelectBuilder_grouping demonstrates how to use GroupBy and ThenGroupBy
+// to build a GROUP BY clause in a SELECT statement.
+func ExampleSelectBuilder_grouping() {
+	sql, _ := builder.NewSelect(nil).
+		Fields("department, COUNT(*) AS total").
+		Source("users").
+		GroupBy("department").
+		ThenGroupBy("role").
+		Build()
+
+	fmt.Println(sql)
+	// Output: SELECT department, COUNT(*) AS total FROM users GROUP BY department, role
+}

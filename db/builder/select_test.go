@@ -254,6 +254,90 @@ func TestSelectBuilder(t *testing.T) {
 			})
 		})
 
+		t.Run("Grouping", func(t *testing.T) {
+			t.Run("NilCollection", func(t *testing.T) {
+				sb := &builder.SelectBuilder{} // groupings is nil
+				sb.Fields("id")
+				sb.Source("users")
+				sb.GroupBy("role")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("GroupBy", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("department")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY department"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("ThenGroupBy", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("department").
+					ThenGroupBy("role")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY department, role"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("ResetWithGroupBy", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("department").
+					GroupBy("role") // should reset
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY role"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("IgnoreEmptyGrouping", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("id").
+					Source("users").
+					GroupBy("   ", "department")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				expected := "SELECT id FROM users GROUP BY department"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+		})
+
 		t.Run("Sorting", func(t *testing.T) {
 			t.Run("NilCollection", func(t *testing.T) {
 				sb := &builder.SelectBuilder{} // sorting is nil

@@ -27,9 +27,10 @@ type SelectBuilder struct {
 	fields     *collection.Collection[token.Field]
 	table      string
 	conditions *collection.Collection[string]
+	groupings  *collection.Collection[string]
+	sorting    *collection.Collection[string]
 	limit      int
 	offset     int
-	sorting    *collection.Collection[string]
 }
 
 // NewSelect creates a new SelectBuilder with the provided dialect.
@@ -43,6 +44,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 		fields:     collection.New[token.Field](),
 		conditions: collection.New[string](),
 		sorting:    collection.New[string](),
+		groupings:  collection.New[string](),
 	}
 }
 
@@ -98,6 +100,16 @@ func (b *SelectBuilder) And(conditions ...string) *SelectBuilder {
 // If this is the first condition, it behaves like Where().
 func (b *SelectBuilder) Or(conditions ...string) *SelectBuilder {
 	return b.addConditions("OR", false, conditions...)
+}
+
+// GroupBy sets the GROUP BY clause, replacing existing groupings.
+func (b *SelectBuilder) GroupBy(fields ...string) *SelectBuilder {
+	return b.addGroupBy(true, fields...)
+}
+
+// ThenGroupBy appends additional GROUP BY fields, preserving existing ones.
+func (b *SelectBuilder) ThenGroupBy(fields ...string) *SelectBuilder {
+	return b.addGroupBy(false, fields...)
 }
 
 // OrderBy sets the ORDER BY clause, replacing existing order fields.
@@ -183,6 +195,10 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	if b.conditions != nil && b.conditions.Length() > 0 {
 		sql += " WHERE " + strings.Join(b.conditions.Items(), " ")
+	}
+
+	if b.groupings != nil && b.groupings.Length() > 0 {
+		sql += " GROUP BY " + strings.Join(b.groupings.Items(), ", ")
 	}
 
 	if b.sorting != nil && b.sorting.Length() > 0 {
@@ -279,6 +295,23 @@ func (b *SelectBuilder) addConditions(
 		} else {
 			// If no prefix (Where with multiple args), default to AND
 			b.conditions.Add("AND " + trimmed)
+		}
+	}
+	return b
+}
+
+// addGroupBy ensures init and handles reset
+func (b *SelectBuilder) addGroupBy(reset bool, fields ...string) *SelectBuilder {
+	if b.groupings == nil {
+		b.groupings = collection.New[string]()
+	} else if reset {
+		b.groupings.Clear()
+	}
+
+	for _, f := range fields {
+		trimmed := strings.TrimSpace(f)
+		if trimmed != "" {
+			b.groupings.Add(trimmed)
 		}
 	}
 	return b
