@@ -1,15 +1,5 @@
 // File: db/builder/select.go
 
-// Package builder provides a fluent API to construct SQL SELECT queries
-// with support for expressions, aliases, pagination, and dialect-aware
-// quoting and syntax. It leverages token structures and dialect implementations
-// to generate safe, database-specific SQL statements.
-//
-// SelectBuilder is the primary type for building SELECT queries, allowing
-// incremental addition of fields, source table, limits, and offsets.
-//
-// This package is designed to be extensible and easy to integrate with
-// various SQL dialects via the dialect package.
 package builder
 
 import (
@@ -19,14 +9,14 @@ import (
 
 	"github.com/entiqon/entiqon/common/extension/collection"
 	"github.com/entiqon/entiqon/db/dialect"
-	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/token/field"
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
 // SelectBuilder builds simple SELECT queries.
 type SelectBuilder struct {
 	dialect    dialect.Dialect
-	fields     *collection.Collection[token.Field]
+	fields     *collection.Collection[field.Field]
 	source     *table.Table
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
@@ -44,7 +34,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 	}
 	return &SelectBuilder{
 		dialect:    d,
-		fields:     collection.New[token.Field](),
+		fields:     collection.New[field.Field](),
 		conditions: collection.New[string](),
 		sorting:    collection.New[string](),
 		groupings:  collection.New[string](),
@@ -60,7 +50,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 // - parses alias with AS or space
 func (b *SelectBuilder) Fields(cols ...interface{}) *SelectBuilder {
 	if b.fields == nil {
-		b.fields = collection.New[token.Field]()
+		b.fields = collection.New[field.Field]()
 	} else {
 		b.fields.Clear()
 	}
@@ -75,7 +65,7 @@ func (b *SelectBuilder) AddFields(cols ...interface{}) *SelectBuilder {
 
 // GetFields returns the current list of fields in the builder.
 // It returns them by value to avoid external modification of the internal slice.
-func (b *SelectBuilder) GetFields() *collection.Collection[token.Field] {
+func (b *SelectBuilder) GetFields() *collection.Collection[field.Field] {
 	return b.fields
 }
 
@@ -304,7 +294,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	}
 
 	if b.fields.Length() == 0 {
-		b.fields.Add(token.Field{
+		b.fields.Add(field.Field{
 			Expr:  "*",
 			IsRaw: true,
 		})
@@ -312,13 +302,13 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	parts := make([]string, 0, b.fields.Length())
 	var bad []string
-	for _, field := range b.fields.Items() {
-		if field.IsErrored() {
+	for _, f := range b.fields.Items() {
+		if f.IsErrored() {
 			bad = append(bad,
-				fmt.Sprintf("⛔️ Field(%q): %v", field.Input, field.Error))
+				fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error))
 			continue
 		}
-		parts = append(parts, field.Render())
+		parts = append(parts, f.Render())
 	}
 	if len(bad) > 0 {
 		return "", fmt.Errorf("❌ [Build] - Invalid fields:\n\t%s", strings.Join(bad, "\n\t"))
@@ -385,22 +375,22 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 			if strings.Contains(v, ",") {
 				parts := splitAndTrim(v, ",")
 				for _, part := range parts {
-					b.fields.Add(*token.NewField(part))
+					b.fields.Add(*field.NewField(part))
 				}
 			} else {
-				b.fields.Add(*token.NewField(v))
+				b.fields.Add(*field.NewField(v))
 			}
-		case token.Field:
+		case field.Field:
 			b.fields.Add(v)
-		case *token.Field:
+		case *field.Field:
 			if v != nil {
 				b.fields.Add(*v)
 			}
 		default:
-			b.fields.Add(*token.NewField(v))
+			b.fields.Add(*field.NewField(v))
 		}
 	case 2, 3:
-		b.fields.Add(*token.NewField(cols...))
+		b.fields.Add(*field.NewField(cols...))
 	}
 	return b
 }

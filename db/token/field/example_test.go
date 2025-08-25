@@ -1,27 +1,27 @@
-package token_test
+package field_test
 
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/token/field"
 )
 
 // ExampleNewField demonstrates the basic instantiation forms of Field.
 func ExampleNewField() {
 	// Single expression
-	f1 := token.NewField("id")
+	f1 := field.NewField("id")
 
 	// Expression with alias (space-separated)
-	f2 := token.NewField("id user_id")
+	f2 := field.NewField("id user_id")
 
 	// Expression with alias (AS keyword)
-	f3 := token.NewField("COUNT(*) AS total")
+	f3 := field.NewField("COUNT(*) AS total")
 
 	// Expression and alias separately
-	f4 := token.NewField("name", "username")
+	f4 := field.NewField("name", "username")
 
 	// Expression and alias with raw flag
-	f5 := token.NewField("JSON_EXTRACT(data, '$.name')", "extracted", true)
+	f5 := field.NewField("JSON_EXTRACT(data, '$.name')", "extracted", true)
 
 	fmt.Println(f1.Render())
 	fmt.Println(f2.Render())
@@ -39,7 +39,7 @@ func ExampleNewField() {
 
 // ExampleField_clone demonstrates the Clone method.
 func ExampleField_clone() {
-	original := token.NewField("id", "user_id")
+	original := field.NewField("id", "user_id")
 	clone := original.Clone()
 
 	fmt.Println(original.Render())
@@ -55,7 +55,7 @@ func ExampleField_clone() {
 // ExampleField_invalid demonstrates invalid field creation.
 func ExampleField_invalid() {
 	// Passing an unsupported type (e.g. bool) results in an errored field.
-	f := token.NewField(true)
+	f := field.NewField(true)
 
 	if f.IsErrored() {
 		fmt.Println(f.String()) // concise log view
@@ -69,7 +69,7 @@ func ExampleField_invalid() {
 
 // ExampleField_debug demonstrates valid fields with Debug output.
 func ExampleField_debug() {
-	f := token.NewField("COUNT(*) AS total")
+	f := field.NewField("COUNT(*) AS total")
 	fmt.Println(f.String())
 	fmt.Println(f.Debug())
 
