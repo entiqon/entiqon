@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Added BaseToken section with purpose, methods, and usage
     - Streamlined layout, removed redundancy
     - Extended philosophy with **Consistency** principle: all tokens share BaseToken
+- Extended **Errorable** contract with `SetError(err error)`:
+    - Allows tokens/builders to mark themselves as errored after construction
+    - Implemented in `Field` and `Table` tokens
+    - Updated `doc.go`, `README.md`, and `example_test.go` to demonstrate usage
   
 ### Database (token/table)
 - Introduced **Table token** to represent SQL sources in builders:

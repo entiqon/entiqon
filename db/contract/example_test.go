@@ -42,9 +42,18 @@ func ExampleErrorable() {
 	var e contract.Errorable = t
 	fmt.Println(e.IsErrored())
 	fmt.Println(e.Error())
+
+	// manually mark an otherwise valid table as errored
+	valid := table.New("products")
+	valid.SetError(fmt.Errorf("manual mark as errored"))
+	fmt.Println(valid.IsErrored())
+	fmt.Println(valid.Error())
+
 	// Output:
 	// true
 	// invalid format "users AS"
+	// true
+	// manual mark as errored
 }
 
 // ExampleRawable demonstrates using a Table as a Rawable.

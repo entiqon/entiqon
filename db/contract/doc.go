@@ -12,6 +12,7 @@
 //   - Stringable: human-facing representation for logs and audits.
 //   - Debuggable: developer-facing diagnostic view of internal state.
 //   - Clonable[T]: semantic clone for safe mutation.
+//   - Errorable: inspection and propagation of construction/validation errors.
 //
 // Separation of concerns:
 //
@@ -21,6 +22,7 @@
 //   - Stringable → logs/audit
 //   - Debuggable → developer diagnostics
 //   - Clonable[T] → safe duplication
+//   - Errorable → error state management and reporting
 //
 // Example:
 //
@@ -35,6 +37,7 @@
 //	type ExampleToken struct {
 //	    Name  string
 //	    Alias string
+//	    err   error
 //	}
 //
 //	func (e ExampleToken) Render() string   { return fmt.Sprintf("%s AS %s", e.Name, e.Alias) }
@@ -44,6 +47,9 @@
 //	func (e ExampleToken) Clone() *ExampleToken {
 //	    return &ExampleToken{Name: e.Name, Alias: e.Alias}
 //	}
+//	func (e ExampleToken) IsErrored() bool  { return e.err != nil }
+//	func (e ExampleToken) Error() error     { return e.err }
+//	func (e *ExampleToken) SetError(err error) { e.err = err }
 //
 //	func main() {
 //	    var bt contract.BaseToken = ExampleToken{Name: "users", Alias: "u"}
@@ -52,6 +58,7 @@
 //	    var s contract.Stringable = ExampleToken{Name: "users", Alias: "u"}
 //	    var d contract.Debuggable = ExampleToken{Name: "users", Alias: "u"}
 //	    var c contract.Clonable[*ExampleToken] = ExampleToken{Name: "users", Alias: "u"}
+//	    var e contract.Errorable  = &ExampleToken{Name: "users", Alias: "u"}
 //
 //	    fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased(), bt.IsValid())
 //	    fmt.Println(r.Render()) // dialect-aware SQL
@@ -59,5 +66,6 @@
 //	    fmt.Println(s.String()) // audit/log
 //	    fmt.Println(d.Debug())  // developer diagnostic
 //	    fmt.Println(c.Clone())  // safe copy
+//	    fmt.Println(e.IsErrored(), e.Error()) // error state
 //	}
 package contract

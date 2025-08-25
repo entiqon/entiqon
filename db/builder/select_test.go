@@ -19,8 +19,8 @@ func TestSelectBuilder(t *testing.T) {
 				sb := &builder.SelectBuilder{} // fields is nil
 				sb.Fields("id")
 				fields := sb.GetFields()
-				field, _ := fields.At(0)
-				if fields.Length() != 1 || field.Expr != "id" {
+				f, _ := fields.At(0)
+				if fields.Length() != 1 || f.Expr != "id" {
 					t.Errorf("expected one field 'id', got %+v", fields)
 				}
 			})
@@ -36,8 +36,8 @@ func TestSelectBuilder(t *testing.T) {
 			t.Run("Add", func(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields("id")
 				fields := sb.GetFields()
-				field, _ := fields.At(0)
-				if fields.Length() != 1 || field.Expr != "id" {
+				f, _ := fields.At(0)
+				if fields.Length() != 1 || f.Expr != "id" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -47,8 +47,8 @@ func TestSelectBuilder(t *testing.T) {
 					Fields("id").
 					Fields("reset") // should reset
 				fields := sb.GetFields()
-				field, _ := fields.At(0)
-				if fields.Length() != 1 || field.Expr != "reset" {
+				f, _ := fields.At(0)
+				if fields.Length() != 1 || f.Expr != "reset" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -83,11 +83,11 @@ func TestSelectBuilder(t *testing.T) {
 			t.Run("Invalid", func(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields(true)
 				fields := sb.GetFields()
-				field, _ := fields.At(0)
-				if !field.IsErrored() {
-					t.Errorf("expected IsErrored to be true, got %v", field.IsErrored())
+				f, _ := fields.At(0)
+				if !f.IsErrored() {
+					t.Errorf("expected IsErrored to be true, got %v", f.IsErrored())
 				}
-				if field.Error == nil {
+				if f.Error() == nil {
 					t.Errorf("expected Error to be set, got nil")
 				}
 			})

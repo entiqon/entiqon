@@ -58,6 +58,10 @@
     - New BaseToken section with purpose, methods, usage
     - Streamlined documentation structure
     - Extended philosophy with **Consistency** principle: all tokens share BaseToken
+- Extended **Errorable** contract with `SetError(err error)`:
+    - Enables tokens/builders to mark themselves as errored after construction
+    - Implemented in `Field` and `Table` tokens
+    - Updated `doc.go`, `README.md`, and `example_test.go` with usage examples
 
 ## Database Package (token/table)
 

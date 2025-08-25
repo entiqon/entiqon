@@ -305,7 +305,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	for _, f := range b.fields.Items() {
 		if f.IsErrored() {
 			bad = append(bad,
-				fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error))
+				fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error()))
 			continue
 		}
 		parts = append(parts, f.Render())

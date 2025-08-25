@@ -24,8 +24,8 @@ func TestField(t *testing.T) {
 			t.Run("Field", func(t *testing.T) {
 				src := field.NewField("col1")
 				f := field.NewField(src)
-				if f.Error == nil || !errors.Is(f.Error, f.Error) {
-					t.Errorf("expected error about Clone, got %+v", f.Error)
+				if f.Error() == nil {
+					t.Errorf("expected error about Clone, got %+v", f.Error())
 				}
 			})
 
@@ -45,8 +45,8 @@ func TestField(t *testing.T) {
 				t.Run("WithParenthesis", func(t *testing.T) {
 					src := field.NewField("(col1 || '-' || col2)", " mixed")
 					f := field.NewField(src)
-					if f.Error == nil || !errors.Is(f.Error, f.Error) {
-						t.Errorf("expected error about Clone, got %+v", f.Error)
+					if f.Error() == nil {
+						t.Errorf("expected error about Clone, got %+v", f.Error())
 					}
 				})
 
@@ -105,14 +105,14 @@ func TestField(t *testing.T) {
 							f := field.NewField(tt.input)
 
 							if tt.expectErr {
-								if f.Error == nil {
+								if f.Error() == nil {
 									t.Errorf("expected error, got nil")
 								}
 								return
 							}
 
-							if f.Error != nil {
-								t.Errorf("unexpected error: %v", f.Error)
+							if f.Error() != nil {
+								t.Errorf("unexpected error: %v", f.Error())
 							}
 
 							if f.IsRaw != tt.expectRaw {
@@ -181,8 +181,8 @@ func TestField(t *testing.T) {
 
 			t.Run("UnsupportedType", func(t *testing.T) {
 				f := field.NewField(123)
-				if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
-					t.Errorf("expected unsupported expr type error, got %+v", f.Error)
+				if f.Error() == nil || !strings.Contains(f.Error().Error(), "input type unsupported: int") {
+					t.Errorf("expected unsupported expr type error, got %+v", f.Error())
 				}
 			})
 
@@ -218,8 +218,8 @@ func TestField(t *testing.T) {
 
 		t.Run("TwoArgsAliasUnsupportedType", func(t *testing.T) {
 			f := field.NewField("col1", 123)
-			if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
-				t.Errorf("expected unsupported alias type error, got %+v", f.Error)
+			if f.Error() == nil || !strings.Contains(f.Error().Error(), "input type unsupported: int") {
+				t.Errorf("expected unsupported alias type error, got %+v", f.Error())
 			}
 		})
 
@@ -232,23 +232,23 @@ func TestField(t *testing.T) {
 
 		t.Run("ThreeArgsAliasWrongType", func(t *testing.T) {
 			f := field.NewField("input1", 123, true)
-			if f.Error == nil || !strings.Contains(f.Error.Error(), "input type unsupported: int") {
-				t.Errorf("expected unsupported type error, got %+v", f.Error)
+			if f.Error() == nil || !strings.Contains(f.Error().Error(), "input type unsupported: int") {
+				t.Errorf("expected unsupported type error, got %+v", f.Error())
 			}
 		})
 
 		t.Run("ThreeArgsIsRawWrongType", func(t *testing.T) {
 			f := field.NewField("input1", "alias1", "yes")
-			if f.Error == nil || f.Error.Error() != "isRaw must be a bool" {
-				t.Errorf("expected isRaw must be a bool error, got %+v", f.Error)
+			if f.Error() == nil || f.Error().Error() != "isRaw must be a bool" {
+				t.Errorf("expected isRaw must be a bool error, got %+v", f.Error())
 			}
 		})
 
 		t.Run("InvalidSignatureFourArgs", func(t *testing.T) {
 			// expr, alias, isRaw
 			f1 := field.NewField("col1", "alias1", true, "yes")
-			if f1.Error == nil || f1.Error.Error() != "invalid NewField signature" {
-				t.Errorf("expected invalid NewField signature error, got %+v", f1.Error)
+			if f1.Error() == nil || f1.Error().Error() != "invalid NewField signature" {
+				t.Errorf("expected invalid NewField signature error, got %+v", f1.Error())
 			}
 		})
 
@@ -268,10 +268,10 @@ func TestField(t *testing.T) {
 			})
 
 			t.Run("NilReceiver", func(t *testing.T) {
-				var field *field.Field = nil
-				got := field.Clone()
+				var f *field.Field = nil
+				got := f.Clone()
 				if got != nil {
-					t.Errorf("cloned field = %+v, want %+v", got, field)
+					t.Errorf("cloned field = %+v, want %+v", got, f)
 				}
 			})
 		})
@@ -300,7 +300,7 @@ func TestField(t *testing.T) {
 			if f.IsErrored() {
 				t.Error("expected IsErrored false when Error is nil")
 			}
-			f.Error = errors.New("some error")
+			f.SetError(errors.New("some error"))
 			if !f.IsErrored() {
 				t.Error("expected IsErrored true when Error set")
 			}
@@ -311,7 +311,7 @@ func TestField(t *testing.T) {
 			if !f.IsValid() {
 				t.Error("expected IsValid true when no Error and Expr non-empty")
 			}
-			f.Error = errors.New("some error")
+			f.SetError(errors.New("some error"))
 			if f.IsValid() {
 				t.Error("expected IsValid false when Error set")
 			}
@@ -382,7 +382,7 @@ func TestField(t *testing.T) {
 			if !strings.Contains(got, "field AS Alias") {
 				t.Errorf("String() with alias got %q, want alias: true", got)
 			}
-			f.Error = errors.New("some error")
+			f.SetError(errors.New("some error"))
 			got = f.String()
 			if !strings.Contains(got, "⛔️") || !strings.Contains(got, "some error") {
 				t.Errorf("String() errored got %q, want icon and error message", got)

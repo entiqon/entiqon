@@ -139,6 +139,9 @@ func New(args ...string) *Table {
 	return t
 }
 
+// IsAliased reports whether the table has an alias.
+func (t *Table) IsAliased() bool { return t.alias != "" }
+
 // Clone returns a semantic copy of the Table.
 func (t *Table) Clone() *Table {
 	return &Table{
@@ -169,14 +172,15 @@ func (t *Table) Debug() string {
 	return fmt.Sprintf("✅ Table(%q): %s", t.input, flags)
 }
 
+// IsErrored reports whether the Table was constructed with an error.
+func (t *Table) IsErrored() bool { return t.err != nil }
+
 // Error returns the underlying construction error, if any.
 func (t *Table) Error() error { return t.err }
 
-// IsAliased reports whether the table has an alias.
-func (t *Table) IsAliased() bool { return t.alias != "" }
-
-// IsErrored reports whether the Table was constructed with an error.
-func (t *Table) IsErrored() bool { return t.err != nil }
+// SetError assigns an error to the table. Intended for use during
+// construction/parsing to capture validation failures.
+func (t *Table) SetError(err error) { t.err = err }
 
 // IsRaw reports whether the Table was explicitly constructed as raw
 // (via the two-argument form or as a subquery).
