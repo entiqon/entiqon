@@ -1,11 +1,3 @@
-/**
- * @Author: Isidro Lopez isidro.lopezg@live.com
- * @Date: 2025-08-24 05:42:00
- * @LastEditors: Isidro Lopez isidro.lopezg@live.com
- * @LastEditTime: 2025-08-24 05:42:04
- * @FilePath: db/contract/doc.go
- * @Description: 这是默认设置,可以在设置》工具》File Description中进行配置
- */
 // Package contract defines small, reusable behavioral contracts (interfaces)
 // that core tokens (Field, Table, Condition, etc.) and builders implement
 // to enable polymorphic behavior without tight coupling between packages.
@@ -14,19 +6,21 @@
 // composable capabilities. By design, contracts are intentionally
 // minimalistic and orthogonal:
 //
+//   - BaseToken: core identity (input, expression, alias, validation).
 //   - Renderable: canonical SQL output, dialect-aware.
 //   - Rawable: generic SQL fragment, dialect-agnostic.
 //   - Stringable: human-facing representation for logs and audits.
 //   - Debuggable: developer-facing diagnostic view of internal state.
-//   - Clonable[T]: semantic clone contract for safe mutation.
+//   - Clonable[T]: semantic clone for safe mutation.
 //
-// These contracts separate concerns:
+// Separation of concerns:
 //
-//   - Renderable is for machine-facing query generation.
-//   - Rawable is for generic SQL fragments used as the basis for dialects.
-//   - Stringable is for audit/logging, human-facing but concise.
-//   - Debuggable is for diagnostics, verbose, not stable across versions.
-//   - Clonable[T] is for safe duplication of tokens or builders.
+//   - BaseToken → identity & validation
+//   - Renderable → query generation
+//   - Rawable → generic fragments
+//   - Stringable → logs/audit
+//   - Debuggable → developer diagnostics
+//   - Clonable[T] → safe duplication
 //
 // Example:
 //
@@ -52,12 +46,14 @@
 //	}
 //
 //	func main() {
+//	    var bt contract.BaseToken = ExampleToken{Name: "users", Alias: "u"}
 //	    var r contract.Renderable = ExampleToken{Name: "users", Alias: "u"}
 //	    var w contract.Rawable    = ExampleToken{Name: "users", Alias: "u"}
 //	    var s contract.Stringable = ExampleToken{Name: "users", Alias: "u"}
 //	    var d contract.Debuggable = ExampleToken{Name: "users", Alias: "u"}
 //	    var c contract.Clonable[*ExampleToken] = ExampleToken{Name: "users", Alias: "u"}
 //
+//	    fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased(), bt.IsValid())
 //	    fmt.Println(r.Render()) // dialect-aware SQL
 //	    fmt.Println(w.Raw())    // generic SQL
 //	    fmt.Println(s.String()) // audit/log
