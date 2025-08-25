@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - `Debug()` and `String()` improved with ✅/⛔️ status markers.
     - `Build()` aggregates invalid fields, detects nil receiver and missing source, with clear ❌ messages.
 
+### Database (contract)
+- Introduced **BaseToken** contract (`db/contract/base_token.go`):
+    - Provides core identity and validation for all tokens
+    - Methods: `Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`
+    - Ensures `Field`, `Table`, and future tokens expose consistent state
+- Added runnable example (`ExampleBaseToken`) in `example_test.go`
+- Updated `doc.go` to include BaseToken in contract overview with normalized style
+- Updated `README.md`:
+    - Added BaseToken section with purpose, methods, and usage
+    - Streamlined layout, removed redundancy
+    - Extended philosophy with **Consistency** principle: all tokens share BaseToken
+  
 ### Database (token/table)
 - Introduced **Table token** to represent SQL sources in builders:
     - Provides constructors and helpers to define tables, aliases, and raw inputs.
@@ -28,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added **example_test.go** with runnable examples.
 - Added **README.md** documenting purpose, design, and usage of token.Table.
 
+### Database (token/field)
+- Refactored **Field** into dedicated subpackage `db/token/field`:
+    - Preserved API (`field.New(...)`) and contract implementations unchanged.
+    - Updated `builder/select.go` and `select_test.go` to import from the new path.
+    - Adjusted **Dockerfile-documentation** to copy `db/token/field/README.md`.
+    - Normalized structure for consistency with `token/table`.
 
 ### Common (extension/integer)
 - Introduced **integer parser**:

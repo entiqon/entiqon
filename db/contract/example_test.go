@@ -7,37 +7,15 @@ import (
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
-// ExampleRenderable demonstrates using a Table as a Renderable.
-func ExampleRenderable() {
-	t := table.New("users", "u")
-	var r contract.Renderable = t
-	fmt.Println(r.Render())
-	// Output: users AS u
-}
-
-// ExampleRawable demonstrates using a Table as a Rawable.
-func ExampleRawable() {
-	t := table.New("users", "u")
-	var r contract.Rawable = t
-	fmt.Println(r.Raw())
-	// Output: users AS u
-}
-
-// ExampleStringable demonstrates using a Table as a Stringable.
-func ExampleStringable() {
-	t := table.New("users", "u")
-	var s contract.Stringable = t
-	fmt.Println(s.String())
-	// Output: ✅ Table(users AS u)
-}
-
-// ExampleDebuggable demonstrates using a Table as a Debuggable.
-func ExampleDebuggable() {
-	t := table.New("users", "u")
-	var d contract.Debuggable = t
-	fmt.Println(d.Debug())
-	// Output: ✅ Table("users AS u"): [raw:true, aliased:true, errored:false]
-}
+//// ExampleRenderable demonstrates using a Table as a Renderable.
+//func ExampleBaseToken() {
+//	t := field.NewField("users", "u")
+//	var bt contract.BaseToken = t
+//	fmt.Println(fmt.Sprintf(
+//		"Input=%q, Expr=%q, Alias=%q, Aliased=%t, Valid=%t",
+//		bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased(), bt.IsValid()))
+//	// Output: Input="users", Expr="users", Alias="u", Aliased=true, Valid=true
+//}
 
 // ExampleClonable demonstrates using a Table as a Clonable.
 func ExampleClonable() {
@@ -46,6 +24,14 @@ func ExampleClonable() {
 	clone := c.Clone()
 	fmt.Println(clone.Render())
 	// Output: users AS u
+}
+
+// ExampleDebuggable demonstrates using a Table as a Debuggable.
+func ExampleDebuggable() {
+	t := table.New("users", "u")
+	var d contract.Debuggable = t
+	fmt.Println(d.Debug())
+	// Output: ✅ Table("users AS u"): [raw:true, aliased:true, errored:false]
 }
 
 // ExampleErrorable demonstrates using a Table as an Errorable.
@@ -59,4 +45,28 @@ func ExampleErrorable() {
 	// Output:
 	// true
 	// invalid format "users AS"
+}
+
+// ExampleRawable demonstrates using a Table as a Rawable.
+func ExampleRawable() {
+	t := table.New("users", "u")
+	var r contract.Rawable = t
+	fmt.Println(r.Raw())
+	// Output: users AS u
+}
+
+// ExampleRenderable demonstrates using a Table as a Renderable.
+func ExampleRenderable() {
+	t := table.New("users", "u")
+	var r contract.Renderable = t
+	fmt.Println(r.Render())
+	// Output: users AS u
+}
+
+// ExampleStringable demonstrates using a Table as a Stringable.
+func ExampleStringable() {
+	t := table.New("users", "u")
+	var s contract.Stringable = t
+	fmt.Println(s.String())
+	// Output: ✅ Table(users AS u)
 }
