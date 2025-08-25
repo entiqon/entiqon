@@ -67,4 +67,4 @@
 //
 //	sql, _ := sb.Build()
 //	// SELECT id AS user_id, COUNT(*) AS total FROM users
-package token
+package field

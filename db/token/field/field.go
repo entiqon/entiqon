@@ -1,6 +1,6 @@
 // File: db/token/field.go
 
-package token
+package field
 
 import (
 	"crypto/sha1"

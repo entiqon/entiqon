@@ -22,7 +22,7 @@ COPY common/extension/object/README.md     docs/packages/common/extension/object
 COPY common/extension/collection/README.md docs/packages/common/extension/collection.md
 COPY db/README.md                          docs/packages/db/overview.md
 COPY db/builder/README.md                  docs/packages/db/builder/overview.md
-COPY db/token/field.md                     docs/packages/db/token/field.md
+COPY db/token/field/README.md              docs/packages/db/token/field.md
 COPY db/token/table/README.md              docs/packages/db/token/table.md
 COPY releases/ docs/releases/
 RUN echo "Documentation content copied"

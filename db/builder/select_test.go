@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/entiqon/entiqon/db/builder"
-	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/token/field"
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
@@ -64,7 +64,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("Pointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(token.NewField("id")) // *token.Field
+					Fields(field.NewField("id")) // *token.Field
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
@@ -73,7 +73,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("NotPointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(*token.NewField("id")) // token.Field (value)
+					Fields(*field.NewField("id")) // token.Field (value)
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
