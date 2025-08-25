@@ -14,10 +14,11 @@ import (
 )
 
 // Ensure Field implements contract.Renderable at compile time.
-var _ contract.Renderable = (*Field)(nil)
-
-// Ensure Field implements contract.Clonable[*Field] at compile time.
-var _ contract.Clonable[*Field] = (*Field)(nil)
+var (
+	_ contract.Errorable        = (*Field)(nil)
+	_ contract.Clonable[*Field] = (*Field)(nil)
+	_ contract.Renderable       = (*Field)(nil)
+)
 
 // Field represents a column/field or expression in a SELECT clause.
 //
@@ -43,7 +44,7 @@ type Field struct {
 
 	// Error holds any validation or parsing error encountered.
 	// It is nil when the field is considered valid.
-	Error error
+	err error
 }
 
 // NewField constructs a Field from the given components, trimming the alias
@@ -60,9 +61,9 @@ func NewField(inputs ...any) *Field {
 			Input: fmt.Sprint(inputs[0]),
 		}
 		if err.Error() == "input is a Field" {
-			fd.setError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
+			fd.SetError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
 		} else {
-			fd.setError(err)
+			fd.SetError(err)
 		}
 		return fd
 	}
@@ -74,7 +75,7 @@ func NewField(inputs ...any) *Field {
 		if err := validateType(inputs[1]); err != nil {
 			return &Field{
 				Input: expr,
-				Error: fmt.Errorf("%s: %s", err.Error(), "alias must be a string"),
+				err:   fmt.Errorf("%s: %s", err.Error(), "alias must be a string"),
 			}
 		}
 		alias := strings.TrimSpace(inputs[1].(string))
@@ -84,7 +85,7 @@ func NewField(inputs ...any) *Field {
 			fd := &Field{
 				Input: expr,
 			}
-			fd.setError(errors.New("isRaw must be a bool"))
+			fd.SetError(errors.New("isRaw must be a bool"))
 			return fd
 		}
 
@@ -100,7 +101,7 @@ func NewField(inputs ...any) *Field {
 		if err := validateType(inputs[1]); err != nil {
 			return &Field{
 				Input: expr,
-				Error: err,
+				err:   err,
 			}
 		}
 		alias := strings.TrimSpace(inputs[1].(string))
@@ -129,7 +130,7 @@ func NewField(inputs ...any) *Field {
 			// Has space but no AS → error (alias without AS is invalid for raw)
 			if HasTrailingAliasWithoutAS(expr) {
 				fd := &Field{Input: expr}
-				fd.setError(errors.New("raw expressions must use explicit AS for alias"))
+				fd.SetError(errors.New("raw expressions must use explicit AS for alias"))
 				return fd
 			}
 
@@ -154,8 +155,13 @@ func NewField(inputs ...any) *Field {
 	}
 
 	fd := &Field{}
-	fd.setError(errors.New("invalid NewField signature"))
+	fd.SetError(errors.New("invalid NewField signature"))
 	return fd
+}
+
+// IsAliased reports whether the field has a non-empty alias.
+func (f *Field) IsAliased() bool {
+	return strings.TrimSpace(f.Alias) != ""
 }
 
 // Clone returns a semantic copy of the Field. A nil receiver yields nil.
@@ -189,21 +195,23 @@ func (f *Field) Debug() string {
 		f.IsErrored(),
 	)
 
-	if f.Error != nil {
-		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.Input, flags, f.Error)
+	if f.err != nil {
+		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.Input, flags, f.err)
 	}
 	return fmt.Sprintf("✅ Field(%q): %s", f.Input, flags)
 }
 
-// IsAliased reports whether the field has a non-empty alias.
-func (f *Field) IsAliased() bool {
-	return strings.TrimSpace(f.Alias) != ""
-}
-
 // IsErrored reports whether the field carries a non-nil error.
 func (f *Field) IsErrored() bool {
-	return f.Error != nil
+	return f.err != nil
 }
+
+// Error returns the underlying construction error, if any.
+func (f *Field) Error() error { return f.err }
+
+// SetError assigns an error to the field. Intended for use during
+// construction/parsing to capture validation failures.
+func (f *Field) SetError(err error) { f.err = err }
 
 // IsValid reports whether the field is considered valid.
 //
@@ -265,8 +273,8 @@ func (f *Field) String() string {
 	if f == nil {
 		return "⛔️ Field(<nil>): wrong initialization"
 	}
-	if f.Error != nil {
-		return fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error)
+	if f.err != nil {
+		return fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.err)
 	}
 	if f.Alias != "" {
 		return fmt.Sprintf("✅ Field(%q)", fmt.Sprintf("%s AS %s", f.Expr, f.Alias))
@@ -286,10 +294,6 @@ func deriveNameFromExpr(expr string) string {
 	}
 	return strings.ToLower(b.String())
 }
-
-// setError assigns an error to the field. Intended for use during
-// construction/parsing to capture validation failures.
-func (f *Field) setError(err error) { f.Error = err }
 
 func autoAlias(expr string) string {
 	const prefix = "raw_expr_"

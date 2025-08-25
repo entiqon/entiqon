@@ -2,7 +2,7 @@
  * @Author: Isidro Lopez isidro.lopezg@live.com
  * @Date: 2025-08-24 05:42:00
  * @LastEditors: Isidro Lopez isidro.lopezg@live.com
- * @LastEditTime: 2025-08-24 05:42:04
+ * @LastEditTime: 2025-08-25 14:30:07
  * @FilePath: db/contract/errorable.go
  * @Description: 这是默认设置,可以在设置》工具》File Description中进行配置
  */
@@ -43,4 +43,8 @@ type Errorable interface {
 	// Error returns the underlying error if any.
 	// Returns nil if the object is valid.
 	Error() error
+
+	// SetError marks the token as errored with the given error.
+	// Implementations must store the error for reporting in Error().
+	SetError(err error)
 }

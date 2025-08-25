@@ -1,5 +1,5 @@
 <h1 align="left">
-  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="82" width="82"> Core Contract
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="82" width="82" alt="entiqon"> Core Contract
 </h1>
 <h6 align="left">Part of the <a href="../../README.md">Entiqon</a> / <a href="../README.md">Database</a> toolkit.</h6>
 
@@ -50,10 +50,11 @@ narrow capability that can be composed with others.
 - **Method**: `Clone() T`
 
 ### [Errorable](./errorable.go)
-- **Purpose**: Error state inspection for tokens/builders.
+- **Purpose**: Error state inspection and propagation for tokens/builders.
 - **Methods**:
   - `IsErrored() bool`
   - `Error() error`
+  - `SetError(err error)`
 
 ---
 
@@ -75,6 +76,12 @@ fmt.Println(r.Render())
 var e contract.Errorable = table.New("users AS")
 fmt.Println(e.IsErrored()) // true
 fmt.Println(e.Error())     // invalid format "users AS"
+
+// Example of SetError usage
+tok := table.New("products")
+et := tok.(*table.Table)
+et.SetError(fmt.Errorf("manual mark as errored"))
+fmt.Println(et.IsErrored()) // true
 ```
 
 ---
