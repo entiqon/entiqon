@@ -4,139 +4,114 @@
 
 ### Added
 - Extended `SelectBuilder` with full clause support:
-    - **Conditions**
-        - `Where(...string)`: resets conditions
-        - `And(...string)`: appends with `AND`
-        - `Or(...string)`: appends with `OR`
-        - Multiple conditions in a single `Where` call are normalized with `AND`
-        - Ignores empty or whitespace-only inputs
-        - `Build()` renders conditions immediately after `FROM`
-    - **Grouping**
-        - `GroupBy(...string)`: resets grouping fields
-        - `ThenGroupBy(...string)`: appends grouping fields
-        - Graceful handling of nil collections
-        - Ignores empty or whitespace-only values
-        - `Build()` renders `GROUP BY` between `WHERE` and `HAVING`
-    - **Having**
-        - `Having(...string)`: resets HAVING conditions
-        - `AndHaving(...string)`: appends with `AND`
-        - `OrHaving(...string)`: appends with `OR`
-        - Multiple conditions in a single `Having` call are normalized with `AND`
-        - Ignores empty or whitespace-only inputs
-        - `Build()` renders `HAVING` immediately after `GROUP BY`
-    - **Ordering**
-        - `OrderBy(...string)`: resets ordering fields
-        - `ThenOrderBy(...string)`: appends ordering fields
-        - Ignores empty or whitespace-only values
-        - `Build()` renders `ORDER BY` after `WHERE` / `GROUP BY` / `HAVING`
+    - **Conditions**: `Where`, `And`, `Or` (resets, appends, normalized, ignores empty, renders after `FROM`)
+    - **Grouping**: `GroupBy`, `ThenGroupBy` (reset/append, ignore empty, renders between `WHERE` and `HAVING`)
+    - **Having**: `Having`, `AndHaving`, `OrHaving` (reset/append, normalized, ignore empty, renders after `GROUP BY`)
+    - **Ordering**: `OrderBy`, `ThenOrderBy` (reset/append, ignore empty, renders after `WHERE`/`GROUP BY`/`HAVING`)
 
 ### Enhanced
 - **Field diagnostics**
-    - Invalid fields now produce consistent error messages
-    - Example: `⛔️ Field("true"): input type unsupported: bool`
-    - `Debug()` method on `token/field.Field` shows structured state with ✅/⛔️ markers
-    - `String()` enhanced for clarity and consistency with Debug output
+    - Consistent error messages (e.g., `⛔️ Field("true"): input type unsupported: bool`)
+    - `Debug()` shows structured state with ✅/⛔️ markers
+    - `String()` enhanced for clarity and UX
 - **SelectBuilder reporting**
-    - `Build()` aggregates invalid field errors into a single descriptive block
-    - Clearer error messages when:
-        - No source specified (`❌ [Build] - No source specified`)
-        - Nil receiver (`❌ [Build] - Wrong initialization. Cannot build on receiver nil`)
-    - `String()` provides status-style output:
-        - ✅ successful SQL string with params
-        - ❌ error message when build fails
+    - `Build()` aggregates invalid field errors into a single block
+    - Clearer error messages (`❌ No source specified`, `❌ Wrong initialization`)
+    - `String()` shows ✅/❌ style status
 
-## Database Package (contract)
-
-### Added
-- Introduced **BaseToken** interface (`db/contract/base_token.go`):
-    - Provides core identity and validation for all tokens (`Field`, `Table`, etc.)
-    - Methods: `Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`
-    - Guarantees consistent identity and validation across all tokens
-- Added runnable example (`ExampleBaseToken`) in `example_test.go`
-- Updated `doc.go` with BaseToken in the contract overview (normalized style)
-- Updated `README.md`:
-    - New BaseToken section with purpose, methods, usage
-    - Streamlined documentation structure
-    - Extended philosophy with **Consistency** principle: all tokens share BaseToken
-- Extended **Errorable** contract with `SetError(err error)`:
-    - Enables tokens/builders to mark themselves as errored after construction
-    - Implemented in `Field` and `Table` tokens
-    - Updated `doc.go`, `README.md`, and `example_test.go` with usage examples
-
-## Database Package (token/table)
-
-### Added
-- Introduced `token.Table` type to represent SQL sources in builders:
-    - Provides constructors for tables, aliases, and raw inputs
-    - Consistent rendering across dialects
-    - Validation of invalid/empty inputs with clear error reporting
-- Added full unit test coverage (constructors, methods, edge cases)
-- Added `doc.go` with package overview and usage guidelines
-- Added `example_test.go` with runnable examples
-- Added `README.md` describing purpose, design, and usage
+---
 
 ## Database Package (token/field)
 
 ### Refactored
-- Moved `Field` into a dedicated subpackage `db/token/field`:
-    - API preserved (`field.New(...)`) with unchanged contracts and behavior
-    - Updated `builder/select.go` and `select_test.go` to use new import path
-    - Dockerfile updated to copy `db/token/field/README.md` for documentation
-    - Normalized structure for consistency with `token/table`
+- Moved `Field` into `db/token/field` subpackage
+    - API preserved (`field.New(...)`)
+    - Updated builder imports and Dockerfile
+    - Normalized structure with `token/table`
 
 ### Added
-- Introduced **Field Token contract** as a scaffold to decompose Field identity into auditable pieces:
-    - Aggregates `BaseToken`, `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, and `Stringable`
-    - Defines ownership methods: `HasOwner()`, `Owner()`, and `SetOwner()`
-    - Intention: separate every identity aspect (expr, alias, owner, validity, raw state) into dedicated, auditable contracts
-    - ⚠️ Contract only; implementation staged for later commits
+- Introduced **Field Token contract**:
+    - Aggregates `BaseToken`, `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`
+    - Ownership methods: `HasOwner()`, `Owner()`, `SetOwner()`
+    - ⚠️ Contract only, implementation staged
+
+### Enhanced
+- **Clone**
+    - Deep copy of `owner` (avoids aliasing between clones and originals)
+    - Removed unreachable `nil` branch (constructors guarantee non-nil)
+    - Docstring updated
+- **Role separation**
+    - `Render()` → final SQL (future dialect-aware)
+    - `Raw()` → SQL-generic (loggers)
+    - `String()` → UX-friendly, concise with ✅/⛔
+    - `Debug()` → developer diagnostics
+- Normalized error handling with consistent `SetError` usage
 
 ### Documentation
-- `doc.go`: extended **Field Behavior** with `HasOwner`, `Owner`, `SetOwner`
-- `example_test.go`: added placeholder `ExampleField_owner` (commented until implemented)
-- `README.md`: new **Contracts and Auditability** section in Developer Guide
-- Root-level docs:
-    - Added `db/token/README.md` with package purpose and subpackage table
-    - Added `db/token/doc.go` with GoDoc overview, principles, subpackages, and roadmap
+- `doc.go`: extended **Field Behavior**
+- `example_test.go`: placeholder `ExampleField_owner`
+- `README.md`: new **Contracts and Auditability** section
+- Root-level docs: `db/token/README.md` and `db/token/doc.go`
 
-### Refactored
-- Moved `Field` into a dedicated subpackage `db/token/field`:
-    - API preserved (`field.New(...)`) with unchanged contracts and behavior
-    - Updated `builder/select.go` and `select_test.go` to use new import path
-    - Dockerfile updated to copy `db/token/field/README.md` for documentation
-    - Normalized structure for consistency with `token/table`
+---
+
+## Database Package (token/table)
+
+### Added
+- Introduced `token.Table` type:
+    - Constructors for tables, aliases, raw inputs
+    - Consistent rendering across dialects
+    - Validation of invalid/empty inputs
+- Added tests (constructors, methods, edge cases, 100% coverage)
+- Added `doc.go`, `example_test.go`, `README.md`
+
+---
+
+## Database Package (contract)
+
+### Added
+- **BaseToken** interface (`db/contract/base_token.go`):
+    - Identity and validation (`Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`)
+- Example: `ExampleBaseToken` in `example_test.go`
+- `doc.go` and `README.md` updated with BaseToken
+- Added **Consistency** principle in doctrine
+- Extended **Errorable** with `SetError(err error)`
+    - Implemented in `Field` and `Table`
+    - Docs and examples updated
+
+---
 
 ## Common Package (extension/integer)
 
 ### Added
-- Introduced integer parser with full support:
-    - `ParseFrom(any)` converts generic input into integer values
-    - Rejects non-integer inputs with clear error reporting
-    - Consistent behavior with existing parsers (`boolean`, `float`, `decimal`)
-    - Added parser shortcuts (`IntegerOr`) for default values
-- Full test coverage in `integer/parser_test.go`
-- Added runnable examples and integrated into `example_test.go`
-- Updated parser documentation under `common/extension` README
+- Integer parser:
+    - `ParseFrom(any)` with strict type validation
+    - `IntegerOr` shortcut with defaults
+- Consistent with boolean, float, decimal parsers
+- 100% test coverage
+- Runnable examples
+- Docs updated under `common/extension`
+
+---
 
 ## Tests
-- Comprehensive unit tests across `db/builder/select`, `token/table`, `token/field`, and `common/extension/integer` ensuring 100% coverage:
-    - Clause handling (nil, reset, append, overwrite, ignore-empty)
-    - Field validation and error aggregation
-    - Table token construction, aliasing, and rendering
+- Full coverage across Database and Common:
+    - Clause handling
+    - Field validation, cloning, error aggregation
+    - Table token construction & rendering
     - Integer parsing (valid, invalid, defaults)
-    - Field cloning, rendering, and error detection
+
+---
 
 ## Documentation
-- **Database README.md** updated with Conditions, Grouping, Having, Ordering, Field Rules, and Table token section
-- **Common/Extension README.md** updated with integer parser, usage table, and shortcuts
-- **Database doc.go** extended with clause usage and table/field examples
-- **Database example_test.go** enhanced with runnable examples:
-    - `ExampleSelectBuilder_where`
-    - `ExampleSelectBuilder_andOr`
-    - `ExampleSelectBuilder_ordering`
-    - `ExampleSelectBuilder_grouping`
-    - `ExampleSelectBuilder_having`
-    - `ExampleTable_basic`
-    - `ExampleClonable`
-- **Common example_test.go** enhanced with runnable examples:
-    - `ExampleIntegerParseFrom` and shortcut usage
+- **Database README.md** refactored:
+    - Added **Doctrine** section
+    - Replaced bullet list with **Capabilities table** (Modules, Features, Status icons)
+    - Removed redundant Quickstart and guides
+- **Database doc.go** extended with field & table examples
+- **Database example_test.go** updated with runnable examples:
+    - Select (where, and/or, ordering, grouping, having)
+    - Table usage
+    - Clonable
+- **Common/Extension README.md** updated with integer parser usage
+- **Common example_test.go** extended with parser examples

@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [v1.13.0] - Upcoming
-
 ### Database (builder/select)
 - Added full clause support:
     - **Conditions**: `Where`, `And`, `Or` (reset, append, normalize with AND, ignore empty).
@@ -17,32 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Invalid fields produce consistent `⛔️ Field("<expr>"): input type unsupported: <type>` errors.
     - `Debug()` and `String()` improved with ✅/⛔️ status markers.
     - `Build()` aggregates invalid fields, detects nil receiver and missing source, with clear ❌ messages.
-
-### Database (contract)
-- Introduced **BaseToken** contract (`db/contract/base_token.go`):
-    - Provides core identity and validation for all tokens
-    - Methods: `Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`
-    - Ensures `Field`, `Table`, and future tokens expose consistent state
-- Added runnable example (`ExampleBaseToken`) in `example_test.go`
-- Updated `doc.go` to include BaseToken in contract overview with normalized style
-- Updated `README.md`:
-    - Added BaseToken section with purpose, methods, and usage
-    - Streamlined layout, removed redundancy
-    - Extended philosophy with **Consistency** principle: all tokens share BaseToken
-- Extended **Errorable** contract with `SetError(err error)`:
-    - Allows tokens/builders to mark themselves as errored after construction
-    - Implemented in `Field` and `Table` tokens
-    - Updated `doc.go`, `README.md`, and `example_test.go` to demonstrate usage
-  
-### Database (token/table)
-- Introduced **Table token** to represent SQL sources in builders:
-    - Provides constructors and helpers to define tables, aliases, and raw inputs.
-    - Supports consistent rendering across dialects.
-    - Ensures validation of invalid/empty inputs with clear error reporting.
-- Added **unit tests** covering constructors, methods, and edge cases with 100% coverage.
-- Added **doc.go** with package overview and usage guidelines.
-- Added **example_test.go** with runnable examples.
-- Added **README.md** documenting purpose, design, and usage of token.Table.
 
 ### Database (token/field)
 - Refactored **Field** into dedicated subpackage `db/token/field`:
@@ -64,6 +37,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Added `db/token/doc.go` with GoDoc overview, principles, subpackages, and roadmap.
 
 
+### Database (token/table)
+- Introduced **Table token** to represent SQL sources in builders:
+    - Provides constructors and helpers to define tables, aliases, and raw inputs.
+    - Supports consistent rendering across dialects.
+    - Ensures validation of invalid/empty inputs with clear error reporting.
+- Added **unit tests** covering constructors, methods, and edge cases with 100% coverage.
+- Added **doc.go** with package overview and usage guidelines.
+- Added **example_test.go** with runnable examples.
+- Added **README.md** documenting purpose, design, and usage of token.Table.
+
+### Database (contract)
+- Introduced **BaseToken** contract (`db/contract/base_token.go`):
+    - Provides core identity and validation for all tokens
+    - Methods: `Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`
+    - Ensures `Field`, `Table`, and future tokens expose consistent state
+- Added runnable example (`ExampleBaseToken`) in `example_test.go`
+- Updated `doc.go` to include BaseToken in contract overview with normalized style
+- Updated `README.md`:
+    - Added BaseToken section with purpose, methods, and usage
+    - Streamlined layout, removed redundancy
+    - Extended philosophy with **Consistency** principle: all tokens share BaseToken
+- Extended **Errorable** contract with `SetError(err error)`:
+    - Allows tokens/builders to mark themselves as errored after construction
+    - Implemented in `Field` and `Table` tokens
+    - Updated `doc.go`, `README.md`, and `example_test.go` to demonstrate usage
+  
 ### Common (extension/integer)
 - Introduced **integer parser**:
     - `ParseFrom(any)` converts input safely to int, rejects invalid types.
@@ -74,6 +73,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Comprehensive unit tests across Database and Common ensuring 100% coverage.
 - **README.md**, **doc.go**, and **example_test.go** updated with Conditions, Grouping, Having, Ordering, and Integer parser sections.
 - Added runnable examples in `example_test.go` demonstrating new Having clause.
+
+### Documentation
+- Root `README.md` refactored:
+  - Added **Doctrine** section (Never panic, Auditability, Strict validation, Delegation).
+  - Replaced bullet list with **capabilities table** (Modules, Features, Purpose, Status).
+  - Added status icons: ✅ Stable, 🚧 On Going, 📝 Planned.
+  - Streamlined layout: removed redundant Quickstart and developer guide links.
+- Aligned method docstrings (`String`, `Raw`, `Render`, `Debug`) with clarified audiences (UI/UX, logging, developer diagnostics, builder output).
+
 
 ## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 

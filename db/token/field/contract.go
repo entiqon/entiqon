@@ -66,7 +66,7 @@ type Token interface {
 	//
 	// Must be called only when HasOwner() returns true; otherwise the result
 	// is undefined.
-	Owner() string
+	Owner() *string
 
 	// SetOwner assigns or clears the owning table name (or alias).
 	//
@@ -77,5 +77,4 @@ type Token interface {
 }
 
 // Ensure *Field implements Token at compile time.
-// (commented until full implementation is ready)
-// var _ Token = (*Field)(nil)
+var _ Token = (*Field)(nil)

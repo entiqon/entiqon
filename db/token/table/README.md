@@ -1,7 +1,7 @@
 <h1 align="left">
   <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="82" width="82" alt=""> Table
 </h1>
-<h6 align="left">Part of the <a href="https://github.com/entiqon/entiqon">Entiqon</a> / <a href="https://github.com/entiqon/entiqon/tree/main/db">Database</a> / <a href="https://github.com/entiqon/entiqon/tree/main/db/token">Token</a> toolkit.</h6>
+<h6 align="left">Part of the <a href="../../../README.md">Entiqon</a> / <a href="../../README.md">Database</a> / <a href="../README.md">Token</a> toolkit.</h6>
 
 ## 🌱 Overview
 

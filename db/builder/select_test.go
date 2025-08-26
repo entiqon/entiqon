@@ -20,7 +20,7 @@ func TestSelectBuilder(t *testing.T) {
 				sb.Fields("id")
 				fields := sb.GetFields()
 				f, _ := fields.At(0)
-				if fields.Length() != 1 || f.Expr != "id" {
+				if fields.Length() != 1 || f.Expr() != "id" {
 					t.Errorf("expected one field 'id', got %+v", fields)
 				}
 			})
@@ -37,7 +37,7 @@ func TestSelectBuilder(t *testing.T) {
 				sb := builder.NewSelect(nil).Fields("id")
 				fields := sb.GetFields()
 				f, _ := fields.At(0)
-				if fields.Length() != 1 || f.Expr != "id" {
+				if fields.Length() != 1 || f.Expr() != "id" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -48,7 +48,7 @@ func TestSelectBuilder(t *testing.T) {
 					Fields("reset") // should reset
 				fields := sb.GetFields()
 				f, _ := fields.At(0)
-				if fields.Length() != 1 || f.Expr != "reset" {
+				if fields.Length() != 1 || f.Expr() != "reset" {
 					t.Errorf("expected reset only, got %+v", fields)
 				}
 			})
@@ -64,7 +64,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("Pointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(field.NewField("id")) // *token.Field
+					Fields(field.New("id")) // *token.Field
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
@@ -73,7 +73,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("NotPointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(*field.NewField("id")) // token.Field (value)
+					Fields(*field.New("id")) // token.Field (value)
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
@@ -806,7 +806,7 @@ func TestSelectBuilder(t *testing.T) {
 					Source("users").
 					Fields("").
 					Build()
-				if !strings.Contains(sql, "SELECT *") {
+				if !strings.Contains(sql, "SELECT * FROM users") {
 					t.Errorf("expected to contain '*', got %v", sql)
 				}
 			})

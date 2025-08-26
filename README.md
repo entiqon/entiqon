@@ -25,6 +25,14 @@
 
 ---
 
+## 🧭 Doctrine
+- **Never panic** — always return a token or builder, errors are embedded not thrown.
+- **Auditability** — preserve user input for logs and error context.
+- **Strict validation** — invalid expressions rejected early.
+- **Delegation** — tokens own parsing/validation, builders compose them.
+
+---
+
 ## 📏 Best Practices
 
 * 🧼 Clarity over brevity — use explicit method names
@@ -40,13 +48,6 @@
 * 🧠 Tag errors with `StageToken`
 * ⚙️ Compose with safe abstractions
 * 📂 Group test methods visually
-
-## 🧠 Philosophy & Principles
-
-- **Never panic** — always returns a `*Table`, even if errored.
-- **Auditability** — preserves original input for logs.
-- **Strict enforcement** — invalid inputs are rejected immediately.
-- **Delegation** — parsing rules live in `table.New`, not in builders.
 
 ---
 

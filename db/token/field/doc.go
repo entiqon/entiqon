@@ -1,4 +1,4 @@
-// Package token defines the low-level primitives used by the SQL builder.
+// Package field defines the low-level primitives used by the SQL builder.
 //
 // # Overview
 //
@@ -14,24 +14,24 @@
 // A Field represents a single column or expression in a SELECT query.
 // It can optionally have an alias and may be marked as raw.
 //
-// Field supports multiple instantiation forms through NewField:
+// Field supports multiple instantiation forms through New:
 //
-//   - NewField("expr")
+//   - New("expr")
 //     A single expression, e.g. "id"
 //
-//   - NewField("expr alias")
+//   - New("expr alias")
 //     Expression with alias, parsed by space, e.g. "id user_id"
 //
-//   - NewField("expr AS alias")
+//   - New("expr AS alias")
 //     Expression with alias using AS, e.g. "id AS user_id"
 //
-//   - NewField("expr", "alias")
+//   - New("expr", "alias")
 //     Expression and alias provided separately
 //
-//   - NewField("expr", "alias", true)
+//   - New("expr", "alias", true)
 //     Expression and alias with IsRaw set explicitly
 //
-//   - NewField(*Field)
+//   - New(*Field)
 //     Disallowed: users must call Clone() instead
 //
 // # Field Behavior
@@ -47,6 +47,9 @@
 //   - Render: returns a dialect-agnostic SQL fragment
 //   - Clone: produces a deep copy
 //   - IsAliased, IsErrored, IsValid: convenience checks
+//   - HasOwner: reports whether the field is qualified by a table name or alias
+//   - Owner: returns the owning table name (or alias) if one is set
+//   - SetOwner: assigns or clears the owning table name (passing nil clears it)
 //
 // # Usage Example
 //

@@ -12,10 +12,29 @@ fragments in a dialect-agnostic way.
 These tokens are consumed by higher-level builders (e.g. `SelectBuilder`)
 to assemble safe, expressive, and auditable SQL statements.
 
-Key principles:
-- **Immutability** — tokens are never mutated after construction; cloning is explicit.
-- **Auditability** — identity aspects (input, expression, alias, owner, validation) are separated into contracts.
-- **Consistency** — all tokens share common contracts like `BaseToken`, `Renderable`, `Errorable`.
+### Doctrine
+
+- **Never panic** — constructors always return a non-nil token, even if errored.
+- **Auditability** — preserve original input for logs and debugging.
+- **Strict validation** — invalid inputs are rejected immediately with explicit errors.
+- **Delegation** — parsing rules live inside tokens, not in builders.
+- **Clarity** — contracts split responsibilities (identity, error, clone, render).
+
+---
+
+## 📜 Contracts
+
+All tokens implement a shared set of contracts:
+
+- **BaseToken** — input, expression, alias, validity
+- **Errorable** — explicit error state, never panic
+- **Clonable** — safe duplication with preserved state
+- **Rawable** — SQL-generic rendering (expr, alias, owner)
+- **Renderable** — dialect-agnostic `String()` output
+- **Stringable** — concise diagnostic/logging string
+- **Ownerable** — ownership binding (`HasOwner`, `Owner`, `SetOwner`)
+
+Each contract has its own test suite to ensure isolation and strict coverage.
 
 ---
 
@@ -23,14 +42,14 @@ Key principles:
 
 | Package            | Purpose                                                                                               |
 |--------------------|-------------------------------------------------------------------------------------------------------|
-| [`field`](./field) | Represents a column or expression in a `SELECT` clause (with aliasing, raw expressions, validation).  |
+| [`field`](./field) | Represents a column, identifier, or computed expression (with aliasing, raw expressions, validation). |
 | [`table`](./table) | Represents a SQL source (table or view) used in `FROM` / `JOIN` clauses with aliasing and validation. |
 
 ---
 
 ## 🚧 Roadmap
 
-Future tokens will include:
+Planned tokens:
 - **conditions** (WHERE / HAVING)
 - **joins** (INNER, LEFT, etc.)
 - **functions** (aggregates, JSON, custom expressions)
@@ -41,4 +60,4 @@ Contracts will progressively enforce stricter auditability across all tokens.
 
 ## 📄 License
 
-[MIT](../../LICENSE) — © Isidro Lopez / Entiqon Project
+[MIT](../../LICENSE) — © Entiqon Project
