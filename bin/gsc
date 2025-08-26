@@ -1,4 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# gsc - Git Stash Changes
+# Stash tracked changes, with optional inclusion of untracked files
+#
+# Version: v1.13.0 (Part of Entiqon Ecosystem)
 
 START_TAG=$1
 END_TAG=$2
