@@ -16,7 +16,7 @@ import (
 // SelectBuilder builds simple SELECT queries.
 type SelectBuilder struct {
 	dialect    dialect.Dialect
-	fields     *collection.Collection[field.Field]
+	fields     *collection.Collection[field.Token]
 	source     *table.Table
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
@@ -34,7 +34,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 	}
 	return &SelectBuilder{
 		dialect:    d,
-		fields:     collection.New[field.Field](),
+		fields:     collection.New[field.Token](),
 		conditions: collection.New[string](),
 		sorting:    collection.New[string](),
 		groupings:  collection.New[string](),
@@ -50,7 +50,7 @@ func NewSelect(d dialect.Dialect) *SelectBuilder {
 // - parses alias with AS or space
 func (b *SelectBuilder) Fields(cols ...interface{}) *SelectBuilder {
 	if b.fields == nil {
-		b.fields = collection.New[field.Field]()
+		b.fields = collection.New[field.Token]()
 	} else {
 		b.fields.Clear()
 	}
@@ -65,7 +65,7 @@ func (b *SelectBuilder) AddFields(cols ...interface{}) *SelectBuilder {
 
 // GetFields returns the current list of fields in the builder.
 // It returns them by value to avoid external modification of the internal slice.
-func (b *SelectBuilder) GetFields() *collection.Collection[field.Field] {
+func (b *SelectBuilder) GetFields() *collection.Collection[field.Token] {
 	return b.fields
 }
 
@@ -294,7 +294,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	}
 
 	if b.fields.Length() == 0 {
-		b.fields.Add(*field.New("*"))
+		b.fields.Add(field.New("*"))
 	}
 
 	parts := make([]string, 0, b.fields.Length())
@@ -302,7 +302,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	for _, f := range b.fields.Items() {
 		if f.IsErrored() {
 			bad = append(bad,
-				fmt.Sprintf("⛔️ Field(%q): %v", f.Input(), f.Error()))
+				fmt.Sprintf("⛔️ field(%q): %v", f.Input(), f.Error()))
 			continue
 		}
 		parts = append(parts, f.Render())
@@ -372,22 +372,22 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 			if strings.Contains(v, ",") {
 				parts := splitAndTrim(v, ",")
 				for _, part := range parts {
-					b.fields.Add(*field.New(part))
+					b.fields.Add(field.New(part))
 				}
 			} else {
-				b.fields.Add(*field.New(v))
+				b.fields.Add(field.New(v))
 			}
-		case field.Field:
+		case field.Token:
 			b.fields.Add(v)
-		case *field.Field:
+		case *field.Token:
 			if v != nil {
 				b.fields.Add(*v)
 			}
 		default:
-			b.fields.Add(*field.New(v))
+			b.fields.Add(field.New(v))
 		}
 	case 2, 3:
-		b.fields.Add(*field.New(cols...))
+		b.fields.Add(field.New(cols...))
 	}
 	return b
 }

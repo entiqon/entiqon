@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-// Field represents a column/field or expression in a SELECT clause.
+// field represents a column/field or expression in a SELECT clause.
 //
 // It holds the original user input, a parsed SQL expression (without alias),
 // an optional alias, a flag indicating whether the expression should be
 // treated as raw SQL (and therefore not quoted by any dialect), and a
 // possible error captured during parsing/validation.
-type Field struct {
+type field struct {
 	// owner returns the optional table associated with this field.
 	// If no table was set, it returns nil.
 	owner *string
@@ -42,16 +42,16 @@ type Field struct {
 	err error
 }
 
-// New constructs a *Field token from the given arguments.
+// New constructs a *field token from the given arguments.
 //
-// A Field represents a column, identifier, or computed expression in a
+// A field represents a column, identifier, or computed expression in a
 // SELECT clause. New enforces strict validation of its inputs:
 //
-//   - Always returns a non-nil *Field. Even on failure, the *Field carries
+//   - Always returns a non-nil *field. Even on failure, the *field carries
 //     an error that can be checked with IsValid() or IsErrored().
 //
-//   - The first argument must be a string expression. Passing another Field
-//     or *Field results in an error, with guidance to use Clone() instead.
+//   - The first argument must be a string expression. Passing another field
+//     or *field results in an error, with guidance to use Clone() instead.
 //
 //   - Empty input is rejected:
 //     New()                → error "empty input is not allowed"
@@ -83,7 +83,7 @@ type Field struct {
 //     New("SUM(price)") → alias="raw_expr_ab12cd" (deterministic hash)
 //
 //   - Invalid arity (more than 3 args) is rejected with:
-//     error "invalid Field constructor signature"
+//     error "invalid field constructor signature"
 //
 // Example usage:
 //
@@ -93,13 +93,13 @@ type Field struct {
 //	f4 := field.New("name", "username", false)
 //	f5 := field.New("(SELECT MAX(price) FROM sales) total_sales")
 //
-// Each call produces a *Field that preserves the original input for auditing,
+// Each call produces a *field that preserves the original input for auditing,
 // enforces strict validation, and guarantees non-nil returns for safe chaining.
 //
-// Errors never cause panics; instead, they are stored inside the *Field
+// Errors never cause panics; instead, they are stored inside the *field
 // and exposed via IsErrored(), Error(), String(), or Debug().
-func New(input ...any) *Field {
-	f := &Field{
+func New(input ...any) Token {
+	f := &field{
 		owner: nil,
 		input: fmt.Sprint(input...),
 	}
@@ -110,7 +110,7 @@ func New(input ...any) *Field {
 
 	// Validate expr/input type
 	if err := validateType(input[0]); err != nil {
-		if err.Error() == "unsupported type: Field" {
+		if err.Error() == "unsupported type: field" {
 			f.SetError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
 		} else {
 			f.SetError(fmt.Errorf("expr has %v", err))
@@ -193,18 +193,18 @@ func New(input ...any) *Field {
 		}
 		return f
 	}
-	f.SetError(errors.New("invalid Field constructor signature"))
+	f.SetError(errors.New("invalid field constructor signature"))
 	return f
 }
 
-// NewWithTable constructs a Field bound to a specific table.
+// NewWithTable constructs a field bound to a specific table.
 //
 // Example:
 //
 //	u := table.New("users")
 //	f := field.NewWithTable(u, "id", "user_id")
 //	// Renders as: users.id AS user_id
-func NewWithTable(owner string, input ...any) *Field {
+func NewWithTable(owner string, input ...any) Token {
 	// Reuse the standard constructor.
 	f := New(input...)
 
@@ -214,53 +214,52 @@ func NewWithTable(owner string, input ...any) *Field {
 	}
 
 	// Attach the table.
-	f.owner = &owner
+	f.SetOwner(&owner)
 	return f
 }
 
 // HasOwner returns the owning table name or alias if set.
-func (f *Field) HasOwner() bool { return f.owner != nil && *f.owner != "" }
+func (f *field) HasOwner() bool { return f.owner != nil && *f.owner != "" }
 
 // Owner returns the owning table name or alias if set.
 // If none is set, returns a pointer to the empty string.
-func (f *Field) Owner() *string {
+func (f *field) Owner() *string {
 	return f.owner
 }
 
 // SetOwner assigns or clears the owning table name or alias.
 // Passing nil resets the owner to an empty string.
-func (f *Field) SetOwner(owner *string) {
+func (f *field) SetOwner(owner *string) {
 	f.owner = owner
 }
 
 // Input returns the original raw input string.
-func (f *Field) Input() string { return f.input }
+func (f *field) Input() string { return f.input }
 
 // Expr returns the parsed SQL expression without alias.
-func (f *Field) Expr() string { return f.expr }
+func (f *field) Expr() string { return f.expr }
 
 // Alias returns the optional alias.
-func (f *Field) Alias() string { return f.alias }
+func (f *field) Alias() string { return f.alias }
 
 // IsAliased reports whether the field has a non-empty alias.
-func (f *Field) IsAliased() bool {
+func (f *field) IsAliased() bool {
 	return strings.TrimSpace(f.alias) != ""
 }
 
 // IsValid reports whether the field is considered valid.
 //
 // A field is invalid if it carries an error, or Expr() is empty/whitespace,
-func (f *Field) IsValid() bool {
+func (f *field) IsValid() bool {
 	if f.err != nil {
 		return false
 	}
 	return true
 }
 
-// Clone returns a semantic copy of the Field.
+// Clone returns a semantic copy of the field.
 // Errors and all state are preserved.
-// Since Field constructors never return nil, this method never sees a nil receiver.
-func (f *Field) Clone() *Field {
+func (f *field) Clone() Token {
 	cp := *f
 	if f.owner != nil {
 		owner := *f.owner
@@ -269,16 +268,16 @@ func (f *Field) Clone() *Field {
 	return &cp
 }
 
-// Debug returns a compact diagnostic view of the Field.
+// Debug returns a compact diagnostic view of the field.
 //
 // Example (valid):
 //
-//	✅ Field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]
+//	✅ field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]
 //
 // Example (invalid):
 //
-//	⛔️ Field("false"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
-func (f *Field) Debug() string {
+//	⛔️ field("false"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
+func (f *field) Debug() string {
 	flags := fmt.Sprintf(
 		"[raw: %v, aliased: %v, errored: %v]",
 		f.isRaw,
@@ -287,32 +286,32 @@ func (f *Field) Debug() string {
 	)
 
 	if f.err != nil {
-		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.input, flags, f.err)
+		return fmt.Sprintf("⛔️ field(%q): %s – %v", f.input, flags, f.err)
 	}
-	return fmt.Sprintf("✅ Field(%q): %s", f.input, flags)
+	return fmt.Sprintf("✅ field(%q): %s", f.input, flags)
 }
 
 // Error returns the underlying construction error, if any.
-func (f *Field) Error() error { return f.err }
+func (f *field) Error() error { return f.err }
 
 // IsErrored reports whether the field carries a non-nil error.
-func (f *Field) IsErrored() bool {
+func (f *field) IsErrored() bool {
 	return f.err != nil
 }
 
 // SetError assigns an error to the field. Intended for use during
 // construction/parsing to capture validation failures.
-func (f *Field) SetError(err error) { f.err = err }
+func (f *field) SetError(err error) { f.err = err }
 
-// IsRaw reports whether the Field was explicitly constructed as raw
+// IsRaw reports whether the field was explicitly constructed as raw
 // (via the two-argument form or as a subquery).
-func (f *Field) IsRaw() bool { return f.isRaw }
+func (f *field) IsRaw() bool { return f.isRaw }
 
 // Raw returns the raw SQL snippet for the field without dialect quoting.
 //
 // If an alias is present, it returns "Expr AS Alias"; otherwise it returns Expr.
 // Errors do not suppress output — callers should check IsErrored() explicitly.
-func (f *Field) Raw() string {
+func (f *field) Raw() string {
 	base := f.expr
 	if f.alias != "" {
 		base = fmt.Sprintf("%s AS %s", base, f.alias)
@@ -329,7 +328,7 @@ func (f *Field) Raw() string {
 //
 // This method is stable and machine-facing, suitable for builders.
 // Dialect-specific quoting may later override Raw vs Render.
-func (f *Field) Render() string {
+func (f *field) Render() string {
 	return f.Raw()
 }
 
@@ -338,13 +337,13 @@ func (f *Field) Render() string {
 //
 // Example outputs:
 //
-//	✅ Field("users.id AS user_id")
-//	✅ Field("COUNT(*) AS total")
-//	⛔ Field("SUM()"): empty expression is not allowed
+//	✅ field("users.id AS user_id")
+//	✅ field("COUNT(*) AS total")
+//	⛔ field("SUM()"): empty expression is not allowed
 //
 // For developer diagnostics (flags, error state), use Debug().
 // For SQL output, use Render() or Raw().
-func (f *Field) String() string {
+func (f *field) String() string {
 	base := f.expr
 	if f.alias != "" {
 		base = fmt.Sprintf("%s AS %s", base, f.alias)
@@ -354,9 +353,9 @@ func (f *Field) String() string {
 	}
 
 	if f.err != nil {
-		return fmt.Sprintf("⛔ Field(%q): %v", base, f.err)
+		return fmt.Sprintf("⛔ field(%q): %v", base, f.err)
 	}
-	return fmt.Sprintf("✅ Field(%q)", base)
+	return fmt.Sprintf("✅ field(%q)", base)
 }
 
 func autoAlias(expr string) string {
@@ -474,8 +473,8 @@ func parseAlias(s string) (expr, alias string, fromAS bool) {
 
 func validateType(input any) error {
 	switch v := input.(type) {
-	case Field, *Field:
-		return errors.New("unsupported type: Field")
+	case field, *field:
+		return errors.New("unsupported type: field")
 	case string:
 		return nil
 	default:

@@ -16,7 +16,7 @@ func TestField(t *testing.T) {
 			t.Run("InvalidCall", func(t *testing.T) {
 				f := field.New()
 				if f == nil {
-					t.Fatal("expected non-nil Field, got nil")
+					t.Fatal("expected non-nil field, got nil")
 				}
 				if f.Error() == nil || !strings.Contains(f.Error().Error(), "empty input is not allowed") {
 					t.Errorf("expected error 'empty input is not allowed', got %v", f.Error())
@@ -26,17 +26,17 @@ func TestField(t *testing.T) {
 			t.Run("StarField", func(t *testing.T) {
 				f := field.New("*")
 				if f == nil {
-					t.Fatal("expected non-nil Field, got nil")
+					t.Fatal("expected non-nil field, got nil")
 				}
 				got := f.String()
-				if got != "✅ Field(\"*\")" {
-					t.Errorf("expected ✅ Field(\"*\"), got %v", got)
+				if got != "✅ field(\"*\")" {
+					t.Errorf("expected ✅ field(\"*\"), got %v", got)
 				}
 
 				f = field.New("*", "alias")
 				got = f.String()
-				if f.Error() == nil || got != "⛔ Field(\"*\"): '*' cannot be aliased or raw" {
-					t.Errorf("expected ⛔ Field(\"*\"): '*' cannot be aliased or raw, got %v", got)
+				if f.Error() == nil || got != "⛔ field(\"*\"): '*' cannot be aliased or raw" {
+					t.Errorf("expected ⛔ field(\"*\"): '*' cannot be aliased or raw, got %v", got)
 				}
 			})
 
@@ -44,24 +44,24 @@ func TestField(t *testing.T) {
 				t.Run("InvalidCall", func(t *testing.T) {
 					f := field.New("")
 					if f == nil && f.Error() == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "empty expr") {
 						t.Errorf("expected error contains 'empty expr is not allowed', got %v", f.Error())
 					}
 					f = field.New(123)
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "expr has unsupported type") {
 						t.Errorf("expected error contains 'expr has unsupported type', got %v", f.Error())
 					}
 					f = field.New(field.New("id"))
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
-					if f.Error() == nil || !strings.Contains(f.Error().Error(), "unsupported type: Field") {
-						t.Errorf("expected error contains 'unsupported type: Field', got %v", f.Error())
+					if f.Error() == nil || !strings.Contains(f.Error().Error(), "unsupported type: field") {
+						t.Errorf("expected error contains 'unsupported type: field', got %v", f.Error())
 					}
 				})
 
@@ -76,7 +76,7 @@ func TestField(t *testing.T) {
 					t.Run("InlineAlias", func(t *testing.T) {
 						f := field.New("id as user_id")
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						f = field.New("(qty * price * discount) total")
 						if f.Expr() != "(qty * price * discount)" || f.Alias() != "total" {
@@ -91,7 +91,7 @@ func TestField(t *testing.T) {
 					t.Run("Computed", func(t *testing.T) {
 						f := field.New("SUM(qty * price * discount) as total")
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						if f.Expr() != "SUM(qty * price * discount)" || f.Alias() != "total" {
 							t.Errorf("expected 'SUM(qty * price * discount)' AS total, got %q AS %q", f.Expr(), f.Alias())
@@ -116,14 +116,14 @@ func TestField(t *testing.T) {
 				t.Run("InvalidCall", func(t *testing.T) {
 					f := field.New("field", 123)
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "alias has unsupported type") {
 						t.Errorf("expected error 'alias has unsupported type', got %v", f.Error())
 					}
 					f = field.New("field", "")
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "empty alias is not allowed") {
 						t.Errorf("expected error 'empty alias is not allowed', got %v", f.Error())
@@ -134,7 +134,7 @@ func TestField(t *testing.T) {
 					t.Run("Default", func(t *testing.T) {
 						f := field.New("field", "alias")
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						if f.Error() != nil {
 							t.Fatal("expected error to be nil, got non-nil")
@@ -144,7 +144,7 @@ func TestField(t *testing.T) {
 					t.Run("Computed", func(t *testing.T) {
 						f := field.New("(qty * price * discount)", "total")
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						if f.Error() != nil {
 							t.Fatal("expected error to be nil, got non-nil")
@@ -157,21 +157,21 @@ func TestField(t *testing.T) {
 				t.Run("InvalidCall", func(t *testing.T) {
 					f := field.New("field", 123, true)
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "alias has unsupported type") {
 						t.Errorf("expected error 'alias has unsupported type', got %v", f.Error())
 					}
 					f = field.New("field", "", true)
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "empty alias is not allowed") {
 						t.Errorf("expected error 'empty alias is not allowed', got %v", f.Error())
 					}
 					f = field.New("field", "alias", 123)
 					if f == nil {
-						t.Fatal("expected non-nil Field, got nil")
+						t.Fatal("expected non-nil field, got nil")
 					}
 					if f.Error() == nil || !strings.Contains(f.Error().Error(), "isRaw has invalid type") {
 						t.Errorf("expected error 'isRaw has invalid type', got %v", f.Error())
@@ -182,7 +182,7 @@ func TestField(t *testing.T) {
 					t.Run("Default", func(t *testing.T) {
 						f := field.New("field", "alias", false)
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						if f.Error() != nil {
 							t.Fatal("expected error to be nil, got non-nil")
@@ -192,7 +192,7 @@ func TestField(t *testing.T) {
 					t.Run("Computed", func(t *testing.T) {
 						f := field.New("(qty * price * discount)", "total", true)
 						if f == nil {
-							t.Fatal("expected non-nil Field, got nil")
+							t.Fatal("expected non-nil field, got nil")
 						}
 						if f.Error() != nil {
 							t.Fatal("expected error to be nil, got non-nil")
@@ -204,10 +204,10 @@ func TestField(t *testing.T) {
 			t.Run("n-args", func(t *testing.T) {
 				f := field.New("field", "alias", false, 1234)
 				if f == nil {
-					t.Fatal("expected non-nil Field, got nil")
+					t.Fatal("expected non-nil field, got nil")
 				}
-				if f.Error() == nil || f.Error().Error() != "invalid Field constructor signature" {
-					t.Errorf("expected error 'invalid Field constructor signature', got %v", f.Error())
+				if f.Error() == nil || f.Error().Error() != "invalid field constructor signature" {
+					t.Errorf("expected error 'invalid field constructor signature', got %v", f.Error())
 				}
 			})
 		})
@@ -216,7 +216,7 @@ func TestField(t *testing.T) {
 			t.Run("InvalidCall", func(t *testing.T) {
 				f := field.NewWithTable("", "SUM(qty * price)", "line_total")
 				if f == nil {
-					t.Fatal("expected non-nil Field, got nil")
+					t.Fatal("expected non-nil field, got nil")
 				}
 				if f.Error() == nil || f.Error().Error() != "owner is empty" {
 					t.Errorf("expected error to be non-nil, got %v", f.Error())
@@ -226,7 +226,7 @@ func TestField(t *testing.T) {
 			t.Run("Valid", func(t *testing.T) {
 				f := field.NewWithTable("order", "SUM(qty * price)", "line_total", true)
 				if f == nil {
-					t.Fatal("expected non-nil Field, got nil")
+					t.Fatal("expected non-nil field, got nil")
 				}
 				if f.Error() != nil {
 					t.Errorf("expected error to be nil, got %v", f.Error())
@@ -412,57 +412,57 @@ func TestField(t *testing.T) {
 		t.Run("Renderable", func(t *testing.T) {
 			// Identifier with owner
 			f := field.NewWithTable("users", "id")
-			if got := f.String(); got != "✅ Field(\"users.id\")" {
+			if got := f.String(); got != "✅ field(\"users.id\")" {
 				t.Errorf("expected String() 'users.id', got %q", got)
 			}
 
 			// Computed expression with alias
 			f = field.New("SUM(qty)", "total", true)
-			if got := f.String(); got != "✅ Field(\"SUM(qty) AS total\")" {
+			if got := f.String(); got != "✅ field(\"SUM(qty) AS total\")" {
 				t.Errorf("expected String() 'SUM(qty) AS total', got %q", got)
 			}
 
 			// Subquery with alias
 			f = field.New("(SELECT id FROM users) sub")
-			if got := f.String(); got != "✅ Field(\"(SELECT id FROM users) AS sub\")" {
+			if got := f.String(); got != "✅ field(\"(SELECT id FROM users) AS sub\")" {
 				t.Errorf("expected String() '(SELECT id FROM users) AS sub', got %q", got)
 			}
 
 			// Invalid field → String() must show diagnostic, never empty
 			bad := field.New("")
-			if got := bad.String(); got != "⛔ Field(\"\"): empty expression is not allowed" {
-				t.Errorf("expected %q, got %q", "⛔️ Field(\"\"): empty expression is not allowed", got)
+			if got := bad.String(); got != "⛔ field(\"\"): empty expression is not allowed" {
+				t.Errorf("expected %q, got %q", "⛔️ field(\"\"): empty expression is not allowed", got)
 			}
 		})
 
 		t.Run("Stringable", func(t *testing.T) {
 			// Identifier
 			f := field.New("id")
-			if got := f.String(); got != "✅ Field(\"id\")" {
+			if got := f.String(); got != "✅ field(\"id\")" {
 				t.Errorf("expected String() 'id', got %q", got)
 			}
 
 			// With table owner
 			f = field.NewWithTable("users", "id")
-			if got := f.String(); got != "✅ Field(\"users.id\")" {
+			if got := f.String(); got != "✅ field(\"users.id\")" {
 				t.Errorf("expected String() 'users.id', got %q", got)
 			}
 
 			// Computed expression with alias
 			f = field.New("SUM(qty)", "total", true)
-			if got := f.String(); got != "✅ Field(\"SUM(qty) AS total\")" {
+			if got := f.String(); got != "✅ field(\"SUM(qty) AS total\")" {
 				t.Errorf("expected String() 'SUM(qty) AS total', got %q", got)
 			}
 
 			// Subquery
 			f = field.New("(SELECT id FROM users) u")
-			if got := f.String(); got != "✅ Field(\"(SELECT id FROM users) AS u\")" {
+			if got := f.String(); got != "✅ field(\"(SELECT id FROM users) AS u\")" {
 				t.Errorf("expected String() '(SELECT id FROM users) AS u', got %q", got)
 			}
 
 			// Invalid
 			bad := field.New("")
-			if got := bad.String(); got != "⛔ Field(\"\"): empty expression is not allowed" {
+			if got := bad.String(); got != "⛔ field(\"\"): empty expression is not allowed" {
 				t.Errorf("expected contains 'empty expression is not allowed' for invalid field, got %q", got)
 			}
 		})
