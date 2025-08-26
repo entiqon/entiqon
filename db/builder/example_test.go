@@ -64,9 +64,9 @@ func ExampleSelectBuilder_invalidFields() {
 	}
 	// Output:
 	// ❌ [Build] - Invalid fields:
-	//	⛔️ Field("true"): input type unsupported: bool
-	//	⛔️ Field("false"): input type unsupported: bool
-	//	⛔️ Field("123"): input type unsupported: int
+	//	⛔️ Field("true"): expr has unsupported type: bool
+	//	⛔️ Field("false"): expr has unsupported type: bool
+	//	⛔️ Field("123"): expr has unsupported type: int
 }
 
 func ExampleSelectBuilder_where() {

@@ -9,15 +9,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/entiqon/entiqon/db/contract"
-)
-
-// Ensure Field implements contract.Renderable at compile time.
-var (
-	_ contract.Errorable        = (*Field)(nil)
-	_ contract.Clonable[*Field] = (*Field)(nil)
-	_ contract.Renderable       = (*Field)(nil)
 )
 
 // Field represents a column/field or expression in a SELECT clause.
@@ -27,150 +18,254 @@ var (
 // treated as raw SQL (and therefore not quoted by any dialect), and a
 // possible error captured during parsing/validation.
 type Field struct {
-	// Input is the raw user input string that produced this token.
+	// owner returns the optional table associated with this field.
+	// If no table was set, it returns nil.
+	owner *string
+
+	// input is the raw user input string that produced this token.
 	// It is retained for debugging, error reporting, or regeneration.
-	Input string
+	input string
 
-	// Expr is the SQL expression or field name without the alias.
-	Expr string
+	// expr is the SQL expression or field name without the alias.
+	expr string
 
-	// Alias is an optional alias for the field. If set, generated SQL
+	// alias is an optional alias for the field. If set, generated SQL
 	// should include an "AS Alias" clause.
-	Alias string
+	alias string
 
-	// IsRaw indicates whether Expr should be treated as raw SQL
+	// isRaw indicates whether Expr should be treated as raw SQL
 	// and thus not quoted by a dialect.
-	IsRaw bool
+	isRaw bool
 
-	// Error holds any validation or parsing error encountered.
+	// err holds any validation or parsing error encountered.
 	// It is nil when the field is considered valid.
 	err error
 }
 
-// NewField constructs a Field from the given components, trimming the alias
-// and initializing a validation error when the expression is empty or when
-// a derived name would be empty.
-func NewField(inputs ...any) *Field {
-	if len(inputs) == 0 {
-		return &Field{}
+// New constructs a *Field token from the given arguments.
+//
+// A Field represents a column, identifier, or computed expression in a
+// SELECT clause. New enforces strict validation of its inputs:
+//
+//   - Always returns a non-nil *Field. Even on failure, the *Field carries
+//     an error that can be checked with IsValid() or IsErrored().
+//
+//   - The first argument must be a string expression. Passing another Field
+//     or *Field results in an error, with guidance to use Clone() instead.
+//
+//   - Empty input is rejected:
+//     New()                → error "empty input is not allowed"
+//     New("")              → error "empty expression is not allowed"
+//
+//   - Two arguments (expr, alias):
+//     New("id", "user_id") → valid
+//     New("id", "")        → error "empty alias is not allowed"
+//
+//   - Three arguments (expr, alias, isRaw):
+//     New("id", "alias", true)   → valid
+//     New("id", "alias", "true") → error "isRaw: invalid type string, expected bool"
+//     New("id", "", true)        → error "empty alias is not allowed"
+//
+//   - One argument (expr):
+//
+//   - Identifiers: treated as plain fields (e.g., "id", "users.id").
+//
+//   - Computed expressions (functions, arithmetic, subqueries) are supported.
+//     Aliases may be specified either with explicit "AS" or with shorthand:
+//
+//     New("SUM(price) AS total")     → valid, alias="total"
+//     New("SUM(price) total")        → valid (shorthand), alias="total"
+//     New("(SELECT 1) AS one")       → valid subquery, alias="one"
+//     New("(SELECT 1) one")          → valid shorthand subquery, alias="one"
+//
+//     If a computed expression has no alias, New auto-generates one:
+//
+//     New("SUM(price)") → alias="raw_expr_ab12cd" (deterministic hash)
+//
+//   - Invalid arity (more than 3 args) is rejected with:
+//     error "invalid Field constructor signature"
+//
+// Example usage:
+//
+//	f1 := field.New("id")
+//	f2 := field.New("id", "user_id")
+//	f3 := field.New("COUNT(*) AS total")
+//	f4 := field.New("name", "username", false)
+//	f5 := field.New("(SELECT MAX(price) FROM sales) total_sales")
+//
+// Each call produces a *Field that preserves the original input for auditing,
+// enforces strict validation, and guarantees non-nil returns for safe chaining.
+//
+// Errors never cause panics; instead, they are stored inside the *Field
+// and exposed via IsErrored(), Error(), String(), or Debug().
+func New(input ...any) *Field {
+	f := &Field{
+		owner: nil,
+		input: fmt.Sprint(input...),
+	}
+	if len(input) == 0 {
+		f.SetError(errors.New("empty input is not allowed"))
+		return f
 	}
 
 	// Validate expr/input type
-	if err := validateType(inputs[0]); err != nil {
-		fd := &Field{
-			Input: fmt.Sprint(inputs[0]),
-		}
-		if err.Error() == "input is a Field" {
-			fd.SetError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
+	if err := validateType(input[0]); err != nil {
+		if err.Error() == "unsupported type: Field" {
+			f.SetError(fmt.Errorf("%s; if you want to create a copy, use Clone() instead", err.Error()))
 		} else {
-			fd.SetError(err)
+			f.SetError(fmt.Errorf("expr has %v", err))
 		}
-		return fd
+		return f
 	}
-	expr := strings.TrimSpace(inputs[0].(string))
 
-	switch len(inputs) {
+	f.expr = strings.TrimSpace(input[0].(string))
+	if f.expr == "" {
+		f.SetError(errors.New("empty expression is not allowed"))
+		return f
+	}
+
+	// --- special handling for "*" ---
+	if f.expr == "*" {
+		if len(input) == 1 {
+			f.alias = ""
+			f.isRaw = false
+			return f
+		}
+		f.SetError(errors.New("'*' cannot be aliased or raw"))
+		return f
+	}
+
+	switch len(input) {
 	case 3:
-		// input, alias, isRawExpr
-		if err := validateType(inputs[1]); err != nil {
-			return &Field{
-				Input: expr,
-				err:   fmt.Errorf("%s: %s", err.Error(), "alias must be a string"),
-			}
+		f.input = fmt.Sprint(input[0], " ", input[1], " ", input[2])
+		// expr, alias, isRaw
+		if err := validateType(input[1]); err != nil {
+			f.SetError(fmt.Errorf("alias has %v", err))
+			return f
 		}
-		alias := strings.TrimSpace(inputs[1].(string))
+		f.alias = strings.TrimSpace(input[1].(string))
+		if f.alias == "" {
+			f.SetError(errors.New("empty alias is not allowed"))
+			return f
+		}
 
-		isRaw, ok := inputs[2].(bool)
+		isRaw, ok := input[2].(bool)
 		if !ok {
-			fd := &Field{
-				Input: expr,
-			}
-			fd.SetError(errors.New("isRaw must be a bool"))
-			return fd
+			f.SetError(fmt.Errorf("isRaw has invalid type: %T, expected bool", input[2]))
 		}
-
-		return &Field{
-			Input: expr,
-			Expr:  expr,
-			Alias: alias,
-			IsRaw: isRaw,
-		}
+		f.isRaw = isRaw
+		return f
 
 	case 2:
+		f.input = fmt.Sprint(input[0], " ", input[1])
 		// expr, alias
-		if err := validateType(inputs[1]); err != nil {
-			return &Field{
-				Input: expr,
-				err:   err,
-			}
+		if err := validateType(input[1]); err != nil {
+			f.SetError(fmt.Errorf("alias has %v", err))
+			return f
 		}
-		alias := strings.TrimSpace(inputs[1].(string))
-		return &Field{
-			Input: expr,
-			Expr:  expr,
-			Alias: alias,
-			IsRaw: isRawExpr(expr),
+		f.alias = strings.TrimSpace(input[1].(string))
+		if f.alias == "" {
+			f.SetError(errors.New("empty alias is not allowed"))
+			return f
 		}
+		f.isRaw = isRawExpr(f.expr)
+		return f
 
 	case 1:
-		isRaw := isRawExpr(expr)
-
-		if isRaw {
-			// Explicit AS → parse alias
-			if strings.Contains(strings.ToUpper(expr), " AS ") {
-				parsedExpr, parsedAlias, raw := parseAlias(expr)
-				return &Field{
-					Input: expr,
-					Expr:  parsedExpr,
-					Alias: parsedAlias,
-					IsRaw: raw,
-				}
+		f.isRaw = isRawExpr(f.expr)
+		parsedExpr, parsedAlias, _ := parseAlias(f.expr)
+		f.expr = parsedExpr
+		f.alias = parsedAlias
+		if f.isRaw {
+			// Adapted behavior: accept trailing alias without AS
+			if HasTrailingAliasWithoutAS(f.input) {
+				parsedExpr, parsedAlias, _ := parseAlias(f.input)
+				f.expr = parsedExpr
+				f.alias = parsedAlias
+				return f
 			}
 
-			// Has space but no AS → error (alias without AS is invalid for raw)
-			if HasTrailingAliasWithoutAS(expr) {
-				fd := &Field{Input: expr}
-				fd.SetError(errors.New("raw expressions must use explicit AS for alias"))
-				return fd
+			if parsedAlias == "" {
+				// No alias at all → auto-generate one
+				f.alias = autoAlias(f.expr)
 			}
-
-			// No alias at all → auto-generate
-			auto := autoAlias(expr)
-			return &Field{
-				Input: fmt.Sprintf("%s AS %s", expr, auto),
-				Expr:  expr,
-				Alias: auto,
-				IsRaw: true,
-			}
+			return f
 		}
+		return f
+	}
+	f.SetError(errors.New("invalid Field constructor signature"))
+	return f
+}
 
-		// Not raw — safe to parse normally
-		parsedExpr, parsedAlias, _ := parseAlias(expr)
-		return &Field{
-			Input: expr,
-			Expr:  parsedExpr,
-			Alias: parsedAlias,
-			IsRaw: false,
-		}
+// NewWithTable constructs a Field bound to a specific table.
+//
+// Example:
+//
+//	u := table.New("users")
+//	f := field.NewWithTable(u, "id", "user_id")
+//	// Renders as: users.id AS user_id
+func NewWithTable(owner string, input ...any) *Field {
+	// Reuse the standard constructor.
+	f := New(input...)
+
+	if owner == "" {
+		f.SetError(errors.New("owner is empty"))
+		return f
 	}
 
-	fd := &Field{}
-	fd.SetError(errors.New("invalid NewField signature"))
-	return fd
+	// Attach the table.
+	f.owner = &owner
+	return f
 }
+
+// HasOwner returns the owning table name or alias if set.
+func (f *Field) HasOwner() bool { return f.owner != nil && *f.owner != "" }
+
+// Owner returns the owning table name or alias if set.
+// If none is set, returns a pointer to the empty string.
+func (f *Field) Owner() *string {
+	return f.owner
+}
+
+// SetOwner assigns or clears the owning table name or alias.
+// Passing nil resets the owner to an empty string.
+func (f *Field) SetOwner(owner *string) {
+	f.owner = owner
+}
+
+// Input returns the original raw input string.
+func (f *Field) Input() string { return f.input }
+
+// Expr returns the parsed SQL expression without alias.
+func (f *Field) Expr() string { return f.expr }
+
+// Alias returns the optional alias.
+func (f *Field) Alias() string { return f.alias }
 
 // IsAliased reports whether the field has a non-empty alias.
 func (f *Field) IsAliased() bool {
-	return strings.TrimSpace(f.Alias) != ""
+	return strings.TrimSpace(f.alias) != ""
 }
 
-// Clone returns a semantic copy of the Field. A nil receiver yields nil.
-// This nil-preserving behavior makes Clone safe to call unconditionally.
-func (f *Field) Clone() *Field {
-	if f == nil {
-		return nil
+// IsValid reports whether the field is considered valid.
+//
+// A field is invalid if it carries an error, or Expr() is empty/whitespace,
+func (f *Field) IsValid() bool {
+	if f.err != nil {
+		return false
 	}
+	return true
+}
+
+// Clone returns a semantic copy of the Field.
+// Errors and all state are preserved.
+// Since Field constructors never return nil, this method never sees a nil receiver.
+func (f *Field) Clone() *Field {
 	cp := *f
+	if f.owner != nil {
+		owner := *f.owner
+		cp.owner = &owner
+	}
 	return &cp
 }
 
@@ -184,119 +279,88 @@ func (f *Field) Clone() *Field {
 //
 //	⛔️ Field("false"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
 func (f *Field) Debug() string {
-	if f == nil {
-		return "⛔️ Field(<nil>): [raw: false, aliased: false, errored: true] – nil Field"
-	}
-
 	flags := fmt.Sprintf(
 		"[raw: %v, aliased: %v, errored: %v]",
-		f.IsRaw,
-		f.IsAliased(),
-		f.IsErrored(),
+		f.isRaw,
+		f.alias != "",
+		f.err != nil,
 	)
 
 	if f.err != nil {
-		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.Input, flags, f.err)
+		return fmt.Sprintf("⛔️ Field(%q): %s – %v", f.input, flags, f.err)
 	}
-	return fmt.Sprintf("✅ Field(%q): %s", f.Input, flags)
+	return fmt.Sprintf("✅ Field(%q): %s", f.input, flags)
 }
+
+// Error returns the underlying construction error, if any.
+func (f *Field) Error() error { return f.err }
 
 // IsErrored reports whether the field carries a non-nil error.
 func (f *Field) IsErrored() bool {
 	return f.err != nil
 }
 
-// Error returns the underlying construction error, if any.
-func (f *Field) Error() error { return f.err }
-
 // SetError assigns an error to the field. Intended for use during
 // construction/parsing to capture validation failures.
 func (f *Field) SetError(err error) { f.err = err }
 
-// IsValid reports whether the field is considered valid.
-//
-// A field is invalid if it carries an error, if Expr is empty/whitespace,
-// or if the derived Name would be empty.
-func (f *Field) IsValid() bool {
-	if f.IsErrored() {
-		return false
-	}
-	if strings.TrimSpace(f.Expr) == "" {
-		return false
-	}
-	if f.Name() == "" {
-		return false
-	}
-	return true
-}
-
-// Name returns a stable identifier for the field.
-//
-// If Alias is set, it returns the lower-cased alias. Otherwise, it derives
-// a name from Expr by removing non-alphanumeric characters and lower-casing.
-func (f *Field) Name() string {
-	if f.Alias != "" {
-		return strings.ToLower(f.Alias)
-	}
-	return deriveNameFromExpr(f.Expr)
-}
+// IsRaw reports whether the Field was explicitly constructed as raw
+// (via the two-argument form or as a subquery).
+func (f *Field) IsRaw() bool { return f.isRaw }
 
 // Raw returns the raw SQL snippet for the field without dialect quoting.
 //
-// If an alias is present it returns "Expr AS Alias"; otherwise it returns Expr.
+// If an alias is present, it returns "Expr AS Alias"; otherwise it returns Expr.
+// Errors do not suppress output — callers should check IsErrored() explicitly.
 func (f *Field) Raw() string {
-	if f.IsAliased() {
-		return fmt.Sprintf("%s AS %s", f.Expr, strings.TrimSpace(f.Alias))
+	base := f.expr
+	if f.alias != "" {
+		base = fmt.Sprintf("%s AS %s", base, f.alias)
 	}
-	return f.Expr
+	if f.owner != nil && !f.isRaw {
+		base = fmt.Sprintf("%s.%s", *f.owner, base)
+	}
+	return base
 }
 
 // Render implements contract.Renderable by returning the raw SQL snippet
 // for the field (no dialect quoting). If an alias is present, it renders
 // "Expr AS Alias"; otherwise it returns Expr.
+//
+// This method is stable and machine-facing, suitable for builders.
+// Dialect-specific quoting may later override Raw vs Render.
 func (f *Field) Render() string {
 	return f.Raw()
 }
 
-// String implements fmt.Stringer and returns a concise description
-// suitable for logs and error aggregation.
+// String implements fmt.Stringer and returns a concise,
+// user-friendly representation suitable for UI/UX display.
 //
-// Example (valid):
+// Example outputs:
 //
-//	✅ Field("id")
+//	✅ Field("users.id AS user_id")
+//	✅ Field("COUNT(*) AS total")
+//	⛔ Field("SUM()"): empty expression is not allowed
 //
-// Example (invalid or wrong initialization):
-//
-//	⛔️ Field("true"): input type unsupported: bool
-//	⛔️ Field(<nil>): wrong initialization
+// For developer diagnostics (flags, error state), use Debug().
+// For SQL output, use Render() or Raw().
 func (f *Field) String() string {
-	if f == nil {
-		return "⛔️ Field(<nil>): wrong initialization"
+	base := f.expr
+	if f.alias != "" {
+		base = fmt.Sprintf("%s AS %s", base, f.alias)
 	}
-	if f.err != nil {
-		return fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.err)
+	if f.owner != nil && !f.isRaw {
+		base = fmt.Sprintf("%s.%s", *f.owner, base)
 	}
-	if f.Alias != "" {
-		return fmt.Sprintf("✅ Field(%q)", fmt.Sprintf("%s AS %s", f.Expr, f.Alias))
-	}
-	return fmt.Sprintf("✅ Field(%q)", f.Expr)
-}
 
-// deriveNameFromExpr derives a normalized identifier from an expression by
-// removing all non-alphanumeric characters and converting to lower case.
-// This provides a stable name when no alias is provided.
-func deriveNameFromExpr(expr string) string {
-	var b strings.Builder
-	for _, r := range expr {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			b.WriteRune(r)
-		}
+	if f.err != nil {
+		return fmt.Sprintf("⛔ Field(%q): %v", base, f.err)
 	}
-	return strings.ToLower(b.String())
+	return fmt.Sprintf("✅ Field(%q)", base)
 }
 
 func autoAlias(expr string) string {
-	const prefix = "raw_expr_"
+	const prefix = "expr_alias_"
 	h := sha1.New()
 	h.Write([]byte(expr))
 	sum := hex.EncodeToString(h.Sum(nil))
@@ -351,32 +415,70 @@ func isRawExpr(expr string) bool {
 	return false
 }
 
+// parseAlias attempts to split an expression into [expr, alias].
+//
+// Priority:
+//  1. Explicit "AS" (case-insensitive).
+//  2. Subquery shorthand: "(SELECT ... ) alias" → expr="(SELECT ...)", alias="alias".
+//  3. Function-style shorthand: FUNC(...), may allow alias after the closing ")".
+//  4. Operator chains with no wrapper (col1+col2, col1||col2, etc.) are treated as
+//     full expressions with no alias unless explicit AS is used.
+//  5. Fallback: last token is alias, everything before it is expr.
 func parseAlias(s string) (expr, alias string, fromAS bool) {
 	s = strings.TrimSpace(s)
 
-	// Try explicit AS first (case-insensitive)
+	// 1. Explicit AS first (case-insensitive).
 	re := regexp.MustCompile(`(?i)\s+AS\s+`)
 	parts := re.Split(s, 2)
 	if len(parts) == 2 {
 		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), true
 	}
 
-	// Fallback: split by first space
-	parts = strings.Fields(s)
-	if len(parts) >= 2 {
-		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), false
+	// 2. Subquery shorthand: "(... ) alias"
+	if strings.HasPrefix(s, "(") {
+		closing := strings.LastIndex(s, ")")
+		if closing > 0 && closing < len(s)-1 {
+			expr := strings.TrimSpace(s[:closing+1])
+			alias := strings.TrimSpace(s[closing+1:])
+			return expr, alias, false
+		}
 	}
 
+	// 3. Function-style shorthand (e.g. SUM(...))
+	if strings.Contains(s, "(") && strings.HasSuffix(s, ")") {
+		// no alias → return whole string as expr
+		return s, "", false
+	}
+
+	// 4. Operator-heavy expressions.
+	// If starts with a function name, allow alias parsing.
+	if strings.ContainsAny(s, "+-*/") || strings.Contains(s, "||") {
+		// crude detection: function call starts with a word + "("
+		if matched, _ := regexp.MatchString(`^[A-Za-z_][A-Za-z0-9_]*\s*\(`, s); !matched {
+			// not a function call → treat as pure operator expr, no alias
+			return s, "", false
+		}
+	}
+
+	// 5. Fallback: last token = alias, everything before = expr.
+	tokens := strings.Fields(s)
+	if len(tokens) >= 2 {
+		expr := strings.Join(tokens[:len(tokens)-1], " ")
+		alias := tokens[len(tokens)-1]
+		return expr, alias, false
+	}
+
+	// Default: no alias
 	return s, "", false
 }
 
 func validateType(input any) error {
 	switch v := input.(type) {
 	case Field, *Field:
-		return errors.New("input is a Field")
+		return errors.New("unsupported type: Field")
 	case string:
 		return nil
 	default:
-		return fmt.Errorf("input type unsupported: %T", v)
+		return fmt.Errorf("unsupported type: %T", v)
 	}
 }

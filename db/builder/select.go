@@ -294,10 +294,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	}
 
 	if b.fields.Length() == 0 {
-		b.fields.Add(field.Field{
-			Expr:  "*",
-			IsRaw: true,
-		})
+		b.fields.Add(*field.New("*"))
 	}
 
 	parts := make([]string, 0, b.fields.Length())
@@ -305,7 +302,7 @@ func (b *SelectBuilder) Build() (string, error) {
 	for _, f := range b.fields.Items() {
 		if f.IsErrored() {
 			bad = append(bad,
-				fmt.Sprintf("⛔️ Field(%q): %v", f.Input, f.Error()))
+				fmt.Sprintf("⛔️ Field(%q): %v", f.Input(), f.Error()))
 			continue
 		}
 		parts = append(parts, f.Render())
@@ -375,10 +372,10 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 			if strings.Contains(v, ",") {
 				parts := splitAndTrim(v, ",")
 				for _, part := range parts {
-					b.fields.Add(*field.NewField(part))
+					b.fields.Add(*field.New(part))
 				}
 			} else {
-				b.fields.Add(*field.NewField(v))
+				b.fields.Add(*field.New(v))
 			}
 		case field.Field:
 			b.fields.Add(v)
@@ -387,10 +384,10 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 				b.fields.Add(*v)
 			}
 		default:
-			b.fields.Add(*field.NewField(v))
+			b.fields.Add(*field.New(v))
 		}
 	case 2, 3:
-		b.fields.Add(*field.NewField(cols...))
+		b.fields.Add(*field.New(cols...))
 	}
 	return b
 }
