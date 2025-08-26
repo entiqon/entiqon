@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_logo.png?raw=true" align="left" height="140" width="140"> Entiqon
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_logo.png?raw=true" align="left" height="140" width="140" alt="entiqon"> Entiqon
 </h1>
 <p align="center">A structured, intelligent foundation for building queryable, entity-aware Go systems.</p>
 
