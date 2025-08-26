@@ -1,9 +1,4 @@
 // File: db/token/field/contract.go
-//
-// Package field defines the Field token and its associated contract.
-// A Field represents a SQL column, expression, or computed value that
-// may optionally be qualified by a table and/or aliased. The Token
-// interface describes the required behavior for all Field instances.
 
 package field
 
@@ -37,7 +32,7 @@ type Token interface {
 	contract.BaseToken
 
 	// Clonable allows producing a semantic copy safe for independent mutation.
-	contract.Clonable[*Field]
+	contract.Clonable[Token]
 
 	// Debuggable returns a detailed diagnostic view of the field,
 	// including markers for aliased/raw/errored state.
@@ -77,4 +72,4 @@ type Token interface {
 }
 
 // Ensure *Field implements Token at compile time.
-var _ Token = (*Field)(nil)
+var _ Token = (*field)(nil)

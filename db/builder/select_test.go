@@ -64,7 +64,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("Pointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(field.New("id")) // *token.Field
+					Fields(field.New("id")) // *token.field
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
@@ -73,7 +73,7 @@ func TestSelectBuilder(t *testing.T) {
 
 			t.Run("NotPointer", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(*field.New("id")) // token.Field (value)
+					Fields(field.New("id")) // token.field (value)
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
@@ -836,7 +836,7 @@ func TestSelectBuilder(t *testing.T) {
 				if !strings.Contains(out, "❌ [Build] - Invalid fields:") {
 					t.Errorf("expected error to contain '❌ [Build] - Invalid fields:', got %q", out)
 				}
-				if !strings.Contains(out, "⛔️ Field(") {
+				if !strings.Contains(out, "⛔️ field(") {
 					t.Errorf("expected detailed field errors, got %q", out)
 				}
 			})
