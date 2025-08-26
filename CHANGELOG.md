@@ -50,6 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Updated `builder/select.go` and `select_test.go` to import from the new path.
     - Adjusted **Dockerfile-documentation** to copy `db/token/field/README.md`.
     - Normalized structure for consistency with `token/table`.
+- Introduced **Token contract** as a scaffold to decompose Field identity into auditable pieces:
+    - Aggregates `BaseToken`, `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, and `Stringable`.
+    - Defines ownership methods: `HasOwner()`, `Owner()`, and `SetOwner()`.
+    - Intention: sort every identity aspect (expr, alias, owner, validity, raw state) into dedicated contracts for auditability.
+    - ⚠️ Currently only the contract and documentation are provided; implementation is staged for later commits.
+- Documentation updates:
+    - `doc.go`: added `HasOwner`, `Owner`, `SetOwner` under **Field Behavior**.
+    - `example_test.go`: added placeholder `ExampleField_owner` (commented out until implemented).
+    - `README.md`: new **Contracts and Auditability** section in Developer Guide.
+- Root-level documentation:
+    - Added `db/token/README.md` with purpose and subpackage table (field, table).
+    - Added `db/token/doc.go` with GoDoc overview, principles, subpackages, and roadmap.
+
 
 ### Common (extension/integer)
 - Introduced **integer parser**:

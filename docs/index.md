@@ -1,8 +1,9 @@
-<h1 align="center">
-  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_logo.png?raw=true" align="left" height="80" width="80" alt="entiqon"> Entiqon Core
+<h1 align="left">
+  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_logo.png?raw=true" align="left" height="82" width="82" alt="entiqon"> Entiqon Core
 </h1>
-<p align="center">A structured, intelligent foundation for building queryable, entity-aware Go systems.</p>
+<p align="left">A structured, intelligent foundation for building queryable, entity-aware Go systems.</p>
 
+---
 
 Welcome to the **Entiqon Core** documentation. This suite includes validated, dialect-aware builders with full test
 coverage and modular design.
@@ -65,3 +66,9 @@ All builders follow the same principles:
 - 🧩 Compatible with external dialect extensions
 
 Onward, builder.
+
+---
+
+## 📄 License
+
+[MIT](../LICENSE) — © Isidro Lopez / Entiqon Project

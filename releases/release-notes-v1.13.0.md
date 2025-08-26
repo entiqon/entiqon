@@ -84,6 +84,28 @@
     - Dockerfile updated to copy `db/token/field/README.md` for documentation
     - Normalized structure for consistency with `token/table`
 
+### Added
+- Introduced **Field Token contract** as a scaffold to decompose Field identity into auditable pieces:
+    - Aggregates `BaseToken`, `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, and `Stringable`
+    - Defines ownership methods: `HasOwner()`, `Owner()`, and `SetOwner()`
+    - Intention: separate every identity aspect (expr, alias, owner, validity, raw state) into dedicated, auditable contracts
+    - ⚠️ Contract only; implementation staged for later commits
+
+### Documentation
+- `doc.go`: extended **Field Behavior** with `HasOwner`, `Owner`, `SetOwner`
+- `example_test.go`: added placeholder `ExampleField_owner` (commented until implemented)
+- `README.md`: new **Contracts and Auditability** section in Developer Guide
+- Root-level docs:
+    - Added `db/token/README.md` with package purpose and subpackage table
+    - Added `db/token/doc.go` with GoDoc overview, principles, subpackages, and roadmap
+
+### Refactored
+- Moved `Field` into a dedicated subpackage `db/token/field`:
+    - API preserved (`field.New(...)`) with unchanged contracts and behavior
+    - Updated `builder/select.go` and `select_test.go` to use new import path
+    - Dockerfile updated to copy `db/token/field/README.md` for documentation
+    - Normalized structure for consistency with `token/table`
+
 ## Common Package (extension/integer)
 
 ### Added
