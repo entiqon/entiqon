@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# gctag - Git Create Tag CLI (with signing)
+
+set -euo pipefail
+
+TITLE="Entiqon Release"
+DATE=$(date +"%Y-%m-%d")
+NOTES="No detailed notes provided."
+VERSION=""
+SIGN=false
+
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+NC="\033[0m"
+
+show_help() {
+  cat <<EOF
+Usage: gctag -v <version> [options]
+
+Options:
+  -h, --help       Show this help message and exit
+  -v, --version    Version tag to create (e.g. v1.14.0) [required]
+  -t, --title      Release title (default: "Entiqon Release")
+  -d, --date       Override release date (default: today)
+  -n, --notes      Path to release notes file
+  -s, --sign       Sign the tag with GPG/SSH (requires configured key)
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) show_help; exit 0 ;;
+    -v|--version) VERSION="$2"; shift 2 ;;
+    -t|--title) TITLE="$2"; shift 2 ;;
+    -d|--date) DATE="$2"; shift 2 ;;
+    -n|--notes)
+      if [[ -f "$2" ]]; then
+        NOTES=$(cat "$2")
+      else
+        echo -e "${RED}❌ Notes file not found: $2${NC}"
+        exit 1
+      fi
+      shift 2
+      ;;
+    -s|--sign) SIGN=true; shift ;;
+    *) echo -e "${RED}❌ Unknown option: $1${NC}"; show_help; exit 1 ;;
+  esac
+done
+
+if [[ -z "$VERSION" ]]; then
+  echo -e "${RED}❌ Version is required${NC}"
+  show_help
+  exit 1
+fi
+
+MSG="${TITLE} ${VERSION}
+
+Released on ${DATE}
+
+${NOTES}
+"
+
+if $SIGN; then
+  echo -e "${GREEN}🔐 Creating signed tag ${VERSION}...${NC}"
+  git tag -s "${VERSION}" -m "${MSG}"
+else
+  echo -e "${GREEN}🚀 Creating unsigned tag ${VERSION}...${NC}"
+  git tag -a "${VERSION}" -m "${MSG}"
+fi
+
+echo -e "${GREEN}⬆️  Pushing tag ${VERSION} to origin...${NC}"
+git push origin "${VERSION}"
+
+echo -e "${GREEN}✅ Successfully tagged ${VERSION} with title '${TITLE}' on ${DATE}${NC}"
