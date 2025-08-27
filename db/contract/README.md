@@ -1,35 +1,42 @@
-<h1 align="left">
-  <img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true" align="left" height="82" width="82" alt="entiqon"> Core Contract
-</h1>
-<h6 align="left">Part of the <a href="../../README.md">Entiqon</a> / <a href="../README.md">Database</a> toolkit.</h6>
+# 📜 Contract
 
 ## 🧩 Overview
 
 The `contract` package defines small, reusable behavioral contracts (interfaces)
-that core tokens (`Field`, `Table`, `Condition`, etc.) and builders implement to
-enable polymorphic behavior without tight coupling between packages.
+that core tokens (`Field`, `Table`, `Join`, `Condition`, etc.) and builders implement
+to enable polymorphic behavior without tight coupling between packages.
 
 Contracts are intentionally minimalistic and orthogonal. Each one describes a
 narrow capability that can be composed with others.
 
 ---
 
-## Available Contracts
+## Available Contracts (strict order)
 
 ### [BaseToken](./base_token.go)
-- **Purpose**: Core identity and validation for tokens.
+- **Purpose**: Core identity for tokens.
 - **Methods**:
   - `Input() string`
   - `Expr() string`
   - `Alias() string`
   - `IsAliased() bool`
-  - `IsValid() bool`
 - **Usage**: Ensures tokens like `Field` and `Table` consistently expose their
-  raw input, normalized expression, alias, and validity.
+  raw input, normalized expression, and alias.
 
-### [Renderable](./renderable.go)
-- **Purpose**: Canonical, dialect-aware SQL output (machine-facing).
-- **Method**: `Render() string`
+### [Clonable](./clonable.go)
+- **Purpose**: Semantic cloning for safe mutation.
+- **Method**: `Clone() T`
+
+### [Debuggable](./debuggable.go)
+- **Purpose**: Developer-facing diagnostic output.
+- **Method**: `Debug() string`
+
+### [Errorable](./errorable.go)
+- **Purpose**: Error state inspection and propagation for tokens/builders.
+- **Methods**:
+  - `IsErrored() bool`
+  - `Error() error`
+  - `SetError(err error) T`
 
 ### [Rawable](./rawable.go)
 - **Purpose**: Generic SQL fragments, dialect-agnostic.
@@ -37,24 +44,17 @@ narrow capability that can be composed with others.
   - `Raw() string`
   - `IsRaw() bool`
 
+### [Renderable](./renderable.go)
+- **Purpose**: Canonical, dialect-aware SQL output (machine-facing).
+- **Method**: `Render() string`
+
 ### [Stringable](./stringable.go)
 - **Purpose**: Human-facing audit/log output.
 - **Method**: `String() string`
 
-### [Debuggable](./debuggable.go)
-- **Purpose**: Developer-facing diagnostic output.
-- **Method**: `Debug() string`
-
-### [Clonable](./clonable.go)
-- **Purpose**: Semantic cloning for safe mutation.
-- **Method**: `Clone() T`
-
-### [Errorable](./errorable.go)
-- **Purpose**: Error state inspection and propagation for tokens/builders.
-- **Methods**:
-  - `IsErrored() bool`
-  - `Error() error`
-  - `SetError(err error)`
+### [Validable](./validable.go)
+- **Purpose**: Structural validation.
+- **Method**: `IsValid() bool`
 
 ---
 
@@ -66,22 +66,29 @@ See [example_test.go](./example_test.go) for runnable examples of all contracts:
 t := table.New("users", "u")
 
 var bt contract.BaseToken = t
-fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased(), bt.IsValid())
-// Output: users users u true true
+fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased())
+// Output: users users u true
+
+var c contract.Clonable[*table.Table] = t
+fmt.Println(c.Clone()) // safe copy
+
+var d contract.Debuggable = t
+fmt.Println(d.Debug()) // developer diagnostic
+
+var e contract.Errorable[*table.Table] = t
+fmt.Println(e.IsErrored(), e.Error()) // error state
+
+var w contract.Rawable = t
+fmt.Println(w.Raw()) // generic SQL
 
 var r contract.Renderable = t
-fmt.Println(r.Render())
-// Output: users AS u
+fmt.Println(r.Render()) // dialect-aware SQL
 
-var e contract.Errorable = table.New("users AS")
-fmt.Println(e.IsErrored()) // true
-fmt.Println(e.Error())     // invalid format "users AS"
+var s contract.Stringable = t
+fmt.Println(s.String()) // audit/log
 
-// Example of SetError usage
-tok := table.New("products")
-et := tok.(*table.Table)
-et.SetError(fmt.Errorf("manual mark as errored"))
-fmt.Println(et.IsErrored()) // true
+var v contract.Validable = t
+fmt.Println(v.IsValid()) // structural validation
 ```
 
 ---
@@ -92,18 +99,19 @@ fmt.Println(et.IsErrored()) // true
 - **Auditability**: `Input()` is always preserved for logs.
 - **Consistency**: All tokens share a common identity contract (`BaseToken`).
 - **Separation of concerns**:
-  - BaseToken → identity & validation
-  - Renderable → SQL generation
-  - Rawable → generic fragments
-  - Stringable → logs/audit
-  - Debuggable → developer diagnostics
+  - BaseToken → identity
   - Clonable → safe duplication
+  - Debuggable → developer diagnostics
   - Errorable → error handling
+  - Rawable → generic fragments
+  - Renderable → SQL generation
+  - Stringable → logs/audit
+  - Validable → validation
 
 ---
 
 This package underpins the entire query builder layer. Contracts ensure tokens
-like `Field` and `Table` behave consistently and predictably across the system.
+like `Field`, `Table`, and `Join` behave consistently and predictably across the system.
 
 ---
 

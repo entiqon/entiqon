@@ -17,7 +17,7 @@ import (
 type SelectBuilder struct {
 	dialect    dialect.Dialect
 	fields     *collection.Collection[field.Token]
-	source     *table.Table
+	source     table.Token
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
 	sorting    *collection.Collection[string]

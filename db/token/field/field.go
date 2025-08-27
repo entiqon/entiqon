@@ -260,12 +260,12 @@ func (f *field) IsValid() bool {
 // Clone returns a semantic copy of the field.
 // Errors and all state are preserved.
 func (f *field) Clone() Token {
-	cp := *f
+	cp := f
 	if f.owner != nil {
 		owner := *f.owner
 		cp.owner = &owner
 	}
-	return &cp
+	return cp
 }
 
 // Debug returns a compact diagnostic view of the field.
@@ -301,7 +301,10 @@ func (f *field) IsErrored() bool {
 
 // SetError assigns an error to the field. Intended for use during
 // construction/parsing to capture validation failures.
-func (f *field) SetError(err error) { f.err = err }
+func (f *field) SetError(err error) Token {
+	f.err = err
+	return f
+}
 
 // IsRaw reports whether the field was explicitly constructed as raw
 // (via the two-argument form or as a subquery).

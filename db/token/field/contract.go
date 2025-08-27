@@ -39,7 +39,7 @@ type Token interface {
 	contract.Debuggable
 
 	// Errorable reports whether the field is invalid and provides its error.
-	contract.Errorable
+	contract.Errorable[Token]
 
 	// Rawable returns the original input string(s), useful for auditing/logging.
 	contract.Rawable
@@ -50,6 +50,11 @@ type Token interface {
 	// Stringable provides a human-readable summary of the field,
 	// typically used for debugging.
 	contract.Stringable
+
+	// Validable reports whether the table token is structurally valid.
+	// A token is valid if it has no error and its essential invariants
+	// (e.g., non-empty name) are satisfied.
+	contract.Validable
 
 	// HasOwner reports whether the field is qualified by a table name or alias.
 	//

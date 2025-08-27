@@ -3,8 +3,6 @@ package table
 import (
 	"fmt"
 	"strings"
-
-	"github.com/entiqon/entiqon/db/contract"
 )
 
 // Table represents a SQL table token.
@@ -38,16 +36,6 @@ type Table struct {
 	isRaw bool
 }
 
-// Ensure Table implements contracts.
-var (
-	_ contract.Renderable       = (*Table)(nil)
-	_ contract.Rawable          = (*Table)(nil)
-	_ contract.Stringable       = (*Table)(nil)
-	_ contract.Debuggable       = (*Table)(nil)
-	_ contract.Clonable[*Table] = (*Table)(nil)
-	_ contract.Errorable        = (*Table)(nil)
-)
-
 // New constructs a new Table from user input.
 //
 // Accepted forms:
@@ -63,7 +51,7 @@ var (
 // The first argument is always preserved in input (verbatim or normalized).
 // If construction fails, the returned Table is errored but still
 // carries the original input for diagnostics.
-func New(args ...string) *Table {
+func New(args ...string) Token {
 	t := &Table{}
 	if len(args) > 0 {
 		t.input = strings.TrimSpace(args[0])
@@ -139,11 +127,27 @@ func New(args ...string) *Table {
 	return t
 }
 
+func (t *Table) Input() string {
+	return t.input
+}
+
+func (t *Table) Expr() string {
+	return t.name
+}
+
+func (t *Table) Name() string {
+	return t.name
+}
+
+func (t *Table) Alias() string {
+	return t.name
+}
+
 // IsAliased reports whether the table has an alias.
 func (t *Table) IsAliased() bool { return t.alias != "" }
 
 // Clone returns a semantic copy of the Table.
-func (t *Table) Clone() *Table {
+func (t *Table) Clone() Token {
 	return &Table{
 		input: t.input,
 		name:  t.name,
@@ -180,14 +184,14 @@ func (t *Table) Error() error { return t.err }
 
 // SetError assigns an error to the table. Intended for use during
 // construction/parsing to capture validation failures.
-func (t *Table) SetError(err error) { t.err = err }
+func (t *Table) SetError(err error) Token {
+	t.err = err
+	return t
+}
 
 // IsRaw reports whether the Table was explicitly constructed as raw
 // (via the two-argument form or as a subquery).
 func (t *Table) IsRaw() bool { return t.isRaw }
-
-// IsValid reports whether the table has a non-empty name and no error.
-func (t *Table) IsValid() bool { return !t.IsErrored() && t.name != "" }
 
 // Raw returns the generic SQL fragment of the Table, including alias if present.
 //
@@ -239,3 +243,6 @@ func (t *Table) String() string {
 	}
 	return fmt.Sprintf("✅ Table(%s)", t.name)
 }
+
+// IsValid reports whether the table has a non-empty name and no error.
+func (t *Table) IsValid() bool { return !t.IsErrored() && t.name != "" }

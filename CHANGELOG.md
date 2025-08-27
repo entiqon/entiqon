@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## v1.14.0 - Upcoming
+
+### Database (contract)
+- Introduced **Validable** contract with `IsValid()` for structural validation.
+- Refactored **Errorable** into generic form `Errorable[T any]`:
+    - `SetError(err error) T` now returns the concrete token type for fluent chaining.
+- Updated **BaseToken** to embed `Validable` instead of declaring `IsValid` directly.
+- Extended **table.Token** and **field.Token** to embed `Validable`.
+- Updated `table` and `field` implementations to satisfy revised contracts.
+- **Impact**: `table.Token` is consumed directly by `SelectBuilder` as a source,
+  so all builders now automatically benefit from structural validation.
+
+### Tests & Docs
+- Revised `doc.go` with strict contract ordering and updated examples.
+- Updated `README.md` to reflect new contract list, generic Errorable, and Validable.
+- Added runnable examples for all contracts in strict one-method-one-example style.
+- Ensured valid/invalid cases demonstrated consistently across tokens.
+- Fixed `example_test.go` to separate `BaseToken` and `Validable` examples.
+
 ## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-26
 
 ### Database (builder/select)
