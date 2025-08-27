@@ -45,13 +45,6 @@ func ExampleToken_isRaw() {
 	// Output: true
 }
 
-// ExampleField_IsValid shows IsValid() reports validity.
-func ExampleToken_isValid() {
-	f := field.New("id")
-	fmt.Println(f.IsValid())
-	// Output: true
-}
-
 //
 // Errorable contract
 //
@@ -143,4 +136,11 @@ func ExampleToken_render() {
 	f := field.NewWithTable("users", "id", "user_id")
 	fmt.Println(f.Render())
 	// Output: users.id AS user_id
+}
+
+// ExampleField_IsValid shows IsValid() reports validity.
+func ExampleToken_isValid() {
+	f := field.New("id")
+	fmt.Println(f.IsValid())
+	// Output: true
 }

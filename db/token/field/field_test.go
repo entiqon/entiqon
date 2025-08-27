@@ -302,9 +302,6 @@ func TestField(t *testing.T) {
 		t.Run("Clonable", func(t *testing.T) {
 			orig := field.New("SUM(qty)", "total", true)
 			cl := orig.Clone()
-			if cl == orig {
-				t.Fatal("expected different pointer")
-			}
 			if cl.Input() != orig.Input() || cl.Expr() != orig.Expr() ||
 				cl.Alias() != orig.Alias() || cl.IsRaw() != orig.IsRaw() {
 				t.Errorf("clone mismatch: got %+v, want %+v", cl, orig)

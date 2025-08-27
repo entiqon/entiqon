@@ -4,23 +4,24 @@ import (
 	"fmt"
 
 	"github.com/entiqon/entiqon/db/contract"
+	"github.com/entiqon/entiqon/db/token/field"
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
-//// ExampleRenderable demonstrates using a Table as a Renderable.
-//func ExampleBaseToken() {
-//	t := field.NewField("users", "u")
-//	var bt contract.BaseToken = t
-//	fmt.Println(fmt.Sprintf(
-//		"Input=%q, Expr=%q, Alias=%q, Aliased=%t, Valid=%t",
-//		bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased(), bt.IsValid()))
-//	// Output: Input="users", Expr="users", Alias="u", Aliased=true, Valid=true
-//}
+// ExampleBaseToken demonstrates using a Field as a BaseToken.
+func ExampleBaseToken() {
+	t := field.New("users", "u")
+	var bt contract.BaseToken = t
+	fmt.Println(fmt.Sprintf(
+		"Input=%q, Expr=%q, Alias=%q, Aliased=%t",
+		bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased()))
+	// Output: Input="users u", Expr="users", Alias="u", Aliased=true
+}
 
 // ExampleClonable demonstrates using a Table as a Clonable.
 func ExampleClonable() {
 	t := table.New("users", "u")
-	var c contract.Clonable[*table.Table] = t
+	var c contract.Clonable[table.Token] = t
 	clone := c.Clone()
 	fmt.Println(clone.Render())
 	// Output: users AS u
@@ -39,7 +40,7 @@ func ExampleErrorable() {
 	// invalid construction
 	t := table.New("users AS")
 
-	var e contract.Errorable = t
+	var e contract.Errorable[table.Token] = t
 	fmt.Println(e.IsErrored())
 	fmt.Println(e.Error())
 
@@ -78,4 +79,12 @@ func ExampleStringable() {
 	var s contract.Stringable = t
 	fmt.Println(s.String())
 	// Output: ✅ Table(users AS u)
+}
+
+// ExampleValidable demonstrates using a Table as a Validable.
+func ExampleValidable() {
+	t := table.New("users", "u")
+	var v contract.Validable = t
+	fmt.Println(v.IsValid())
+	// Output: true
 }

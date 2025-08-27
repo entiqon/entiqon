@@ -1,16 +1,4 @@
-/**
- * @Author: Isidro Lopez isidro.lopezg@live.com
- * @Date: 2025-08-24 05:42:00
- * @LastEditors: Isidro Lopez isidro.lopezg@live.com
- * @LastEditTime: 2025-08-25 14:30:07
- * @FilePath: db/contract/errorable.go
- * @Description: 这是默认设置,可以在设置》工具》File Description中进行配置
- */
 // File: db/contract/errorable.go
-//
-// Errorable defines error state inspection for tokens and builders.
-// See package-level documentation in doc.go for an overview of all
-// contracts and their distinct purposes.
 
 package contract
 
@@ -35,7 +23,7 @@ package contract
 //	    fmt.Println("Error:", u.Error())
 //	    // Output: Error: table.New: empty table name
 //	}
-type Errorable interface {
+type Errorable[T any] interface {
 	// IsErrored reports whether the object was constructed
 	// with an error or became invalid during initialization.
 	IsErrored() bool
@@ -46,5 +34,5 @@ type Errorable interface {
 
 	// SetError marks the token as errored with the given error.
 	// Implementations must store the error for reporting in Error().
-	SetError(err error)
+	SetError(err error) T
 }

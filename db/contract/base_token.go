@@ -1,10 +1,4 @@
 // File: db/contract/base_token.go
-//
-// BaseToken defines semantic clone behavior for all SQL tokens
-// (Field, Table, etc.) to provide consistent access to their
-// original input, normalized expression, alias, and validation
-// status. See package-level documentation in doc.go for an
-// overview of all contracts and their distinct purposes.
 
 package contract
 
@@ -24,8 +18,4 @@ type BaseToken interface {
 
 	// IsAliased reports whether the token has an alias.
 	IsAliased() bool
-
-	// IsValid reports whether the token was successfully parsed
-	// and is valid for rendering.
-	IsValid() bool
 }
