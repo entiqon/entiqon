@@ -51,3 +51,26 @@ These changes make contracts:
 - **Builder-aware** → `SelectBuilder` (and future builders) benefit automatically from `Validable` checks.  
 
 This lays the foundation for more advanced tokens (`Join`, computed fields, subqueries) while ensuring builders remain safe and predictable.
+
+---
+
+## 🔗 New Join Token
+
+This release also introduces a dedicated **`join.Token`** for representing SQL JOIN clauses:
+
+- **Safe constructors**: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
+- **Flexible constructor**: `New(kind any, left, right, condition)` for advanced scenarios (e.g. configuration, DSLs).
+- **Kind enum**: `join.Kind` (`InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`) with helpers:
+  - `String()` → canonical SQL keyword or `invalid join type (n)` for invalid values.
+  - `IsValid()` → structural validation.
+  - `ParseJoinKindFrom()` → case-insensitive string parsing.
+- **Validation rules**:
+  - Early exit on invalid kind.
+  - Left/Right tables must be present and valid.
+  - Condition must not be empty.
+- **Contracts**:
+  - Implements all shared contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
+
+This ensures JOIN clauses are first-class citizens in the builder ecosystem, consistent with fields and tables.
+
+---
