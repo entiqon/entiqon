@@ -44,6 +44,7 @@ nav:
               - Overview: packages/db/token/overview.md
               - Field: packages/db/token/field.md
               - Table: packages/db/token/table.md
+              - Join: packages/db/token/join.md
 
   - 📘 Architecture:
       - Builder Overview: dev/builder/builder_guide.md

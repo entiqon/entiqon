@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v1.14.0 - Upcoming
+### Database (join)
+- Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
+  - Safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
+  - Flexible constructor: `New(kind any, left, right, condition)` for advanced/DSL scenarios.
+  - Explicit `join.Kind` enum (`InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`) with `String()`, `IsValid()`, and `ParseJoinKindFrom()`.
+  - Early-exit validation: invalid kind → `invalid join type (n)`, nil/errored tables, or empty condition → explicit error states.
+  - Implements all core contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
+
+
 
 ### Database (contract)
 - Introduced **Validable** contract with `IsValid()` for structural validation.
