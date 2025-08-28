@@ -8,6 +8,13 @@ import (
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
+// join is the unexported implementation of the Token interface.
+//
+// It preserves:
+//   - kind      → the join type (INNER, LEFT, RIGHT, FULL)
+//   - left/right → table operands
+//   - condition → the ON clause
+//   - err       → error state, if any
 type join struct {
 	kind      Kind
 	left      table.Token
@@ -19,14 +26,14 @@ type join struct {
 // New constructs a Join with an explicit kind.
 //
 // This constructor is the most flexible and is intended for advanced usage.
-// The kind argument may be provided as:
+// The kind argument may be:
 //
-//   - token.Kind (e.g. token.Left)
+//   - Kind (e.g. join.LeftJoin)
 //   - string ("LEFT", "LEFT JOIN", case-insensitive)
 //
 // Example:
 //
-//	j1 := join.New(token.Inner, "users", "orders", "u.id = o.user_id")
+//	j1 := join.New(join.InnerJoin, "users", "orders", "u.id = o.user_id")
 //	j2 := join.New("LEFT", "users", "orders", "u.id = o.user_id")
 //
 // If kind is invalid, New returns an errored join immediately.
@@ -73,24 +80,28 @@ func (j *join) Clone() Token {
 	}
 }
 
+// Kind returns the type of the join (INNER, LEFT, RIGHT, FULL).
 func (j *join) Kind() Kind {
 	return j.kind
 }
 
+// Left returns the left table operand.
 func (j *join) Left() table.Token {
 	return j.left
 }
 
+// Right returns the right table operand.
 func (j *join) Right() table.Token {
 	return j.right
 }
 
+// Condition returns the ON condition string.
 func (j *join) Condition() string {
 	return j.condition
 }
 
 // Debug returns an auditable representation of the join.
-// If either side is invalid, the join is reported as invalid.
+// Includes validity state and error if applicable.
 func (j *join) Debug() string {
 	valid := j.IsValid()
 	leftExpr := "<nil>"
@@ -123,11 +134,12 @@ func (j *join) Debug() string {
 	)
 }
 
-// Error returns the current error on the Join, if any.
+// Error returns the current error on the join, if any.
 func (j *join) Error() error {
 	return j.err
 }
 
+// IsErrored reports whether the join is in an errored state.
 func (j *join) IsErrored() bool {
 	return j.err != nil
 }
@@ -144,30 +156,28 @@ func (j *join) IsRaw() bool {
 	return false
 }
 
-// Raw returns the full join clause using the raw representation
-// of its components. This is mainly useful when the right side
-// is a raw table (e.g. a subquery).
+// Raw returns the raw SQL fragment of the join clause.
+// If the join is errored, Raw returns an empty string.
 func (j *join) Raw() string {
 	if j.err != nil {
 		return ""
 	}
 	return fmt.Sprintf("%s %s ON %s",
 		j.kind,
-		j.right.Raw(), // if right is raw (subquery), this shows it
+		j.right.Raw(),
 		strings.TrimSpace(j.condition),
 	)
 }
 
-// Render produces the canonical SQL join fragment
-// in a dialect-agnostic way.
+// Render produces the canonical SQL fragment for the join.
+// It is dialect-agnostic and delegates to Raw().
 func (j *join) Render() string {
 	return j.Raw()
 }
 
-// String returns a loggable representation of the join.
-// Always includes the clause shape; marks invalid joins with ⛔.
+// String returns a concise, loggable representation of the join.
+// Valid joins are marked with ✅, invalid ones with ⛔.
 func (j *join) String() string {
-	// always build the base clause
 	base := fmt.Sprintf("%s %s ON %s",
 		j.kind,
 		func() string {
@@ -186,12 +196,13 @@ func (j *join) String() string {
 	return fmt.Sprintf("✅ join(%q)", base)
 }
 
+// IsValid reports whether the join is valid (not errored).
 func (j *join) IsValid() bool {
 	return !j.IsErrored()
 }
 
 // newWithKind is the internal constructor.
-// Enforces early exit if kind is invalid.
+// It enforces early exit for invalid kinds and validates operands and condition.
 func newWithKind(kind any, left, right any, condition string) Token {
 	jk := normalizeKind(kind)
 	if !jk.IsValid() {
@@ -204,7 +215,6 @@ func newWithKind(kind any, left, right any, condition string) Token {
 
 	j := &join{kind: jk, left: lt, right: rt, condition: condition}
 
-	// further validations
 	if lt == nil || rt == nil {
 		return j.SetError(fmt.Errorf("join requires both left and right tables"))
 	}
@@ -225,25 +235,21 @@ func newWithKind(kind any, left, right any, condition string) Token {
 	return j
 }
 
-// normalizeKind resolves any input into a Kind.
-// Supports token.Kind and string. Any unsupported
-// input normalizes into an invalid Kind (-1).
+// normalizeKind resolves arbitrary input into a Kind.
+// Accepts join.Kind or string. Unsupported types normalize to invalid.
 func normalizeKind(arg any) Kind {
 	if k, ok := arg.(Kind); ok {
-		// already a Kind → return directly
 		return k
 	}
 	if s, ok := arg.(string); ok {
-		// string → parse into Kind
 		return ParseJoinKindFrom(s)
 	}
-	// unsupported type → invalid
 	return Kind(-1)
 }
 
-// normalizeTable resolves left/right args into table.Token.
-// Accepts string (delegates to table.New), table.Token,
-// or nil. Unsupported types produce an errored table.Token.
+// normalizeTable resolves a join operand into a table.Token.
+// Accepts table.Token, string (delegates to table.New), or nil.
+// Unsupported types produce an errored table.Token.
 func normalizeTable(arg any, side string) table.Token {
 	if arg == nil {
 		return nil
