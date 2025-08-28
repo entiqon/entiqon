@@ -3,20 +3,10 @@
 //
 // # Overview
 //
-// The token package defines atomic building blocks such as Field and
-// Table. These tokens are consumed by higher-level builders (e.g.
-// SelectBuilder) to assemble safe, expressive, and auditable SQL
-// statements.
-//
-// # Doctrine
-//
-//   - Never panic: constructors always return a non-nil token,
-//     even if errored.
-//   - Auditability: preserve original input for logs and debugging.
-//   - Strict validation: invalid inputs are rejected immediately
-//     with explicit errors.
-//   - Delegation: parsing rules live in tokens, not in builders.
-//   - Clarity: responsibilities are split into explicit contracts.
+// The token package defines atomic building blocks such as Field,
+// Table, and Join. These tokens are consumed by higher-level builders
+// (e.g. SelectBuilder) to assemble safe, expressive, and auditable
+// SQL statements.
 //
 // # Contracts
 //
@@ -38,11 +28,24 @@
 //   - table: represents a SQL source (table or view) used in FROM /
 //     JOIN clauses with aliasing and validation support.
 //
+//   - join: represents JOIN clauses (INNER, LEFT, etc.) with
+//     validation of join kind and conditions.
+//
+// # Supporting modules
+//
+//   - resolver: centralizes input type validation and expression
+//     resolution (expr, alias, kind) with strict rules and
+//     subquery detection.
+//
+//   - expression_kind: classifies raw expressions into categories
+//     (Identifier, Computed, Literal, Subquery, Function, Aggregate)
+//     and validates identifier aliases, including reserved keyword
+//     checks.
+//
 // # Roadmap
 //
 // Future tokens will include:
 //   - conditions (WHERE / HAVING)
-//   - joins (INNER, LEFT, etc.)
 //   - functions (aggregates, JSON, custom expressions)
 //
 // Contracts will progressively enforce stricter auditability across
