@@ -1,7 +1,7 @@
-# 🚀 Release v1.14.0 – Contract Evolution
+# 🚀 Release v1.14.0 – Contract & Token Evolution
 
-This release introduces a major refinement of the **contract layer** across `db/token`, ensuring better separation of concerns, type safety, and consistency.  
-It also affects **builders** (notably `SelectBuilder`), since they directly depend on `table.Token`.
+This release refines the **contract layer** across `db/token` and introduces key supporting modules (`resolver`, `ExpressionKind`) along with the new **Join token**.  
+The changes strengthen type safety, alias validation, and parsing, ensuring higher reliability for builders (notably `SelectBuilder`) which directly depend on tokens.
 
 ---
 
@@ -9,68 +9,86 @@ It also affects **builders** (notably `SelectBuilder`), since they directly depe
 
 ### New `Validable` contract
 - Introduced **`Validable`** with `IsValid()` for structural validation.  
-- Allows higher-level builders to quickly determine token validity without depending on `BaseToken`.  
-- Adopted by `table.Token` and `field.Token`.  
+- Adopted by `table.Token`, `field.Token`, and `join.Token`.  
+- Allows builders to validate tokens early and consistently.
 
 ### Generic `Errorable`
-- **`Errorable`** is now generic: `Errorable[T any]`.  
-- `SetError(err error)` now returns the concrete token type (`T`) for safe method chaining.  
-- Applied consistently across all tokens (`Field`, `Table`, `Join`, …).  
+- `Errorable` is now generic: `Errorable[T any]`.  
+- `SetError(err error)` returns the concrete type `T` for safe chaining.  
+- Adopted across all tokens.
 
 ### BaseToken cleanup
-- **`BaseToken`** now embeds `Validable` instead of declaring `IsValid()` directly.  
-- Keeps identity (input, expression, alias) and validation clearly separated.  
+- `BaseToken` now embeds `Validable`.  
+- Keeps identity (input, expression, alias) and validation separate.  
 
 ---
 
-## 🛠️ Affected Tokens & Builders
-- **`table.Token`** and **`field.Token`** updated to embed `Validable`.  
-- Implementations adjusted to satisfy the generic `Errorable[T]`.  
-- **Impact**: `table.Token` is consumed directly by `SelectBuilder` as a source.  
-  - This means builders automatically gain structural validation through `IsValid()`.  
-  - Invalid tables are now caught earlier, reducing runtime ambiguity.  
+## 🔧 Supporting Modules
 
----
+### Token (resolver)
+- Centralizes type validation and expression resolution.  
+- `ValidateType` rules:
+  - `string` → accepted.
+  - Existing tokens (`Validable`) → rejected with **Clone()** hint.
+  - All other types → `invalid format (type …)`.
+- `ResolveExpr` enhancements:
+  - Subquery detection: `(SELECT …)` treated as one expression.
+  - Strict identifier validation (must be a single token).
+  - Alias parsing via inline, `AS`, or trailing identifier.
 
-## 📚 Documentation & Examples
-- **`doc.go`** rewritten with strict contract ordering:  
-  `BaseToken → Clonable → Debuggable → Errorable → Rawable → Renderable → Stringable → Validable`.  
-- **`README.md`** updated to reflect the new contract set and generic `Errorable`.  
-- **`example_test.go`** revised:  
-  - One method → one example.  
-  - Valid and invalid cases shown consistently.  
-  - `BaseToken` and `Validable` tested independently.  
-
----
-
-## ✅ Why this matters
-These changes make contracts:
-- **More composable** → each contract handles a single concern.  
-- **More type-safe** → generic `Errorable` avoids unsafe casts.  
-- **More auditable** → `Validable` provides a universal way to check validity.  
-- **Builder-aware** → `SelectBuilder` (and future builders) benefit automatically from `Validable` checks.  
-
-This lays the foundation for more advanced tokens (`Join`, computed fields, subqueries) while ensuring builders remain safe and predictable.
+### Token (ExpressionKind)
+- `IsValidAlias` now rejects reserved SQL keywords (`AS`, `SELECT`, `FROM`, `WHERE`, `JOIN`).  
+- Expression classification improved:
+  - Identifiers, literals, subqueries, aggregates, and functions detected reliably.
 
 ---
 
 ## 🔗 New Join Token
 
-This release also introduces a dedicated **`join.Token`** for representing SQL JOIN clauses:
+A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 
-- **Safe constructors**: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
-- **Flexible constructor**: `New(kind any, left, right, condition)` for advanced scenarios (e.g. configuration, DSLs).
-- **Kind enum**: `join.Kind` (`InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`) with helpers:
-  - `String()` → canonical SQL keyword or `invalid join type (n)` for invalid values.
+- **Safe constructors**: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.  
+- **Flexible constructor**: `New(kind any, left, right, condition)` for DSLs/config use.  
+- **JoinKind enum**: `InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin` with helpers:
+  - `String()` → canonical SQL keyword or `invalid join type (n)`.
   - `IsValid()` → structural validation.
-  - `ParseJoinKindFrom()` → case-insensitive string parsing.
-- **Validation rules**:
-  - Early exit on invalid kind.
-  - Left/Right tables must be present and valid.
-  - Condition must not be empty.
-- **Contracts**:
-  - Implements all shared contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
-
-This ensures JOIN clauses are first-class citizens in the builder ecosystem, consistent with fields and tables.
+  - `ParseJoinKindFrom()` → case-insensitive parsing.  
+- **Validation**:
+  - Invalid kind rejected early.
+  - Left/Right tables must be valid.
+  - Join condition must not be empty.  
+- **Contracts**: Implements all shared contracts (`Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`).
 
 ---
+
+## 🛠️ Affected Tokens & Builders
+- **`table.Token`** and **`field.Token`** now use `resolver.ValidateType`.  
+- Invalid states improved:
+  - Passing tokens directly → rejected with **Clone()** hint.
+  - Invalid alias (including reserved words) → rejected.  
+  - Literals/aggregates rejected as table sources.  
+- **Impact**: Builders such as `SelectBuilder` now automatically benefit from strict validation and error reporting.
+
+---
+
+## 📚 Documentation & Examples
+- `doc.go` updated to mention **resolver**, **ExpressionKind**, and **join**.  
+- `README.md`:
+  - Root token README lists `field`, `table`, `join`, `resolver`, and `ExpressionKind`.  
+  - `table` README updated with stricter alias validation, Clone() guidance, and error cases.  
+  - Headings normalized (removed emoji from `# Token`).  
+- `example_test.go`:
+  - Subquery examples uncommented.  
+  - New examples for invalid input and Clone() hints.  
+  - `IsRaw` examples updated (currently false, will later derive from `Kind()`).  
+
+---
+
+## ✅ Why this matters
+- **Consistency**: All tokens now share strict validation, contracts, and error semantics.  
+- **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, literals in FROM).  
+- **Extensibility**: Foundation laid for conditions, functions, and advanced tokens.  
+- **Clarity**: Documentation and examples aligned with real behavior.
+
+---
+
