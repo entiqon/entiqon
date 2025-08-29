@@ -37,9 +37,18 @@ The changes strengthen type safety, alias validation, and parsing, ensuring high
   - Alias parsing via inline, `AS`, or trailing identifier.
 
 ### Token (ExpressionKind)
-- `IsValidAlias` now rejects reserved SQL keywords (`AS`, `SELECT`, `FROM`, `WHERE`, `JOIN`).  
+- Added `Invalid` kind for unrecognized expressions.  
+- `String()` and `IsValid()` updated accordingly.  
 - Expression classification improved:
-  - Identifiers, literals, subqueries, aggregates, and functions detected reliably.
+  - Aggregates (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) now reported as `Aggregate`.
+  - Computed expressions (`price * quantity`) reported as `Computed`.
+  - Functions (`JSON_EXTRACT(...)`) remain `Function`.
+
+### Token (helpers)
+- Introduced **helpers** package for reusable validation utilities.  
+  - Initial helper: `IsValidIdentifier` with strict SQL identifier rules.  
+  - Includes `identifier_test.go` with exhaustive valid/invalid cases.  
+  - Added `doc.go` (dialect-agnostic rules now, dialect-specific later) and `README.md`.
 
 ---
 
@@ -72,9 +81,9 @@ A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 ---
 
 ## 📚 Documentation & Examples
-- `doc.go` updated to mention **resolver**, **ExpressionKind**, and **join**.  
+- `doc.go` updated to mention **resolver**, **ExpressionKind**, **helpers**, and **join**.  
 - `README.md`:
-  - Root token README lists `field`, `table`, `join`, `resolver`, and `ExpressionKind`.  
+  - Root token README lists `field`, `table`, `join`, `resolver`, `ExpressionKind`, and `helpers`.  
   - `table` README updated with stricter alias validation, Clone() guidance, and error cases.  
   - Headings normalized (removed emoji from `# Token`).  
 - `example_test.go`:
@@ -87,8 +96,5 @@ A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 ## ✅ Why this matters
 - **Consistency**: All tokens now share strict validation, contracts, and error semantics.  
 - **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, literals in FROM).  
-- **Extensibility**: Foundation laid for conditions, functions, and advanced tokens.  
+- **Extensibility**: Foundation laid for conditions, functions, helpers, and advanced tokens.  
 - **Clarity**: Documentation and examples aligned with real behavior.
-
----
-
