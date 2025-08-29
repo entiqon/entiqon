@@ -15,24 +15,48 @@ used across multiple token types (Field, Table, Join, etc.).
 - **Consistency** — all helpers follow the same pattern:
     - `ValidateXxx(s string) error` → returns rich error messages.
     - `IsValidXxx(s string) bool` → convenience wrapper for quick checks.
+    - `GenerateAlias(prefix, expr string)` → produces deterministic,
+      safe aliases for non-identifier expressions.
 - **Future-proof** — current rules are dialect-agnostic, but dialect
   packages will later override them with grammar-specific rules.
 
 ## Current Helpers
 
-- `IsValidIdentifier` / `ValidateIdentifier` — strict checks for valid SQL identifiers
+- `IsValidIdentifier` / `ValidateIdentifier`  
+  Strict checks for valid SQL identifiers
     - Must not be empty.
     - Must start with a letter (A–Z, a–z) or underscore (`_`).
     - Remaining characters may be letters, digits, or underscores.
     - Non-ASCII identifiers (e.g. `café`, `mañana`) are rejected until
       dialect-specific rules are introduced.
 
+- `IsValidAlias` / `ValidateAlias`  
+  Checks if a string is a valid alias.
+    - Must be a valid identifier.
+    - Must not be a reserved keyword (case-insensitive).
+
+- `HasTrailingAlias` / `ValidateTrailingAlias`  
+  Detects and validates trailing aliases (e.g. `(price * qty) total`).
+    - Ignores explicit `AS` (handled by the resolver).
+    - Ensures last token is not part of the expression.
+    - Rejects reserved keywords or invalid alias syntax.
+
+- `ReservedKeywords`  
+  Returns the current dialect-agnostic set of SQL keywords disallowed
+  as aliases. Dialects may extend or override this list.
+
+- `GenerateAlias`  
+  Produces deterministic aliases for non-identifier expressions.
+    - Combines a two-letter kind code (from `ExpressionKind.Alias()`)
+      with a SHA-1 hash of the expression.
+    - Always returns a safe SQL identifier.
+    - Example: `GenerateAlias("fn", "SUM(price)") → "fn_a1b2c3"`.
+
 ## Roadmap
 
-As more helpers are promoted (alias validation, trailing alias
-detection, literal checks, etc.), they will be added here with their
-own independent tests and will follow the same **Validate/IsValid**
-pattern for consistency.
+As more helpers are promoted (e.g. literal checks), they will be added
+here with their own independent tests and will follow the same
+**Validate/IsValid/Generate** pattern for consistency.
 
 ---
 
