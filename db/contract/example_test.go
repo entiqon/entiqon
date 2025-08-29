@@ -32,7 +32,8 @@ func ExampleDebuggable() {
 	t := table.New("users", "u")
 	var d contract.Debuggable = t
 	fmt.Println(d.Debug())
-	// Output: ✅ Table("users AS u"): [raw:true, aliased:true, errored:false]
+	// Output:
+	// ✅ Table("users u"): [raw:false, aliased:true, errored:false]
 }
 
 // ExampleErrorable demonstrates using a Table as an Errorable.
@@ -52,7 +53,7 @@ func ExampleErrorable() {
 
 	// Output:
 	// true
-	// invalid format "users AS"
+	// invalid alias: AS
 	// true
 	// manual mark as errored
 }

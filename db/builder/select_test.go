@@ -148,8 +148,11 @@ func TestSelectBuilder(t *testing.T) {
 					_, err := builder.NewSelect(nil).
 						Source(12345).
 						Build()
-					if err != nil {
-						t.Errorf("expected no error, got %v", err)
+					if err == nil {
+						t.Errorf("expected error, got nil")
+					}
+					if !strings.Contains(err.Error(), "cannot be used as a table source") {
+						t.Errorf("got %q, want %q", err, "cannot be used as a table source")
 					}
 				})
 
@@ -157,7 +160,7 @@ func TestSelectBuilder(t *testing.T) {
 					_, err := builder.NewSelect(nil).
 						Source("users", false).
 						Build()
-					if err != nil {
+					if err == nil {
 						t.Errorf("expected no error, got %v", err)
 					}
 				})
@@ -910,7 +913,7 @@ func TestSelectBuilder(t *testing.T) {
 						t.Fatal("expected error, got nil")
 					}
 
-					want := "❌ [Build] - Wrong initialization. Cannot build on receiver nil"
+					want := "❌ [Build] – Wrong initialization. Cannot build on receiver nil"
 					if err.Error() != want {
 						t.Errorf("unexpected error: got %q, want %q", err.Error(), want)
 					}
@@ -920,7 +923,10 @@ func TestSelectBuilder(t *testing.T) {
 					sb := builder.NewSelect(nil).
 						Fields("id")
 					_, err := sb.Build()
-					if err == nil && !strings.Contains(err.Error(), "no source specified") {
+					if err == nil {
+						t.Fatal("expected error, got nil")
+					}
+					if !strings.Contains(err.Error(), "Source is nil") {
 						t.Errorf("expected error, got nil")
 					}
 				})

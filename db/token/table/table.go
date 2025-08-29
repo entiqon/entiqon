@@ -1,27 +1,35 @@
 package table
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/entiqon/entiqon/db/contract"
 	"github.com/entiqon/entiqon/db/token"
 )
 
-// Table represents a SQL table token.
+// table represents a SQL table token.
 //
-// A Table encapsulates the user-provided input, the normalized
-// table name, and an optional alias. It exposes multiple forms:
+// A table encapsulates the user-provided input, the normalized
+// base table name, and an optional alias. It provides multiple
+// forms for different audiences:
 //
-//   - Raw(): generic SQL fragment (dialect-agnostic).
-//   - Render(): canonical, machine-facing representation for query building.
-//   - String(): human-facing representation for logs and audits.
-//   - Debug(): developer-facing internal state.
+//   - Identity: Kind(), Input(), Expr(), Name(), Alias(), IsAliased()
+//   - Lifecycle: Clone(), IsErrored(), Error(), SetError(), IsValid()
+//   - Representations: Raw(), Render(), String(), Debug()
 //
-// Table also supports semantic cloning via contract.Clonable,
-// error inspection via contract.Errorable, and raw-state
-// inspection via contract.Rawable.
-type Table struct {
+// Internal fields:
+//   - kind: identifies the token category (reserved for future use).
+//   - input: the exact user-provided string, preserved verbatim.
+//   - name: the normalized base table name, derived from input.
+//   - alias: the optional alias (parsed or explicitly set).
+//   - err: any construction or validation error.
+//   - isRaw: whether the table was constructed via the two-argument
+//     form or as a subquery.
+type table struct {
 	kind token.ExpressionKind
+
 	// input is the exact user-provided string, never modified.
 	input string
 
@@ -51,111 +59,95 @@ type Table struct {
 //   - table.New("(SELECT ...) AS t")
 //     → name="(SELECT ...)", alias="t", isRaw=true
 //
-// The first argument is always preserved in input (verbatim or normalized).
-// If construction fails, the returned Table is errored but still
-// carries the original input for diagnostics.
-func New(args ...string) Token {
-	t := &Table{}
-	if len(args) > 0 {
-		t.input = strings.TrimSpace(args[0])
+// The first argument is always preserved verbatim in input.
+// If construction fails, the returned table is errored but
+// still carries the original input for diagnostics.
+func New(input ...any) Token {
+	t := &table{input: fmt.Sprint(input...)}
+	if len(input) == 0 {
+		return t.SetError(errors.New("empty input is not allowed"))
 	}
 
-	switch len(args) {
-	case 0:
-		t.err = fmt.Errorf("requires at least one argument")
-		return t
+	// validate type of first argument
+	if err := contract.ValidateType(input[0]); err != nil {
+		if errors.Is(err, contract.ErrUnsupportedType) {
+			return t.SetError(fmt.Errorf("%w; if you want to create a copy, use Clone() instead", err))
+		}
+		return t.SetError(fmt.Errorf("expr has %w", err))
+	}
 
+	switch len(input) {
 	case 1:
-		raw := strings.TrimSpace(args[0])
-		if raw == "" {
-			t.err = fmt.Errorf("empty table name")
-			return t
+		t.input = input[0].(string)
+		kind, name, alias, err := token.ResolveExpr(t.input, true)
+		if err != nil {
+			return t.SetError(err)
 		}
-		t.input = raw
-
-		// Subquery form
-		if strings.HasPrefix(raw, "(") {
-			upper := strings.ToUpper(raw)
-			if strings.Contains(upper, " AS ") {
-				idx := strings.LastIndex(upper, " AS ")
-				t.name = strings.TrimSpace(raw[:idx])
-				t.alias = strings.TrimSpace(raw[idx+4:])
-				t.isRaw = true
-			} else {
-				t.name = raw
-				t.isRaw = true // ✅ ensure all subqueries are marked raw
-				t.err = fmt.Errorf("subquery source must have an alias")
-			}
-			return t
-		}
-
-		// Plain table parsing
-		parts := strings.Fields(raw)
-		switch len(parts) {
-		case 1:
-			t.name = parts[0]
-		case 2:
-			if strings.EqualFold(parts[1], "AS") {
-				t.err = fmt.Errorf("invalid format %q", raw)
-			} else {
-				t.name, t.alias = parts[0], parts[1]
-			}
-		case 3:
-			if strings.EqualFold(parts[1], "AS") {
-				t.name, t.alias = parts[0], parts[2]
-			} else {
-				t.err = fmt.Errorf("invalid format %q", raw)
-			}
-		default:
-			t.err = fmt.Errorf("too many tokens in %q", raw)
-		}
+		t.kind, t.name, t.alias = kind, name, alias
 
 	case 2:
-		name := strings.TrimSpace(args[0])
-		alias := strings.TrimSpace(args[1])
-		if name == "" || alias == "" {
-			t.input = strings.Join(args, " ")
-			t.err = fmt.Errorf("table and alias must be non-empty")
-			return t
+		// explicit two-argument form: expr, alias
+		t.input = fmt.Sprint(input[0], " ", input[1])
+
+		// resolve only the core expression, alias is handled separately
+		kind, name, _, err := token.ResolveExpr(fmt.Sprint(input[0]), false)
+		if err != nil {
+			return t.SetError(err)
+		}
+		t.kind, t.name = kind, name
+
+		// handle alias from second arg
+		switch v := input[1].(type) {
+		case string:
+			t.alias = strings.TrimSpace(v)
+		case fmt.Stringer:
+			t.alias = strings.TrimSpace(v.String())
+		default:
+			return t.SetError(fmt.Errorf("alias must be a string, got %T", v))
+		}
+		if t.alias == "" {
+			return t.SetError(fmt.Errorf("alias must be non-empty"))
+		}
+		if !token.IsValidAlias(t.alias) {
+			return t.SetError(fmt.Errorf("invalid alias %q", t.alias))
 		}
 
-		t.name, t.alias, t.isRaw = name, alias, true
-		t.input = fmt.Sprintf("%s AS %s", name, alias)
-
 	default:
-		t.input = strings.Join(args, " ")
-		t.err = fmt.Errorf("too many arguments")
+		return t.SetError(fmt.Errorf("too many arguments"))
+	}
+
+	// ✅ one place only: context rule
+	if t.kind == token.Literal || t.kind == token.Aggregate {
+		return t.SetError(fmt.Errorf(
+			"%s %q cannot be used as a table source",
+			strings.ToLower(t.kind.String()), t.name,
+		))
 	}
 
 	return t
 }
 
-func (t *Table) ExpressionKind() token.ExpressionKind {
-	return t.kind
-}
+// Kind returns the kind of token (always table).
+func (t *table) ExpressionKind() token.ExpressionKind { return t.kind }
 
-func (t *Table) Input() string {
-	return t.input
-}
+// Input returns the exact user-provided input string.
+func (t *table) Input() string { return t.input }
 
-func (t *Table) Expr() string {
-	return t.name
-}
+// Expr returns the normalized table name (without alias).
+func (t *table) Expr() string { return t.name }
 
-func (t *Table) Name() string {
-	return t.name
-}
+// Name returns the normalized base table name.
+func (t *table) Name() string { return t.name }
 
-func (t *Table) Alias() string {
-	return t.name
-}
+// Alias returns the alias of the table, if any.
+func (t *table) Alias() string { return t.alias }
 
 // IsAliased reports whether the table has an alias.
-func (t *Table) IsAliased() bool { return t.alias != "" }
+func (t *table) IsAliased() bool { return t.alias != "" }
 
-// Clone returns a semantic copy of the Table.
-func (t *Table) Clone() Token {
-	return &Table{
+// Clone returns a semantic copy of the table.
+func (t *table) Clone() Token {
+	return &table{
 		input: t.input,
 		name:  t.name,
 		alias: t.alias,
@@ -164,13 +156,12 @@ func (t *Table) Clone() Token {
 	}
 }
 
-// Debug returns a developer-facing representation of the Table.
+// Debug returns a developer-facing representation of the table.
 //
 // The output is verbose and intended for diagnostics, showing the
-// original input and internal state flags (raw, aliased, errored).
-// If the Table is errored, Debug also appends the error message
-// inside a separate { } block.
-func (t *Table) Debug() string {
+// original input and internal flags (raw, aliased, errored).
+// If the table is errored, Debug also appends the error message.
+func (t *table) Debug() string {
 	flags := fmt.Sprintf(
 		"[raw:%v, aliased:%v, errored:%v]",
 		t.IsRaw(),
@@ -183,28 +174,39 @@ func (t *Table) Debug() string {
 	return fmt.Sprintf("✅ Table(%q): %s", t.input, flags)
 }
 
-// IsErrored reports whether the Table was constructed with an error.
-func (t *Table) IsErrored() bool { return t.err != nil }
+// IsErrored reports whether the table was constructed with an error.
+func (t *table) IsErrored() bool { return t.err != nil }
 
 // Error returns the underlying construction error, if any.
-func (t *Table) Error() error { return t.err }
+func (t *table) Error() error { return t.err }
 
-// SetError assigns an error to the table. Intended for use during
-// construction/parsing to capture validation failures.
-func (t *Table) SetError(err error) Token {
+// SetError assigns an error to the table and returns it.
+//
+// This is primarily used during parsing to capture validation failures.
+func (t *table) SetError(err error) Token {
 	t.err = err
 	return t
 }
 
-// IsRaw reports whether the Table was explicitly constructed as raw
-// (via the two-argument form or as a subquery).
-func (t *Table) IsRaw() bool { return t.isRaw }
+// IsRaw reports whether the table represents a raw expression
+// (subquery, explicit 2-arg form, or anything that is not a plain identifier).
+func (t *table) IsRaw() bool {
+	if t.IsErrored() {
+		return false
+	}
+	switch t.kind {
+	case token.Subquery, token.Computed, token.Function, token.Aggregate:
+		return true
+	default:
+		return false
+	}
+}
 
-// Raw returns the generic SQL fragment of the Table, including alias if present.
+// Raw returns the generic SQL fragment of the table, including alias if present.
 //
 // Unlike Render(), Raw() does not apply dialect-specific quoting or rewriting.
 // It simply reflects the normalized fragment as a plain SQL string.
-func (t *Table) Raw() string {
+func (t *table) Raw() string {
 	if !t.IsValid() {
 		return ""
 	}
@@ -214,14 +216,14 @@ func (t *Table) Raw() string {
 	return t.name
 }
 
-// Render returns the canonical SQL representation of the Table.
+// Render returns the canonical SQL representation of the table.
 //
 // Render() differs from Raw() in that it represents the resolved form
 // the builder will actually use. It may later be extended to apply
 // dialect-specific quoting or rewriting.
 //
-// If the Table is invalid or errored, Render() returns an empty string.
-func (t *Table) Render() string {
+// If the table is invalid or errored, Render() returns an empty string.
+func (t *table) Render() string {
 	if !t.IsValid() {
 		return ""
 	}
@@ -231,16 +233,16 @@ func (t *Table) Render() string {
 	return t.name
 }
 
-// String returns the human-facing representation of the Table.
+// String returns the human-facing representation of the table.
 //
 // Unlike Render(), which is used in query building, String() is
 // intended for logs and audits. It produces a concise summary of
 // the table state.
 //
-// If the Table is invalid or errored, String() reports the user input
+// If the table is invalid or errored, String() reports the user input
 // and the associated error. If valid, it reports the normalized form
 // with alias if present, prefixed with a ✅ marker.
-func (t *Table) String() string {
+func (t *table) String() string {
 	if !t.IsValid() {
 		// Always show original input and error
 		return fmt.Sprintf("❌ Table(%q): %v", t.input, t.err)
@@ -252,4 +254,4 @@ func (t *Table) String() string {
 }
 
 // IsValid reports whether the table has a non-empty name and no error.
-func (t *Table) IsValid() bool { return !t.IsErrored() && t.name != "" }
+func (t *table) IsValid() bool { return !t.IsErrored() && t.name != "" }
