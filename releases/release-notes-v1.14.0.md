@@ -46,9 +46,17 @@ The changes strengthen type safety, alias validation, and parsing, ensuring high
 
 ### Token (helpers)
 - Introduced **helpers** package for reusable validation utilities.  
-  - Initial helper: `IsValidIdentifier` with strict SQL identifier rules.  
-  - Includes `identifier_test.go` with exhaustive valid/invalid cases.  
-  - Added `doc.go` (dialect-agnostic rules now, dialect-specific later) and `README.md`.
+  - Initial helper: `IsValidIdentifier` / `ValidateIdentifier`.  
+  - Explicit error messages for invalid identifiers:
+    - Empty → `identifier cannot be empty`
+    - Starting with digit → `identifier cannot start with digit`
+    - Invalid syntax → `invalid identifier syntax: ...`
+  - Non-ASCII identifiers (e.g. `café`, `mañana`, `niño`) are explicitly rejected until dialect-specific rules are added.  
+  - Consistency rule enforced: all helpers expose both:
+    - `ValidateXxx(s string) error` → rich error reason  
+    - `IsValidXxx(s string) bool` → quick check  
+  - Independent test file with exhaustive valid/invalid cases and runnable examples.  
+  - Includes `doc.go` and `README.md` describing rules and consistency.
 
 ---
 
@@ -89,12 +97,13 @@ A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 - `example_test.go`:
   - Subquery examples uncommented.  
   - New examples for invalid input and Clone() hints.  
+  - Identifier examples added showing non-ASCII rejection.  
   - `IsRaw` examples updated (currently false, will later derive from `Kind()`).  
 
 ---
 
 ## ✅ Why this matters
-- **Consistency**: All tokens now share strict validation, contracts, and error semantics.  
-- **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, literals in FROM).  
-- **Extensibility**: Foundation laid for conditions, functions, helpers, and advanced tokens.  
+- **Consistency**: All helpers and tokens now share strict validation with a `ValidateXxx` + `IsValidXxx` pattern.  
+- **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, non-ASCII identifiers, literals in FROM).  
+- **Extensibility**: Foundation laid for alias validation, trailing alias detection, and dialect-specific rules.  
 - **Clarity**: Documentation and examples aligned with real behavior.

@@ -6,23 +6,41 @@ import (
 	"github.com/entiqon/entiqon/db/token/helpers"
 )
 
-// ExampleIsValidIdentifier shows how to validate strings as SQL identifiers.
+// ExampleIsValidIdentifier demonstrates quick true/false checks.
 func ExampleIsValidIdentifier() {
-	// Valid identifiers
-	fmt.Println(helpers.IsValidIdentifier("id"))
 	fmt.Println(helpers.IsValidIdentifier("user_id"))
-	fmt.Println(helpers.IsValidIdentifier("_col123"))
-
-	// Invalid identifiers
 	fmt.Println(helpers.IsValidIdentifier("123abc"))
-	fmt.Println(helpers.IsValidIdentifier("first-name"))
-	fmt.Println(helpers.IsValidIdentifier(""))
 
 	// Output:
 	// true
-	// true
-	// true
 	// false
-	// false
-	// false
+}
+
+// ExampleValidateIdentifier demonstrates detailed validation errors.
+func ExampleValidateIdentifier() {
+	// Valid identifier → nil error
+	fmt.Println(helpers.ValidateIdentifier("user_id"))
+
+	// Empty identifier
+	fmt.Println(helpers.ValidateIdentifier(""))
+
+	// Starts with digit
+	fmt.Println(helpers.ValidateIdentifier("123abc"))
+
+	// Invalid syntax (dash)
+	fmt.Println(helpers.ValidateIdentifier("user-name"))
+
+	// Non-ASCII identifiers (strict mode rejects them)
+	fmt.Println(helpers.ValidateIdentifier("café"))
+	fmt.Println(helpers.ValidateIdentifier("mañana"))
+	fmt.Println(helpers.ValidateIdentifier("niño"))
+
+	// Output:
+	// <nil>
+	// identifier cannot be empty
+	// identifier cannot start with digit: "123abc"
+	// invalid identifier syntax: "user-name"
+	// invalid identifier syntax: "café"
+	// invalid identifier syntax: "mañana"
+	// invalid identifier syntax: "niño"
 }
