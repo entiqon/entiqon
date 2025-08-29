@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/entiqon/entiqon/db/token"
 	"github.com/entiqon/entiqon/db/token/field"
 )
 
@@ -468,17 +469,17 @@ func TestField(t *testing.T) {
 	t.Run("EdgeCases", func(t *testing.T) {
 		t.Run("HasTrailingAliasWithoutAS", func(t *testing.T) {
 			// Single token: false
-			if field.HasTrailingAliasWithoutAS("id") {
+			if token.HasTrailingAliasWithoutAS("id") {
 				t.Error("expected false for single token expr")
 			}
 
 			// Valid trailing alias: true
-			if !field.HasTrailingAliasWithoutAS("SUM(price) total") {
+			if !token.HasTrailingAliasWithoutAS("SUM(price) total") {
 				t.Error("expected true when trailing alias looks like identifier")
 			}
 
 			// Invalid trailing alias (symbolic): false
-			if field.HasTrailingAliasWithoutAS("col1 + col2 123") {
+			if token.HasTrailingAliasWithoutAS("col1 + col2 123") {
 				t.Error("expected false when trailing token is not valid identifier")
 			}
 		})

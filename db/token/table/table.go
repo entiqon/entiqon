@@ -3,6 +3,8 @@ package table
 import (
 	"fmt"
 	"strings"
+
+	"github.com/entiqon/entiqon/db/token"
 )
 
 // Table represents a SQL table token.
@@ -19,6 +21,7 @@ import (
 // error inspection via contract.Errorable, and raw-state
 // inspection via contract.Rawable.
 type Table struct {
+	kind token.ExpressionKind
 	// input is the exact user-provided string, never modified.
 	input string
 
@@ -125,6 +128,10 @@ func New(args ...string) Token {
 	}
 
 	return t
+}
+
+func (t *Table) ExpressionKind() token.ExpressionKind {
+	return t.kind
 }
 
 func (t *Table) Input() string {

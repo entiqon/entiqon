@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/entiqon/entiqon/db/token"
 )
 
 // field represents a column/field or expression in a SELECT clause.
@@ -18,6 +20,8 @@ import (
 // treated as raw SQL (and therefore not quoted by any dialect), and a
 // possible error captured during parsing/validation.
 type field struct {
+	kind token.ExpressionKind
+
 	// owner returns the optional table associated with this field.
 	// If no table was set, it returns nil.
 	owner *string
@@ -178,7 +182,7 @@ func New(input ...any) Token {
 		f.alias = parsedAlias
 		if f.isRaw {
 			// Adapted behavior: accept trailing alias without AS
-			if HasTrailingAliasWithoutAS(f.input) {
+			if token.HasTrailingAliasWithoutAS(f.input) {
 				parsedExpr, parsedAlias, _ := parseAlias(f.input)
 				f.expr = parsedExpr
 				f.alias = parsedAlias
@@ -216,6 +220,10 @@ func NewWithTable(owner string, input ...any) Token {
 	// Attach the table.
 	f.SetOwner(&owner)
 	return f
+}
+
+func (f *field) ExpressionKind() token.ExpressionKind {
+	return f.kind
 }
 
 // HasOwner returns the owning table name or alias if set.
@@ -367,34 +375,6 @@ func autoAlias(expr string) string {
 	h.Write([]byte(expr))
 	sum := hex.EncodeToString(h.Sum(nil))
 	return prefix + sum[:6] // 6 hex chars => ~16.7 million combinations
-}
-
-// HasTrailingAliasWithoutAS checks if the last space-separated token is an alias candidate
-func HasTrailingAliasWithoutAS(expr string) bool {
-	up := strings.ToUpper(expr)
-	if strings.Contains(up, " AS ") {
-		return false // explicit AS → fine
-	}
-
-	tokens := strings.Fields(expr)
-	if len(tokens) <= 1 {
-		return false // single token can't have alias
-	}
-
-	last := tokens[len(tokens)-1]
-	penultimate := tokens[len(tokens)-2]
-
-	// If the token before last is an operator, this "last" is part of the expression, not alias
-	operators := map[string]bool{"||": true, "+": true, "-": true, "*": true, "/": true}
-	if operators[penultimate] {
-		return false
-	}
-
-	// Otherwise, if it looks like an identifier → treat as alias
-	if regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`).MatchString(last) {
-		return true
-	}
-	return false
 }
 
 // isRawExpr detects whether the expression contains raw SQL indicators.
