@@ -1,12 +1,11 @@
 // Package helpers provides utility functions for validating and
-// classifying SQL identifiers, aliases, and expression fragments.
+// classifying SQL identifiers.
 //
 // # Purpose
 //
 // These helpers centralize low-level validation logic that is reused
-// across multiple tokens (Field, Table, Join, etc.). Examples include
-// checking whether a string is a valid identifier, whether an alias
-// is acceptable, or whether an expression has a trailing alias.
+// across multiple tokens (Field, Table, etc.). Examples include
+// checking whether a string is a valid identifier.
 //
 // # Current Rules
 //
@@ -14,12 +13,19 @@
 //
 //   - Identifiers must start with a letter or underscore and may
 //     contain letters, digits, and underscores.
-//   - Aliases must be valid identifiers and not match reserved keywords.
-//   - Trailing alias detection is done heuristically by checking the
-//     last token when "AS" is not present.
+//   - Non-ASCII identifiers (e.g. café, mañana, niño) are rejected.
 //
 // These rules are intentionally strict and conservative to prevent
 // invalid tokens from being accepted silently.
+//
+// # Consistency
+//
+// All helpers follow the same validation pattern:
+//
+//   - ValidateXxx(s string) error → returns a detailed error if invalid.
+//   - IsValidXxx(s string) bool   → returns true/false as a convenience wrapper.
+//
+// This ensures consistent usage across all helpers.
 //
 // # Future Dialect-Specific Rules
 //

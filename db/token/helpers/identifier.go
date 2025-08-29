@@ -1,42 +1,38 @@
-// Package helpers provides utility functions for validating and
-// classifying SQL identifiers, aliases, and expression fragments.
-//
-// These helpers are intentionally small, pure functions so they can
-// be reused by multiple token types (Field, Table, etc.) and tested
-// independently without involving higher-level builders.
 package helpers
 
-// IsValidIdentifier reports whether the string is a valid SQL identifier.
+import (
+	"fmt"
+	"regexp"
+)
+
+// identifierPattern defines the allowed structure of SQL identifiers.
+//   - First character: letter (A–Z, a–z) or underscore (_)
+//   - Remaining characters: letters, digits (0–9), or underscores
+var identifierPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// ValidateIdentifier checks if s is a valid SQL identifier.
+// Returns nil if valid, or an error describing why it is invalid.
 //
-// Rules:
-//   - Must not be empty
-//   - First character must be a letter (A–Z, a–z) or underscore (_)
-//   - Remaining characters may be letters, digits (0–9), or underscores (_)
-//
-// This helper does not check for reserved keywords; see IsValidAlias
-// for alias-specific validation.
-func IsValidIdentifier(s string) bool {
+// Reasons for invalid identifiers:
+//   - Empty string
+//   - Starts with a digit or invalid character
+//   - Contains disallowed characters (e.g. space, dash, punctuation)
+func ValidateIdentifier(s string) error {
 	if s == "" {
-		return false
+		return fmt.Errorf("identifier cannot be empty")
 	}
-
-	// first char: letter or underscore
-	first := s[0]
-	if !(first == '_' ||
-		(first >= 'A' && first <= 'Z') ||
-		(first >= 'a' && first <= 'z')) {
-		return false
-	}
-
-	// remaining chars: letter, digit, underscore
-	for i := 1; i < len(s); i++ {
-		ch := s[i]
-		if !(ch == '_' ||
-			(ch >= 'A' && ch <= 'Z') ||
-			(ch >= 'a' && ch <= 'z') ||
-			(ch >= '0' && ch <= '9')) {
-			return false
+	if !identifierPattern.MatchString(s) {
+		first := s[0]
+		if first >= '0' && first <= '9' {
+			return fmt.Errorf("identifier cannot start with digit: %q", s)
 		}
+		return fmt.Errorf("invalid identifier syntax: %q", s)
 	}
-	return true
+	return nil
+}
+
+// IsValidIdentifier is a convenience wrapper that returns true if the identifier
+// is valid, false otherwise. Prefer ValidateIdentifier when you need the reason.
+func IsValidIdentifier(s string) bool {
+	return ValidateIdentifier(s) == nil
 }
