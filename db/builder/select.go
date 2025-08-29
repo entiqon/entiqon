@@ -84,8 +84,8 @@ func (b *SelectBuilder) Source(args ...any) *SelectBuilder {
 		for _, a := range args {
 			strArgs = append(strArgs, fmt.Sprintf("%v", a))
 		}
-		b.source = table.New(strArgs...)
-	case *table.Table:
+		b.source = table.New(args...)
+	case table.Token:
 		if len(args) == 1 {
 			b.source = v
 		} else {
@@ -286,11 +286,14 @@ func (b *SelectBuilder) String() string {
 // Build constructs the SQL query string.
 func (b *SelectBuilder) Build() (string, error) {
 	if b == nil {
-		return "", fmt.Errorf("❌ [Build] - Wrong initialization. Cannot build on receiver nil")
+		return "", fmt.Errorf("❌ [Build] – Wrong initialization. Cannot build on receiver nil")
 	}
 
-	if b.source == nil || !b.source.IsValid() {
-		return "", errors.New(b.String())
+	if b.source == nil {
+		return "", errors.New("❌ [Build] – Source is nil")
+	}
+	if !b.source.IsValid() {
+		return "", b.source.Error()
 	}
 
 	if b.fields.Length() == 0 {
