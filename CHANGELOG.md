@@ -34,6 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Computed expressions (`price * quantity`) reported as `Computed`.
     - Functions (`JSON_EXTRACT(...)`) remain `Function`.
 
+### Token (identifier)
+- Introduced **identifier.Type** enum to classify SQL expressions:
+    - Categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
+    - Methods:
+        - `Alias()` provides short codes (`id`, `lt`, `fn`, `ag`, `cp`, `sq`, `ex`).
+        - `IsValid()` ensures strict recognition of supported kinds.
+        - `ParseFrom(any)` safely coerces from int, string, or existing Type.
+        - `String()` returns capitalized labels (`Identifier`, `Function`, …) with `Unknown` fallback.
+    - Documentation:
+        - Added `doc.go` with overview, categories, and philosophy.
+        - Updated `README.md` with examples, philosophy, and license section.
+        - Added `example_test.go` demonstrating usage including edge cases.
+
 ### Token (helpers)
 - Introduced **helpers** package for reusable validation utilities.
     - Identifier validation:
