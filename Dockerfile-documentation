@@ -27,6 +27,7 @@ COPY db/token/README.md                    docs/packages/db/token/overview.md
 COPY db/token/field/README.md              docs/packages/db/token/field.md
 COPY db/token/table/README.md              docs/packages/db/token/table.md
 COPY db/token/join/README.md               docs/packages/db/token/join.md
+COPY db/token/types/identifier/README.md   docs/packages/db/token/types/identifier.md
 COPY db/token/helpers/README.md            docs/packages/db/token/helpers.md
 COPY releases/ docs/releases/
 RUN echo "Documentation content copied"
