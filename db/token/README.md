@@ -13,11 +13,12 @@ to assemble safe, expressive, and auditable SQL statements.
 
 ## 📦 Sub-packages
 
-| Package            | Purpose                                                                                               |
-|--------------------|-------------------------------------------------------------------------------------------------------|
-| [`field`](./field) | Represents a column, identifier, or computed expression (with aliasing, raw expressions, validation). |
-| [`table`](./table) | Represents a SQL source (table or view) used in `FROM` / `JOIN` clauses with aliasing and validation. |
-| [`join`](./join)   | Represents JOIN clauses (`INNER`, `LEFT`, etc.) with strict validation of join kind and conditions.   |
+| Package                | Purpose                                                                                                                                              |
+|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`field`](./field)     | Represents a column, identifier, or computed expression (with aliasing, raw expressions, validation).                                                |
+| [`table`](./table)     | Represents a SQL source (table or view) used in `FROM` / `JOIN` clauses with aliasing and validation.                                                |
+| [`join`](./join)       | Represents JOIN clauses (`INNER`, `LEFT`, etc.) with strict validation of join kind and conditions.                                                  |
+| [`helpers`](./helpers) | Provides reusable validation utilities for identifiers, aliases, trailing aliases, reserved keywords, wildcards, and deterministic alias generation. |
 
 ---
 
@@ -26,7 +27,7 @@ to assemble safe, expressive, and auditable SQL statements.
 | Module                                   | Purpose                                                                                                                                           |
 |------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`resolver`](./resolver.go)              | Centralizes input type validation and expression resolution (expr, alias, kind), with subqueries.                                                 |
-| [`ExpressionKind`](./expression_kind.go) | Classifies raw expressions (Identifier, Computed, Literal, Subquery, Function, Aggregate) and validates aliases, rejecting reserved SQL keywords. |
+| [`ExpressionKind`](./expression_kind.go) | Classifies raw expressions (Identifier, Computed, Literal, Subquery, Function, Aggregate). Provides short alias codes for deterministic aliasing. |
 
 ---
 
@@ -43,4 +44,3 @@ Contracts will progressively enforce stricter auditability across all tokens.
 ## 📄 License
 
 [MIT](../../LICENSE) — © Entiqon Project
-

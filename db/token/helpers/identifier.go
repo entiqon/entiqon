@@ -36,3 +36,24 @@ func ValidateIdentifier(s string) error {
 func IsValidIdentifier(s string) bool {
 	return ValidateIdentifier(s) == nil
 }
+
+// ValidateWildcard checks whether a wildcard expression ("*")
+// is used in a valid context.
+//
+// Rules:
+//   - Bare "*" is allowed only without an alias.
+//   - If "*" is aliased or marked as raw, it is invalid.
+//
+// Example:
+//
+//	ValidateWildcard("*", "")       → ok
+//	ValidateWildcard("*", "total")  → error ("* cannot be aliased or raw")
+//
+// Future: dialect packages may extend this to support qualified
+// wildcards (e.g. "table.*") and additional rules.
+func ValidateWildcard(expr, alias string) error {
+	if expr == "*" && alias != "" {
+		return fmt.Errorf("'*' cannot be aliased or raw")
+	}
+	return nil
+}

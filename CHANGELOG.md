@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
         - `IsValidAlias` / `ValidateAlias` to ensure aliases are valid identifiers and not reserved keywords.
         - `ValidateTrailingAlias` / `HasTrailingAlias` to detect and validate trailing aliases (when no `AS` is present).
         - `ReservedKeywords()` returns the dialect-agnostic set of disallowed aliases.
+    - Wildcard validation:
+        - `ValidateWildcard(expr, alias)` ensures that `*` is only used without alias or raw.
+        - Rejects invalid cases such as `* AS total`.
     - Deterministic alias generation:
         - `GenerateAlias(prefix, expr string)` produces safe aliases by combining a short code with a SHA-1 hash of the expression.
     - Independent test files with exhaustive valid/invalid cases and runnable examples.
@@ -56,15 +59,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Invalid alias cases correctly rejected (including reserved keywords).
 
 ### Tests & Docs
-- `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, alias generation).
+- `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, wildcard validation, alias generation).
 - `README.md` files updated:
     - Root `token` README now lists `field`, `table`, `join`, `resolver`, `ExpressionKind`, and `helpers`.
-    - `helpers` README extended with identifiers, aliases, trailing alias rules, reserved keywords, and `GenerateAlias`.
+    - `helpers` README extended with identifiers, aliases, trailing alias rules, reserved keywords, wildcard validation, and `GenerateAlias`.
     - `table` README documents stricter alias validation, Clone() guidance, and error handling.
     - Headings normalized (emoji removed from `# Token`).
 - `example_test.go` updated:
     - Subquery examples uncommented and corrected.
-    - Added examples for identifiers, aliases, trailing aliases, and generated aliases.
+    - Added examples for identifiers, aliases, trailing aliases, wildcards, and generated aliases.
     - Added examples for invalid types and Clone() hints.
     - Adjusted `IsRaw` examples (currently false, will later derive from `Kind()`).
 
