@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/token"
 	"github.com/entiqon/entiqon/db/token/helpers"
+	"github.com/entiqon/entiqon/db/token/types/identifier"
 )
 
 // ExampleIsValidIdentifier demonstrates quick true/false checks.
@@ -82,7 +82,7 @@ func ExampleValidateTrailingAlias() {
 // from a prefix and expression string.
 func ExampleGenerateAlias() {
 	// Function expression with "fn" prefix
-	got := helpers.GenerateAlias(token.Function.Alias(), "SUM(price)")
+	got := helpers.GenerateAlias(identifier.Function.Alias(), "SUM(price)")
 	fmt.Println(fmt.Sprintf(
 		"Contains(fn)=%t, Length=%d",
 		strings.Contains(got, "fn"),
@@ -90,7 +90,7 @@ func ExampleGenerateAlias() {
 	))
 
 	// Subquery expression with "sq" prefix
-	got = helpers.GenerateAlias(token.Subquery.Alias(), "(SELECT * FROM users)")
+	got = helpers.GenerateAlias(identifier.Subquery.Alias(), "(SELECT * FROM users)")
 	fmt.Println(fmt.Sprintf(
 		"Contains(sq)=%t, Length=%d",
 		strings.Contains(got, "fn"),
@@ -118,4 +118,25 @@ func ExampleValidateWildcard() {
 	// <nil>
 	//'*' cannot be aliased or raw
 	//<nil>
+}
+
+// ExampleClassifyExpression demonstrates classifying raw SQL expressions
+// into identifier.Type categories.
+func ExampleResolveExpressionType() {
+	fmt.Println(helpers.ResolveExpressionType("(SELECT * FROM users)"))      // Subquery
+	fmt.Println(helpers.ResolveExpressionType("(a+b)"))                      // Computed
+	fmt.Println(helpers.ResolveExpressionType("SUM(price)"))                 // Aggregate
+	fmt.Println(helpers.ResolveExpressionType("JSON_EXTRACT(data, '$.id')")) // Function
+	fmt.Println(helpers.ResolveExpressionType("'abc'"))                      // Literal
+	fmt.Println(helpers.ResolveExpressionType("users"))                      // Identifier
+	fmt.Println(helpers.ResolveExpressionType(""))                           // Invalid
+
+	// Output:
+	// Subquery
+	// Computed
+	// Aggregate
+	// Function
+	// Literal
+	// Identifier
+	// Invalid
 }

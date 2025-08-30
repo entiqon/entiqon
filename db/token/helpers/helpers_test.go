@@ -226,4 +226,31 @@ func TestHelpers(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("ResolveExpressionType", func(t *testing.T) {
+		tests := []struct {
+			name string
+			expr string
+			want string
+		}{
+			{"Empty", "", "Invalid"},
+			{"Subquery", "(SELECT * FROM users)", "Subquery"},
+			{"Computed", "(a+b)", "Computed"},
+			{"AggregateSUM", "SUM(qty)", "Aggregate"},
+			{"AggregateCOUNT", "COUNT(*)", "Aggregate"},
+			{"Function", "JSON_EXTRACT(data, '$.id')", "Function"},
+			{"LiteralString", "'abc'", "Literal"},
+			{"LiteralNumber", "42", "Literal"},
+			{"Identifier", "users", "Identifier"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := helpers.ResolveExpressionType(tt.expr)
+				if got.String() != tt.want {
+					t.Errorf("ResolveExpressionType(%q) = %v, want %v", tt.expr, got, tt.want)
+				}
+			})
+		}
+	})
 }

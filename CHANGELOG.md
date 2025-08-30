@@ -61,8 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
         - Rejects invalid cases such as `* AS total`.
     - Deterministic alias generation:
         - `GenerateAlias(prefix, expr string)` produces safe aliases by combining a short code with a SHA-1 hash of the expression.
+    - Expression classification:
+        - Renamed `ClassifyExpression` → `ResolveExpressionType` and hosted in `helpers/identifier.go`.
+        - Provides syntactic classification of raw expressions into `identifier.Type`.
+        - `resolver.ResolveExpression` remains for now with a different return type (migration planned).
+        - All docs and examples updated to reference `ResolveExpressionType`.
     - Independent test files with exhaustive valid/invalid cases and runnable examples.
-    - Includes `doc.go` and `README.md` documenting rules and the consistency pattern (`ValidateXxx`, `IsValidXxx`, `GenerateAlias`).
+    - Includes `doc.go` and `README.md` documenting rules and the consistency pattern (`ValidateXxx`, `IsValidXxx`, `GenerateAlias`, `ResolveXxx`).
 
 ### Database (table/field)
 - Constructors now delegate to `resolver.ValidateType` for type safety.
@@ -72,15 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Invalid alias cases correctly rejected (including reserved keywords).
 
 ### Tests & Docs
-- `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, wildcard validation, alias generation).
+- `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, wildcard validation, alias generation, expression classification).
 - `README.md` files updated:
     - Root `token` README now lists `field`, `table`, `join`, `resolver`, `ExpressionKind`, and `helpers`.
-    - `helpers` README extended with identifiers, aliases, trailing alias rules, reserved keywords, wildcard validation, and `GenerateAlias`.
+    - `helpers` README extended with identifiers, aliases, trailing alias rules, reserved keywords, wildcard validation, alias generation, and `ResolveExpressionType`.
     - `table` README documents stricter alias validation, Clone() guidance, and error handling.
     - Headings normalized (emoji removed from `# Token`).
 - `example_test.go` updated:
     - Subquery examples uncommented and corrected.
-    - Added examples for identifiers, aliases, trailing aliases, wildcards, and generated aliases.
+    - Added examples for identifiers, aliases, trailing aliases, wildcards, generated aliases, and expression classification.
     - Added examples for invalid types and Clone() hints.
     - Adjusted `IsRaw` examples (currently false, will later derive from `Kind()`).
 

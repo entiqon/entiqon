@@ -17,6 +17,8 @@ used across multiple token types (Field, Table, Join, etc.).
     - `IsValidXxx(s string) bool` → convenience wrapper for quick checks.
     - `GenerateAlias(prefix, expr string)` → produces deterministic,
       safe aliases for non-identifier expressions.
+    - `ResolveExpressionType(expr string)` → classifies SQL expressions
+      into identifier categories.
 - **Future-proof** — current rules are dialect-agnostic, but dialect
   packages will later override them with grammar-specific rules.
 
@@ -47,7 +49,7 @@ used across multiple token types (Field, Table, Join, etc.).
 
 - `GenerateAlias`  
   Produces deterministic aliases for non-identifier expressions.
-    - Combines a two-letter kind code (from `ExpressionKind.Alias()`)
+    - Combines a two-letter kind code (from `identifier.Type.Alias()`)
       with a SHA-1 hash of the expression.
     - Always returns a safe SQL identifier.
     - Example: `GenerateAlias("fn", "SUM(price)") → "fn_a1b2c3"`.
@@ -58,11 +60,24 @@ used across multiple token types (Field, Table, Join, etc.).
     - Rejects aliased or raw `*` (e.g. `* AS total`).
     - Future: may extend to handle qualified wildcards (e.g. `table.*`).
 
+- `ResolveExpressionType`  
+  Classifies raw SQL expressions into broad categories, returning an `identifier.Type`.
+    - Categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
+    - Purely syntactic, not semantic (e.g. `SUM(qty)` is classified as Aggregate even if used in an invalid context).
+    - Aliases must already be stripped before classification.
+    - Example:
+      ```go
+      helpers.ResolveExpressionType("SUM(price)")        // → Aggregate
+      helpers.ResolveExpressionType("(a+b)")             // → Computed
+      helpers.ResolveExpressionType("(SELECT * FROM t)") // → Subquery
+      helpers.ResolveExpressionType("users")             // → Identifier
+      ```
+
 ## Roadmap
 
 As more helpers are promoted (e.g. literal checks), they will be added
 here with their own independent tests and will follow the same
-**Validate/IsValid/Generate** pattern for consistency.
+**Validate/IsValid/Generate/Resolve** pattern for consistency.
 
 ---
 
