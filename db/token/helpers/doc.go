@@ -1,5 +1,5 @@
 // Package helpers provides utility functions for validating and
-// classifying SQL identifiers, aliases, and wildcards.
+// classifying SQL identifiers, aliases, wildcards, and expressions.
 //
 // # Purpose
 //
@@ -7,8 +7,8 @@
 // across multiple tokens (Field, Table, etc.). Examples include
 // checking whether a string is a valid identifier, whether an alias
 // is acceptable, whether a trailing alias is present, whether the
-// "*" wildcard is used correctly, or generating deterministic aliases
-// when none are provided.
+// "*" wildcard is used correctly, generating deterministic aliases,
+// or classifying raw expressions into categories.
 //
 // # Current Rules
 //
@@ -27,6 +27,9 @@
 //   - Deterministic aliases can be generated with GenerateAlias(),
 //     which combines a two-letter code with a SHA-1 hash of the
 //     expression string.
+//   - Expressions can be classified with ResolveExpressionType()
+//     into one of: Invalid, Subquery, Computed, Aggregate, Function,
+//     Literal, Identifier.
 //
 // These rules are intentionally strict and conservative to prevent
 // invalid tokens from being accepted silently.
@@ -38,9 +41,11 @@
 //   - ValidateXxx(s string) error → returns a detailed error if invalid.
 //   - IsValidXxx(s string) bool   → returns true/false as a convenience wrapper.
 //   - GenerateAlias(prefix, expr) string → produces safe, deterministic aliases.
+//   - ResolveExpressionType(expr string) identifier.Type → syntactic classification.
 //
 // This ensures consistent usage across identifiers, aliases, trailing
-// alias detection, wildcard usage, and generated aliases.
+// alias detection, wildcard usage, alias generation, and expression
+// classification.
 //
 // # Future Dialect-Specific Rules
 //
@@ -53,7 +58,7 @@
 //
 // If an expression is not a plain identifier and has no alias, it may
 // receive a generated alias using GenerateAlias() together with the
-// alias code provided by ExpressionKind.Alias() (e.g. "fn_a1b2c3").
+// alias code provided by identifier.Type.Alias() (e.g. "fn_a1b2c3").
 // This ensures all non-identifier expressions can be referenced
 // reliably downstream. Aliases that are explicitly invalid (bad syntax,
 // reserved keyword) will still be rejected.
