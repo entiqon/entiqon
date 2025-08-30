@@ -253,4 +253,102 @@ func TestHelpers(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("ResolveExpression", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			input      string
+			allowAlias bool
+			wantKind   string
+			wantExpr   string
+			wantAlias  string
+			wantErr    bool
+		}{
+			//
+			// === Invalid ===
+			{"EmptyInput", "", true, "Invalid", "", "", true},
+			{"GarbageInput", "foo bar baz qux", true, "Invalid", "", "", true},
+
+			//=== Identifiers ===
+			{"Identifier", "field", true, "Identifier", "field", "", false},
+			{"IdentifierWithAlias", "field alias", true, "Identifier", "field", "alias", false},
+			{"IdentifierWithNotAllowAlias", "field alias", false, "Identifier", "field", "alias", true},
+			{"IdentifierWithInvalidAlias", "field 123invalid", true, "Invalid", "field", "123invalid", true},
+			{"IdentifierWithASAlias", "field AS alias", true, "Identifier", "field", "alias", false},
+			{"IdentifierWithASAliasNotAllowAlias", "field AS alias", false, "Identifier", "field", "alias", true},
+			{"IdentifierWithASAliasInvalidAlias", "field AS 123invalid", true, "Invalid", "field", "123invalid", true},
+			{"IdentifierInvalidForm", "field alias extra", true, "Invalid", "", "", true},
+			{"IdentifierTooManyTokens", "field AS alias extra", true, "Invalid", "", "", true},
+
+			// === Subqueries ===
+			{"SubqueryNoAlias", "(SELECT * FROM users)", true, "Subquery", "(SELECT * FROM users)", "", false},
+			{"SubqueryNoAlias", "(SELECT * FROM users", true, "Subquery", "(SELECT * FROM users", "", true},
+			{"SubqueryWithAlias", "(SELECT * FROM users) u", true, "Subquery", "(SELECT * FROM users)", "u", false},
+			{"SubqueryWithAliasNotAllowAlias", "(SELECT * FROM users) u", false, "Subquery", "(SELECT * FROM users)", "u", true},
+			{"SubqueryWithAliasInvalidAlias", "(SELECT * FROM users) 123u", true, "Subquery", "(SELECT * FROM users)", "123u", true},
+			{"SubqueryWithASAlias", "(SELECT * FROM users) AS u", true, "Subquery", "(SELECT * FROM users)", "u", false},
+			{"SubqueryWithASAliasNotAllowAlias", "(SELECT * FROM users) AS u", false, "Subquery", "(SELECT * FROM users)", "u", true},
+			{"SubqueryWithASAliasInvalidAlias", "(SELECT * FROM users) AS 123u", true, "Subquery", "(SELECT * FROM users)", "123u", true},
+			{"BareSelectRejected", "SELECT * FROM users", true, "Invalid", "", "", true},
+			{"SubqueryInvalidAlias", "(SELECT * FROM users) AS abc 123", true, "Invalid", "", "", true},
+
+			// === Computed ===
+			{"ComputedNoAlias", "(price * qty)", true, "Computed", "(price * qty)", "", false},
+			{"ComputedWithAlias", "(price * qty) total", true, "Computed", "(price * qty)", "total", false},
+			{"ComputedWithASAlias", "(price * qty) AS total", true, "Computed", "(price * qty)", "total", false},
+			{"ComputedWithASAlias", "(price * qty) AS abc 123", true, "Computed", "", "", true},
+			{"ComputedBareRejected", "price * qty", true, "Invalid", "", "", true},
+
+			// === Aggregates ===
+			{"AggregateCount", "COUNT(*)", true, "Aggregate", "COUNT(*)", "", false},
+			{"AggregateCountWithAlias", "COUNT(*) total", true, "Aggregate", "COUNT(*)", "total", false},
+			{"AggregateCountWithASAlias", "COUNT(*) AS total", true, "Aggregate", "COUNT(*)", "total", false},
+			{"AggregateSum", "SUM(price * qty)", true, "Aggregate", "SUM(price * qty)", "", false},
+			{"AggregateSumWithAlias", "SUM(price * qty) total", true, "Aggregate", "SUM(price * qty)", "total", false},
+			{"AggregateSumWithASAlias", "SUM(price * qty) AS total", true, "Aggregate", "SUM(price * qty)", "total", false},
+			{"ComputedInvalidAlias", "SUM(price * qty) AS abc 123", true, "Computed", "", "", true},
+
+			// === Functions ===
+			{"FunctionNoAlias", "JSON_EXTRACT(data,'$.id')", true, "Function", "JSON_EXTRACT(data,'$.id')", "", false},
+			{"FunctionWithAlias", "LOWER(name) alias", true, "Function", "LOWER(name)", "alias", false},
+			{"FunctionWithASAlias", "LOWER(name) AS alias", true, "Function", "LOWER(name)", "alias", false},
+			{"FunctionWithReservedAlias", "LOWER(name) AS SELECT", true, "Invalid", "", "", true},
+			{"ComputedInvalidAlias", "LOWER(name) AS abc 123", true, "Computed", "", "", true},
+
+			// === Literals ===
+			{"LiteralString", "'abc'", true, "Literal", "'abc'", "", false},
+			{"LiteralStringWithAlias", "'abc' val", true, "Literal", "'abc'", "val", false},
+			{"LiteralStringWithASAlias", "'abc' AS val", true, "Literal", "'abc'", "val", false},
+			{"LiteralStringWithReservedAlias", "'abc' AS SELECT", true, "Invalid", "", "", true},
+			{"LiteralInvalidAlias", "'abc' AS abc 123", true, "Computed", "", "", true},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				kind, expr, alias, err := helpers.ResolveExpression(tt.input, tt.allowAlias)
+
+				if tt.wantErr {
+					if err == nil {
+						t.Errorf("%s: expected error, got nil (kind=%v expr=%q alias=%q)", tt.name, kind, expr, alias)
+					}
+					return
+				}
+
+				if err != nil {
+					t.Errorf("%s: unexpected error: %v", tt.name, err)
+					return
+				}
+
+				if kind.String() != tt.wantKind {
+					t.Errorf("%s: expected kind=%q, got %q", tt.name, tt.wantKind, kind.String())
+				}
+				if expr != tt.wantExpr {
+					t.Errorf("%s: expected expr=%q, got %q", tt.name, tt.wantExpr, expr)
+				}
+				if alias != tt.wantAlias {
+					t.Errorf("%s: expected alias=%q, got %q", tt.name, tt.wantAlias, alias)
+				}
+			})
+		}
+	})
 }

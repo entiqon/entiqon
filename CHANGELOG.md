@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
         - Added `example_test.go` demonstrating usage including edge cases.
 
 ### Token (helpers)
+- Refactored **ResolveExpression** in `helpers/identifier.go`:
+  - Branches directly on `ResolveExpressionType`, eliminating redundant checks.
+  - Unified alias handling for all expression types (`Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`).
+  - Removed unreachable `default` branch, ensuring full coverage.
+  - Simplified responsibility split: classification validates kind/shape, resolution only extracts alias.
+
 - Introduced **helpers** package for reusable validation utilities.
     - Identifier validation:
         - `IsValidIdentifier` / `ValidateIdentifier` with strict rules.

@@ -140,3 +140,57 @@ func ExampleResolveExpressionType() {
 	// Identifier
 	// Invalid
 }
+
+// ExampleResolveExpression demonstrates parsing and classifying expressions
+// with optional aliases.
+func ExampleResolveExpression() {
+	// Identifier without alias
+	kind, expr, alias, err := helpers.ResolveExpression("id", true)
+	fmt.Println(kind, expr, alias, err)
+
+	// Identifier with alias using AS
+	kind, expr, alias, err = helpers.ResolveExpression("id AS user_id", true)
+	fmt.Println(kind, expr, alias, err)
+
+	// Identifier with alias using AS not allowAlias
+	kind, expr, alias, err = helpers.ResolveExpression("id AS user_id", false)
+	fmt.Println(kind, expr, alias, err)
+
+	// Subquery with alias
+	kind, expr, alias, err = helpers.ResolveExpression("(SELECT * FROM users) u", true)
+	fmt.Println(kind, expr, alias, err)
+
+	// Computed expression with alias
+	kind, expr, alias, err = helpers.ResolveExpression("(price * qty) total", true)
+	fmt.Println(kind, expr, alias, err)
+
+	// Aggregate with alias
+	kind, expr, alias, err = helpers.ResolveExpression("COUNT(*) AS total", true)
+	fmt.Println(kind, expr, alias, err)
+
+	// Invalid: alias not allowed
+	kind, expr, alias, err = helpers.ResolveExpression("id user_id", false)
+	fmt.Println(kind, expr, alias, err != nil)
+
+	// Identifier without alias
+	kind, expr, alias, err = helpers.ResolveExpression("(SELECT COUNT(id) FROM users) 123456", true)
+	fmt.Println(kind, expr, alias, err)
+
+	kind, expr, alias, err = helpers.ResolveExpression("(SELECT COUNT(id) FROM users) 123456", false)
+	fmt.Println(kind, expr, alias, err)
+
+	kind, expr, alias, err = helpers.ResolveExpression("(SELECT COUNT(id) FROM users) AS 123456", false)
+	fmt.Println(kind, expr, alias, err)
+
+	// Output:
+	// Identifier id  <nil>
+	// Identifier id user_id <nil>
+	// Invalid   alias not allowed: id AS user_id
+	// Subquery (SELECT * FROM users) u <nil>
+	// Computed (price * qty) total <nil>
+	// Aggregate COUNT(*) total <nil>
+	// Invalid   true
+	// Invalid (SELECT COUNT(id) FROM users)  invalid alias: 123456
+	// Invalid (SELECT COUNT(id) FROM users)  alias not allowed: (SELECT COUNT(id) FROM users) 123456
+	// Invalid (SELECT COUNT(id) FROM users)  alias not allowed: (SELECT COUNT(id) FROM users) AS 123456
+}
