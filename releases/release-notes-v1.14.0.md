@@ -28,6 +28,13 @@ We have introduced a new **identifier.Type** enum to classify SQL expressions in
 ---
 
 ### Token (helpers)
+#### Refactor
+- **ResolveExpression** in `helpers/identifier.go` has been streamlined:
+  - Branches directly on `ResolveExpressionType`, eliminating redundant checks.
+  - Unified alias handling for all expression types (`Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`).
+  - Removed unreachable `default` branch, ensuring full coverage.
+  - Simplified responsibility split: classification validates kind/shape, resolution only extracts alias.
+
 The expression classifier has been normalized and renamed.
 
 #### Changes

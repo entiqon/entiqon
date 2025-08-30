@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -18,6 +19,126 @@ var identifierPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 // is valid, false otherwise. Prefer ValidateIdentifier when you need the reason.
 func IsValidIdentifier(s string) bool {
 	return ValidateIdentifier(s) == nil
+}
+
+// ResolveExpression parses an input expression into (kind, expr, alias).
+//
+// Rules:
+//
+//   - 1-arg string may contain:
+//     "id"
+//     "id user_id"
+//     "id AS user_id"
+//     "(SELECT id FROM users)"
+//     "(SELECT id FROM users) u"
+//     "(SELECT id FROM users) AS u"
+//     "COUNT(id)"
+//     "COUNT(id) count"
+//     "COUNT(id) AS count"
+//     "(price*qty)"
+//     "(price*qty) total"
+//     "(price*qty) AS total"
+//     "price*qty"
+//     "'1' AS pack"
+//
+//     Invalid: more than 2 tokens without explicit AS → error
+//
+//   - Explicit aliases are only allowed if allowAlias=true.
+func ResolveExpression(
+	input string,
+	allowAlias bool,
+) (identifier.Type, string, string, error) {
+	in := strings.TrimSpace(input)
+	kind := ResolveExpressionType(in)
+
+	switch kind {
+	case identifier.Identifier:
+		parts := strings.Fields(in)
+		switch len(parts) {
+		case 1:
+			return identifier.Identifier, parts[0], "", nil
+		case 2:
+			if !allowAlias {
+				return identifier.Invalid, "", "", errors.New("alias not allowed: " + in)
+			}
+			if !IsValidAlias(parts[1]) {
+				return identifier.Invalid, parts[0], parts[1], errors.New("invalid alias: " + parts[1])
+			}
+			return identifier.Identifier, parts[0], parts[1], nil
+		case 3:
+			if strings.EqualFold(parts[1], "AS") {
+				if !allowAlias {
+					return identifier.Invalid, "", "", errors.New("alias not allowed: " + in)
+				}
+				if !IsValidAlias(parts[2]) {
+					return identifier.Invalid, parts[0], parts[2], errors.New("invalid alias: " + parts[2])
+				}
+				return identifier.Identifier, parts[0], parts[2], nil
+			}
+			return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+		default:
+			return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+		}
+
+	case identifier.Subquery:
+		closeIdx := strings.LastIndex(in, ")")
+		if closeIdx == -1 {
+			return identifier.Invalid, "", "", errors.New("invalid subquery: missing closing parenthesis")
+		}
+		expr := strings.TrimSpace(in[:closeIdx+1])
+		rest := strings.TrimSpace(in[closeIdx+1:])
+		alias, err := resolveAlias(rest, in, allowAlias)
+		if err != nil {
+			return identifier.Invalid, expr, alias, err
+		}
+		return identifier.Subquery, expr, alias, nil
+
+	case identifier.Computed:
+		closeIdx := strings.LastIndex(in, ")")
+		expr := strings.TrimSpace(in[:closeIdx+1])
+		rest := strings.TrimSpace(in[closeIdx+1:])
+		alias, err := resolveAlias(rest, in, allowAlias)
+		if err != nil {
+			return identifier.Invalid, expr, alias, err
+		}
+		return identifier.Computed, expr, alias, nil
+
+	case identifier.Aggregate:
+		closeIdx := strings.LastIndex(in, ")")
+		expr := strings.TrimSpace(in[:closeIdx+1])
+		rest := strings.TrimSpace(in[closeIdx+1:])
+		alias, err := resolveAlias(rest, in, allowAlias)
+		if err != nil {
+			return identifier.Invalid, expr, alias, err
+		}
+		return identifier.Aggregate, expr, alias, nil
+
+	case identifier.Function:
+		closeIdx := strings.LastIndex(in, ")")
+		expr := strings.TrimSpace(in[:closeIdx+1])
+		rest := strings.TrimSpace(in[closeIdx+1:])
+		alias, err := resolveAlias(rest, in, allowAlias)
+		if err != nil {
+			return identifier.Invalid, expr, alias, err
+		}
+		return identifier.Function, expr, alias, nil
+
+	case identifier.Literal:
+		parts := strings.Fields(in)
+		expr := parts[0]
+		rest := ""
+		if len(parts) > 1 {
+			rest = strings.Join(parts[1:], " ")
+		}
+		alias, err := resolveAlias(rest, in, allowAlias)
+		if err != nil {
+			return identifier.Invalid, expr, alias, err
+		}
+		return identifier.Literal, expr, alias, nil
+
+	default:
+		return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+	}
 }
 
 // ResolveExpressionType determines the ExpressionKind from a raw expression.
@@ -42,25 +163,34 @@ func ResolveExpressionType(expr string) identifier.Type {
 		return identifier.Invalid // invalid
 	}
 
-	// Subquery → starts with "(" and specifically "(SELECT ..."
-	if strings.HasPrefix(expr, "(") {
-		if strings.HasPrefix(strings.ToUpper(expr), "(SELECT ") {
-			return identifier.Subquery
-		}
-		// Any other parenthesized expression → Computed
+	upper := strings.ToUpper(expr)
+
+	// ✅ Subquery
+	// Case 1: Parenthesized SELECT
+	if strings.HasPrefix(expr, "(") && strings.HasPrefix(upper, "(SELECT ") {
+		return identifier.Subquery
+	}
+	// Case 2: Bare SELECT
+	if strings.HasPrefix(upper, "SELECT ") {
+		return identifier.Subquery
+	}
+
+	// Computed
+	if strings.HasPrefix(expr, "(") && strings.Contains(expr, ")") {
 		return identifier.Computed
 	}
 
-	// Function or Aggregate → must contain "(" and end with ")"
+	// Aggregate
+	if strings.HasPrefix(upper, "SUM(") ||
+		strings.HasPrefix(upper, "COUNT(") ||
+		strings.HasPrefix(upper, "MAX(") ||
+		strings.HasPrefix(upper, "MIN(") ||
+		strings.HasPrefix(upper, "AVG(") {
+		return identifier.Aggregate
+	}
+
+	// Function
 	if strings.Contains(expr, "(") && strings.Contains(expr, ")") {
-		upper := strings.ToUpper(expr)
-		if strings.HasPrefix(upper, "SUM(") ||
-			strings.HasPrefix(upper, "COUNT(") ||
-			strings.HasPrefix(upper, "MAX(") ||
-			strings.HasPrefix(upper, "MIN(") ||
-			strings.HasPrefix(upper, "AVG(") {
-			return identifier.Aggregate
-		}
 		return identifier.Function
 	}
 
@@ -115,4 +245,43 @@ func ValidateWildcard(expr, alias string) error {
 		return fmt.Errorf("'*' cannot be aliased or raw")
 	}
 	return nil
+}
+
+// resolveAlias parses "expr" (text after the main expression) into an alias.
+// Supports:
+//   - "" → no alias
+//   - "alias" → simple alias
+//   - "AS alias" → explicit alias
+//
+// Applies allowAlias and IsValidAlias checks.
+func resolveAlias(expr, in string, allowAlias bool) (string, error) {
+	if expr == "" {
+		return "", nil
+	}
+
+	parts := strings.Fields(expr)
+
+	// "AS alias"
+	if len(parts) == 2 && strings.EqualFold(parts[0], "AS") {
+		if !allowAlias {
+			return "", fmt.Errorf("alias not allowed: %s", in)
+		}
+		if !IsValidAlias(parts[1]) {
+			return "", fmt.Errorf("invalid alias: %s", parts[1])
+		}
+		return parts[1], nil
+	}
+
+	// simple alias
+	if len(parts) == 1 {
+		if !allowAlias {
+			return "", fmt.Errorf("alias not allowed: %s", in)
+		}
+		if !IsValidAlias(parts[0]) {
+			return "", fmt.Errorf("invalid alias: %s", parts[0])
+		}
+		return parts[0], nil
+	}
+
+	return "", fmt.Errorf("invalid alias format: %s", expr)
 }

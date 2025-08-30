@@ -1,76 +1,52 @@
-// Package helpers provides utility functions for validating and
-// classifying SQL identifiers, aliases, wildcards, and expressions.
-//
-// # Purpose
-//
-// These helpers centralize low-level validation logic that is reused
-// across multiple tokens (Field, Table, etc.). Examples include
-// checking whether a string is a valid identifier, whether an alias
-// is acceptable, whether a trailing alias is present, whether the
-// "*" wildcard is used correctly, generating deterministic aliases,
-// or classifying raw expressions into categories.
+// Package helpers provides classification and resolution utilities for
+// SQL token parsing. It defines common helpers to validate identifiers,
+// wildcards, and to classify or resolve expressions into their kind and alias.
 //
 // # Current Rules
 //
-// The current implementation applies simplified, dialect-agnostic rules:
+// The classifier ResolveExpressionType inspects an input string and
+// returns its high-level type:
 //
-//   - Identifiers must start with a letter or underscore and may
-//     contain letters, digits, and underscores.
-//   - Non-ASCII identifiers (e.g. café, mañana, niño) are rejected.
-//   - Aliases must be valid identifiers and must not be reserved
-//     keywords (case-insensitive).
-//   - Trailing aliases (e.g. "(price * qty) total") are valid if the
-//     last token is a valid alias and not part of the expression.
-//   - Explicit AS aliases are handled by the resolver, not helpers.
-//   - The "*" wildcard is only valid when used without an alias;
-//     aliased or raw "*" is rejected.
-//   - Deterministic aliases can be generated with GenerateAlias(),
-//     which combines a two-letter code with a SHA-1 hash of the
-//     expression string.
-//   - Expressions can be classified with ResolveExpressionType()
-//     into one of: Invalid, Subquery, Computed, Aggregate, Function,
-//     Literal, Identifier.
+//   - Identifier → plain tokens (e.g. "field")
+//   - Subquery   → inputs wrapped in parentheses starting with SELECT
+//   - Computed   → parenthesized expressions (e.g. "(a+b)")
+//   - Aggregate  → SUM(...), COUNT(...), MIN(...), MAX(...), AVG(...)
+//   - Function   → any other FUNC(...) form
+//   - Literal    → numeric or quoted strings (e.g. "123", "'abc'")
+//   - Invalid    → empty or malformed inputs
 //
-// These rules are intentionally strict and conservative to prevent
-// invalid tokens from being accepted silently.
+// # Expression Resolution
 //
-// # Consistency
+// Beyond classification, the ResolveExpression function provides
+// a higher-level resolver that splits an input string into its
+// core expression and optional alias.
 //
-// All helpers follow the same validation pattern:
+// ResolveExpression is classifier-driven:
 //
-//   - ValidateXxx(s string) error → returns a detailed error if invalid.
-//   - IsValidXxx(s string) bool   → returns true/false as a convenience wrapper.
-//   - GenerateAlias(prefix, expr) string → produces safe, deterministic aliases.
-//   - ResolveExpressionType(expr string) identifier.Type → syntactic classification.
+//   - Identifiers → "id", "id alias", "id AS alias"
+//   - Subqueries → "(SELECT ...)", "(SELECT ...) alias", "(SELECT ...) AS alias"
+//   - Computed   → "(a+b)", "(a+b) alias", "(a+b) AS alias"
+//   - Aggregates → "COUNT(...)", "SUM(...)", with alias variants
+//   - Functions  → "FUNC(...)", with alias variants
+//   - Literals   → "'text'", "123", with alias variants
 //
-// This ensures consistent usage across identifiers, aliases, trailing
-// alias detection, wildcard usage, alias generation, and expression
-// classification.
+// Each branch enforces strict rules:
+//   - Subqueries and Computed expressions must be parenthesized.
+//   - Aggregates and Functions must include parentheses.
+//   - Aliases are allowed only if explicitly permitted via allowAlias.
+//   - Aliases may use either the space form ("expr alias") or
+//     the explicit AS form ("expr AS alias").
+//   - Invalid alias formats or reserved keywords are rejected.
+//
+// This ensures consistency: classification determines the kind,
+// resolution enforces alias rules, and all branches are covered
+// explicitly without fallthrough defaults.
 //
 // # Future Dialect-Specific Rules
 //
-// In the future, dialect packages (e.g. Postgres, MySQL) will provide
-// their own validation rules to reflect the full grammar of each SQL
-// dialect. At that point, helpers may delegate to dialect-specific
-// implementations while preserving the same external contract.
-//
-// # Auto-Alias Rules
-//
-// If an expression is not a plain identifier and has no alias, it may
-// receive a generated alias using GenerateAlias() together with the
-// alias code provided by identifier.Type.Alias() (e.g. "fn_a1b2c3").
-// This ensures all non-identifier expressions can be referenced
-// reliably downstream. Aliases that are explicitly invalid (bad syntax,
-// reserved keyword) will still be rejected.
-//
-// # Reserved Keywords
-//
-// The ReservedKeywords function returns the dialect-agnostic set of
-// keywords currently disallowed as aliases. Dialect packages may extend
-// or override this list.
-//
-// # Testing
-//
-// Each helper is tested independently in its own *_test.go file with
-// exhaustive cases to ensure correctness and 100% coverage.
+// Dialects may extend classification or resolution with additional
+// rules for functions, operators, or literals. For example, PostgreSQL
+// introduces JSON operators and type casts, while MySQL introduces
+// special string functions. These extensions should be handled by
+// layering dialect-specific checks on top of the generic helpers.
 package helpers
