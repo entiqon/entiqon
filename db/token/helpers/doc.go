@@ -1,13 +1,14 @@
 // Package helpers provides utility functions for validating and
-// classifying SQL identifiers and aliases.
+// classifying SQL identifiers, aliases, and wildcards.
 //
 // # Purpose
 //
 // These helpers centralize low-level validation logic that is reused
 // across multiple tokens (Field, Table, etc.). Examples include
 // checking whether a string is a valid identifier, whether an alias
-// is acceptable, whether a trailing alias is present, or generating
-// deterministic aliases when none are provided.
+// is acceptable, whether a trailing alias is present, whether the
+// "*" wildcard is used correctly, or generating deterministic aliases
+// when none are provided.
 //
 // # Current Rules
 //
@@ -21,6 +22,8 @@
 //   - Trailing aliases (e.g. "(price * qty) total") are valid if the
 //     last token is a valid alias and not part of the expression.
 //   - Explicit AS aliases are handled by the resolver, not helpers.
+//   - The "*" wildcard is only valid when used without an alias;
+//     aliased or raw "*" is rejected.
 //   - Deterministic aliases can be generated with GenerateAlias(),
 //     which combines a two-letter code with a SHA-1 hash of the
 //     expression string.
@@ -37,7 +40,7 @@
 //   - GenerateAlias(prefix, expr) string → produces safe, deterministic aliases.
 //
 // This ensures consistent usage across identifiers, aliases, trailing
-// alias detection, and generated aliases.
+// alias detection, wildcard usage, and generated aliases.
 //
 // # Future Dialect-Specific Rules
 //

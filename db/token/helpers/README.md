@@ -52,6 +52,12 @@ used across multiple token types (Field, Table, Join, etc.).
     - Always returns a safe SQL identifier.
     - Example: `GenerateAlias("fn", "SUM(price)") → "fn_a1b2c3"`.
 
+- `ValidateWildcard`  
+  Ensures the `*` wildcard is used only in valid contexts.
+    - Bare `*` without alias is allowed.
+    - Rejects aliased or raw `*` (e.g. `* AS total`).
+    - Future: may extend to handle qualified wildcards (e.g. `table.*`).
+
 ## Roadmap
 
 As more helpers are promoted (e.g. literal checks), they will be added

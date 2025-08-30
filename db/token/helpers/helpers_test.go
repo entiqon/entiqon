@@ -197,4 +197,33 @@ func TestHelpers(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("ValidateWildcard", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			expr  string
+			alias string
+			valid bool
+		}{
+			{"BareStarNoAlias", "*", "", true},         // allowed
+			{"BareStarWithAlias", "*", "total", false}, // invalid
+			{"NotWildcard", "id", "alias", true},       // not a wildcard, ignore
+		}
+
+		for _, tt := range tests {
+			tt := tt
+			t.Run(tt.name, func(t *testing.T) {
+				err := helpers.ValidateWildcard(tt.expr, tt.alias)
+				if tt.valid {
+					if err != nil {
+						t.Errorf("expected valid for expr=%q alias=%q, got error: %v", tt.expr, tt.alias, err)
+					}
+				} else {
+					if err == nil {
+						t.Errorf("expected error for expr=%q alias=%q, got nil", tt.expr, tt.alias)
+					}
+				}
+			})
+		}
+	})
 }

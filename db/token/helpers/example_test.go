@@ -101,3 +101,21 @@ func ExampleGenerateAlias() {
 	// Contains(fn)=true, Length=9
 	// Contains(sq)=false, Length=9
 }
+
+// ExampleValidateWildcard demonstrates validating use of the "*"
+// wildcard in field expressions.
+func ExampleValidateWildcard() {
+	// Valid: bare "*" without alias
+	fmt.Println(helpers.ValidateWildcard("*", ""))
+
+	// Invalid: "*" aliased → not allowed
+	fmt.Println(helpers.ValidateWildcard("*", "total"))
+
+	// Not a wildcard → ignored by this helper
+	fmt.Println(helpers.ValidateWildcard("id", "alias"))
+
+	// Output:
+	// <nil>
+	//'*' cannot be aliased or raw
+	//<nil>
+}

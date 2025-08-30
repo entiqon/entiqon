@@ -42,6 +42,7 @@ nav:
           - Contracts: packages/db/contract/overview.md
           - Tokens:
               - Overview: packages/db/token/overview.md
+              - Helpers: packages/db/token/helpers.md
               - Field: packages/db/token/field.md
               - Table: packages/db/token/table.md
               - Join: packages/db/token/join.md

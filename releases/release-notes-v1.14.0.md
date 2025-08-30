@@ -53,6 +53,9 @@ The changes strengthen type safety, alias validation, and parsing, ensuring high
     - `IsValidAlias` / `ValidateAlias` ensure aliases are valid identifiers and not reserved keywords.  
     - `ValidateTrailingAlias` / `HasTrailingAlias` detect and validate trailing aliases (when no `AS` is present).  
     - `ReservedKeywords()` returns the dialect-agnostic set of disallowed aliases.  
+  - Wildcard validation:
+    - `ValidateWildcard(expr, alias)` ensures that `*` is only used without alias or raw.
+    - Rejects invalid cases such as `* AS total`.  
   - Deterministic alias generation:
     - `GenerateAlias(prefix, expr string)` produces safe aliases by combining a short code (e.g. `fn`, `sq`, `cp`) with a SHA-1 hash of the expression.  
   - Independent test files with exhaustive valid/invalid cases and runnable examples.  
@@ -92,12 +95,12 @@ A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 - `doc.go` updated to mention **resolver**, **ExpressionKind**, **helpers**, and **join**.  
 - `README.md`:
   - Root token README lists `field`, `table`, `join`, `resolver`, `ExpressionKind`, and `helpers`.  
-  - `helpers` README updated with identifiers, aliases, trailing alias detection, reserved keywords, and deterministic alias generation.  
+  - `helpers` README updated with identifiers, aliases, trailing aliases, reserved keywords, wildcard validation, and deterministic alias generation.  
   - `table` README updated with stricter alias validation, Clone() guidance, and error cases.  
   - Headings normalized (removed emoji from `# Token`).  
 - `example_test.go`:
   - Subquery examples uncommented.  
-  - New examples for identifiers, aliases, trailing aliases, and generated aliases.  
+  - New examples for identifiers, aliases, trailing aliases, wildcards, and generated aliases.  
   - New examples for invalid input and Clone() hints.  
   - Identifier examples added showing non-ASCII rejection.  
   - `IsRaw` examples updated (currently false, will later derive from `Kind()`).  
@@ -106,6 +109,6 @@ A dedicated **`join.Token`** was added to represent SQL JOIN clauses:
 
 ## ✅ Why this matters
 - **Consistency**: All helpers and tokens now share strict validation with a `ValidateXxx` + `IsValidXxx` + `GenerateAlias` pattern.  
-- **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, non-ASCII identifiers, literals in FROM).  
-- **Extensibility**: Foundation laid for literal helpers, trailing alias refinements, and dialect-specific rules.  
+- **Safety**: Builders detect invalid tokens earlier (reserved aliases, unsupported types, non-ASCII identifiers, literals in FROM, aliased wildcards).  
+- **Extensibility**: Foundation laid for literal helpers, trailing alias refinements, wildcard extensions, and dialect-specific rules.  
 - **Clarity**: Documentation and examples aligned with real behavior.
