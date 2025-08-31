@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v1.14.0 - Upcoming
 
+### Contract
+- Introduced **Identifiable** contract (`contract/identifiable.go`):
+  - Provides alias-free identity for tokens, exposing only:
+    - `Input()` → raw user-provided input.
+    - `Expr()` → normalized SQL expression.
+  - Designed for tokens where aliasing is not applicable (e.g., `condition.Token`).
+- Documentation updates:
+  - Added `Identifiable` entry in `contract/README.md` (table of contracts).
+  - Updated `contract/doc.go` overview with `Identifiable`.
+  - Extended `example_test.go` to show `Identifiable` usage alongside `BaseToken`.
+
 ### Field Token
 - Updated **field.Token** documentation (`doc.go`):
   - Added `BaseToken` and `Validable` contracts to implemented interfaces.
@@ -38,14 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Renamed struct from `join` → `token` to align with naming conventions across token packages.
 - Updated `contract.go` and `token.go` (formerly `join.go`) to reflect new type and struct naming.
 
-#### ExpressionKind Types
+### ExpressionKind Types
 - Added `Invalid` kind for unrecognized expressions.
 - Updated `String()` and `IsValid()` accordingly.
 - Extended classification rules:
     - Aggregates (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) now reported as `Aggregate`.
     - Computed expressions (`price * quantity`) reported as `Computed`.
     - Functions (`JSON_EXTRACT(...)`) remain `Function`.
-    - 
+
 ### Identifier Type
 - Introduced **identifier.Type** enum to classify SQL expressions:
     - Categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
@@ -244,7 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     deterministic `NewField` inputs, and Postgres/Base dialects with
     tests.
 
-## [v1.10.0](https://github.com/entiqon/entiqon/releases/tag/v1.10.1) - 2025-08-07
+## [v1.10.0](https://github.com/entiqon/entiqon/releases/tag/v1.10.0) - 2025-08-07
 
 - dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro Lopez)
 
@@ -332,7 +343,6 @@ It's the first practical application of the previously introduced `AliasableToke
 
 ---
 
-# Changelog
 
 ## [v1.5.0] – 2025-05-24
 

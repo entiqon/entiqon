@@ -9,6 +9,15 @@ import (
 )
 
 // ExampleBaseToken demonstrates using a Field as a BaseToken.
+func ExampleIdentifiable() {
+	t := field.New("users", "u")
+	var bt contract.Identifiable = t
+	fmt.Println(fmt.Sprintf(
+		"Input=%q, Expr=%q", bt.Input(), bt.Expr()))
+	// Output: Input="users u", Expr="users"
+}
+
+// ExampleBaseToken demonstrates using a Field as a BaseToken.
 func ExampleBaseToken() {
 	t := field.New("users", "u")
 	var bt contract.BaseToken = t
