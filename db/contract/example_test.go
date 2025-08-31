@@ -8,13 +8,42 @@ import (
 	"github.com/entiqon/entiqon/db/token/table"
 )
 
-// ExampleBaseToken demonstrates using a Field as a BaseToken.
+type myKind int
+
+const (
+	Invalid myKind = iota
+	Custom
+)
+
+type myToken struct{ kind myKind }
+
+func (t *myToken) Kind() myKind     { return t.kind }
+func (t *myToken) SetKind(k myKind) { t.kind = k }
+
+// ExampleKindable demonstrates a minimal implementation of Kindable.
+func ExampleKindable() {
+	var k contract.Kindable[myKind] = &myToken{}
+	k.SetKind(Custom)
+
+	fmt.Printf("Kind=%v\n", k.Kind())
+	// Output: Kind=1
+}
+
+// ExampleIdentifiable demonstrates using a Field as a BaseToken.
 func ExampleIdentifiable() {
 	t := field.New("users", "u")
-	var bt contract.Identifiable = t
-	fmt.Println(fmt.Sprintf(
-		"Input=%q, Expr=%q", bt.Input(), bt.Expr()))
+	var i contract.Identifiable = t
+	fmt.Println(fmt.Sprintf("Input=%q, Expr=%q", i.Input(), i.Expr()))
 	// Output: Input="users u", Expr="users"
+}
+
+// ExampleAliasable demonstrates using a Field as a BaseToken.
+func ExampleAliasable() {
+	t := field.New("users", "u")
+	var a contract.Aliasable = t
+	fmt.Println(fmt.Sprintf(
+		"Alias=%q, Aliased=%t", a.Alias(), a.IsAliased()))
+	// Output: Alias="u", Aliased=true
 }
 
 // ExampleBaseToken demonstrates using a Field as a BaseToken.
@@ -22,9 +51,9 @@ func ExampleBaseToken() {
 	t := field.New("users", "u")
 	var bt contract.BaseToken = t
 	fmt.Println(fmt.Sprintf(
-		"Input=%q, Expr=%q, Alias=%q, Aliased=%t",
-		bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased()))
-	// Output: Input="users u", Expr="users", Alias="u", Aliased=true
+		"Input=%q, Kind=%q, Expr=%q, Alias=%q, Aliased=%t",
+		bt.Input(), bt.ExpressionKind(), bt.Expr(), bt.Alias(), bt.IsAliased()))
+	// Output: Input="users u", Kind="Identifier", Expr="users", Alias="u", Aliased=true
 }
 
 // ExampleClonable demonstrates using a Table as a Clonable.

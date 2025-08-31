@@ -8,10 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## v1.14.0 - Upcoming
 
 ### Contracts
-
 - Added **Kindable**: generic contract for enum-style classification (`Kind()`, `SetKind(T)`).
 - Added **Identifiable**: alias-free identity (`Input()`, `Expr()`).
-- Documentation updated (`doc.go`, `README.md`) to reflect new contracts; BaseToken kept temporarily.
+- Added **Aliasable**: alias surface (`Alias()`, `IsAliased()`).
+- **BaseToken** now composes Identifiable and Aliasable internally to avoid duplication.
+- Documentation updated (`doc.go`, `README.md`, examples) to reflect new contracts and relevance order.
 
 ### Tokens
 

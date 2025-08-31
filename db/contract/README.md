@@ -18,15 +18,16 @@ while leaving implementation details to each package.
 
 | Contract                          | Purpose                                                    | Methods                                                                       |
 |-----------------------------------|------------------------------------------------------------|-------------------------------------------------------------------------------|
-| [Kindable](./kindable.go)         | Structural classification (enum-like).                     | `Kind() T`<br>`SetKind(T)`                                                    |
 | [Identifiable](./identifiable.go) | Raw input and normalized expression identity (alias-free). | `Input() string`<br>`Expr() string`                                           |
+| [Aliasable](./aliasable.go)       | Alias surface for tokens.                                  | `Alias() string`<br>`IsAliased() bool`                                        |
 | [BaseToken](./base_token.go)      | Core identity for tokens, including alias.                 | `Input() string`<br>`Expr() string`<br>`Alias() string`<br>`IsAliased() bool` |
-| [Validable](./validable.go)       | Structural validation.                                     | `IsValid() bool`                                                              |
+| [Clonable](./clonable.go)         | Semantic cloning for safe mutation.                        | `Clone() T`                                                                   |
 | [Debuggable](./debuggable.go)     | Developer-facing diagnostic output.                        | `Debug() string`                                                              |
+| [Errorable](./errorable.go)       | Error state inspection and propagation.                    | `IsErrored() bool`<br>`Error() error`<br>`SetError(err error) T`              |
 | [Rawable](./rawable.go)           | Generic SQL fragments, dialect-agnostic.                   | `Raw() string`<br>`IsRaw() bool`                                              |
 | [Renderable](./renderable.go)     | Canonical, dialect-aware SQL output.                       | `Render() string`                                                             |
 | [Stringable](./stringable.go)     | Human-facing audit/log output.                             | `String() string`                                                             |
-| [Clonable](./clonable.go)         | Semantic cloning for safe mutation.                        | `Clone() T`                                                                   |
+| [Validable](./validable.go)       | Structural validation.                                     | `IsValid() bool`                                                              |
 
 ---
 
@@ -37,8 +38,15 @@ See [example_test.go](./example_test.go) for runnable examples of all contracts:
 ```go
 t := table.New("users", "u")
 
+var k contract.Kindable[myKind] = &myToken{}
+k.SetKind(Custom)
+fmt.Println("Kind=", k.Kind()) // classification
+
 var id contract.Identifiable = t
 fmt.Println(id.Input(), id.Expr()) // identity only
+
+var al contract.Aliasable = t
+fmt.Println(al.Alias(), al.IsAliased()) // alias surface
 
 var bt contract.BaseToken = t
 fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased())
@@ -66,7 +74,10 @@ var v contract.Validable = t
 fmt.Println(v.IsValid()) // structural validation
 ```
 
-_Note: Use `Identifiable` when aliasing must be excluded (e.g. in `Condition` tokens)._
+_**Note**:_  
+- Use `Kindable` for classification enums (e.g., `condition.Type`, `identifier.Type`).  
+- Use `Identifiable` when aliasing must be excluded (e.g., in `Condition` tokens).
+
 
 ---
 

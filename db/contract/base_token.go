@@ -12,10 +12,5 @@ type BaseToken interface {
 	ExpressionKind() identifier.Type
 
 	Identifiable
-
-	// Alias returns the alias name, if present.
-	Alias() string
-
-	// IsAliased reports whether the token has an alias.
-	IsAliased() bool
+	Aliasable
 }
