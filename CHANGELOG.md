@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
     - Safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
     - Flexible constructor: `New(kind any, left, right, condition)` for advanced/DSL scenarios.
-    - Explicit `join.Kind` enum (`InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`) with `String()`, `IsValid()`, and `ParseJoinKindFrom()`.
-    - Early-exit validation: invalid kind → `invalid join type (n)`, nil/errored tables, or empty condition → explicit error states.
+    - Core enum defined as **join.Type** (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`) with `String()`, `IsValid()`, and `ParseFrom()`.
+    - Early-exit validation: invalid type → `invalid join type (n)`, nil/errored tables, or empty condition (when required) → explicit error states.
     - Implements all core contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
-
+- Added new join types:
+    - `Cross` → renders as `CROSS JOIN`.
+    - `Natural` → renders as `NATURAL JOIN`.
+- Documentation updated (`doc.go`, `README.md`, `example_test.go`) to cover the full set of supported joins.
 
 ### Database (field)
 - Updated **field.Token** documentation (`doc.go`):
