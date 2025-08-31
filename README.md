@@ -15,10 +15,10 @@
 
 ## 📦 Packages
 
-- <a href="https://github.com/entiqon/entiqon/blob/main/common"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" align="left" height="24" width="24">
+* <a href="https://github.com/entiqon/entiqon/blob/main/common"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_sharicon.png?raw=true.png" align="left" height="24" width="24">
   Common</a>: Shared utilities and helper functions used across multiple modules. Installation:
   `go get github.com/entiqon/common`
-- <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
+* <a href="https://github.com/entiqon/entiqon/blob/main/db"><img src="https://github.com/entiqon/entiqon/blob/main/assets/entiqon_datacon.png?raw=true.png" align="left" height="24" width="24">
   Database</a>: Modular SQL query builder focused on database operations. Installation: `go get github.com/entiqon/db`
 
 *Future modules such as `core`, `auth`, `http`, and others will be added following the modular architecture.*
@@ -26,10 +26,18 @@
 ---
 
 ## 🧭 Doctrine
-- **Never panic** — always return a token or builder, errors are embedded not thrown.
-- **Auditability** — preserve user input for logs and error context.
-- **Strict validation** — invalid expressions rejected early.
-- **Delegation** — tokens own parsing/validation, builders compose them.
+
+* **Never panic** — always return a token or builder, errors are embedded not thrown.
+* **Auditability** — preserve user input for logs and error context.
+* **Strict validation** — invalid expressions rejected early.
+* **Delegation** — tokens own parsing/validation, builders compose them.
+* **Layered validation** — `ResolveExpression` enforces correctness in three independent stages:
+
+    1. **Type validation**: only raw strings are accepted; existing tokens (Field, Table, etc.) are rejected with guidance to use `Clone()`.
+    2. **Classification**: expressions are categorized (`Identifier`, `Function`, `Aggregate`, `Subquery`, `Literal`, etc.) by syntax.
+    3. **Resolution**: each category applies its own rules for parsing and alias validation.
+
+  This separation keeps the API strict, predictable, and auditable without duplicating rules across layers.
 
 ---
 
@@ -53,10 +61,10 @@
 
 ## 📦 Releases
 
-- [v1.13.0](./releases/release-notes-v1.13.0.md) ← latest
-- [v1.12.0](./releases/release-notes-v1.12.0.md)
-- [v1.10.0](./releases/release-notes-v1.10.0.md)
-- [CHANGELOG](./CHANGELOG.md)
+* [v1.13.0](./releases/release-notes-v1.13.0.md) ← latest
+* [v1.12.0](./releases/release-notes-v1.12.0.md)
+* [v1.10.0](./releases/release-notes-v1.10.0.md)
+* [CHANGELOG](./CHANGELOG.md)
 
 ---
 
@@ -65,18 +73,19 @@
 We welcome contributions! 🎉
 
 Please read the [CONTRIBUTING.md](./.github/CONTRIBUTING.md) guide for details on:
-- Writing tests
-- Commit message conventions
-- Documentation updates
-- Release process
 
-For a quick checklist, see [CONTRIBUTING_QUICK.md](./.github/CONTRIBUTING_QUICK.md).
+* Writing tests
+* Commit message conventions
+* Documentation updates
+* Release process
+
+For a quick checklist, see [PULL_REQUEST_TEMPLATE.md](./.github/PULL_REQUEST_TEMPLATE.md).
 
 ---
 
 ## 📄 License
 
-💡 Originally created by [Isidro Lopez](https://github.com/ialopezg)  
+💡 Originally created by [Isidro Lopez](https://github.com/ialopezg)
 🏢 Maintained by the [Entiqon Organization](https://github.com/entiqon)
 
 [MIT](./LICENSE) — © Isidro Lopez / Entiqon Project

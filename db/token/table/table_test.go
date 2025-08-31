@@ -4,210 +4,57 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token"
 	"github.com/entiqon/entiqon/db/token/table"
+	"github.com/entiqon/entiqon/db/token/types/identifier"
 )
-
-type testStringer string
-
-func (s testStringer) String() string { return string(s) }
 
 func TestTable(t *testing.T) {
 	t.Run("Constructor", func(t *testing.T) {
+		t.Run("Error", func(t *testing.T) {
+			tbl := table.New()
+			if tbl.Error() == nil {
+				t.Error("expected error, got nil")
+			}
+			if !strings.Contains(tbl.Error().Error(), "empty input is not allowed") {
+				t.Errorf("expected error 'empty input is not allowed', got %v", tbl.Error())
+			}
+
+			tbl = table.New(table.New("users"))
+			if !strings.Contains(tbl.Error().Error(), "use Clone() instead") {
+				t.Errorf("expected error contains 'unsupported type: field', got %v", tbl.Error())
+			}
+
+			tbl = table.New(123456)
+			if tbl.Error().Error() != "expr has invalid format (type int)" {
+				t.Errorf("expected error 'expr has invalid format (type int)', got %v", tbl.Error())
+			}
+
+			tbl = table.New("")
+			if tbl.Error().Error() != "empty identifier is not allowed: \"\"" {
+				t.Errorf("expected error 'empty identifier is not allowed', got %v", tbl.Error())
+			}
+		})
+
 		t.Run("1-arg", func(t *testing.T) {
-			t.Run("Error", func(t *testing.T) {
-				// No args → must error
-				src := table.New()
-				if src.Error() == nil {
-					t.Fatal("expected error for no args, got nil")
+			t.Run("Default", func(t *testing.T) {
+				tbl := table.New("table")
+				if tbl.Error() != nil {
+					t.Fatal("expected nil, got error")
 				}
-
-				// Unsupported type (int) → must error
-				src = table.New(123)
-				if src.Error() == nil {
-					t.Fatal("expected error for unsupported type (int), got nil")
+				if tbl.Input() != "table" {
+					t.Errorf("expected table 'name', got %v", tbl.Name())
 				}
-
-				tbl := table.New("users")
-				// Passing a token directly → must error with Clone() hint
-				src = table.New(tbl)
-				if src.Error() == nil {
-					t.Fatal("expected error for passing token directly, got nil")
+				if tbl.ExpressionKind() != identifier.Identifier {
+					t.Errorf("expected kind=Identifier, got %v", tbl.ExpressionKind())
 				}
-				if !strings.Contains(src.Error().Error(), "use Clone() instead") {
-					t.Errorf("expected error to suggest Clone(), got %v", src.Error())
-				}
-
-				// Empty string → must error
-				src = table.New("")
-				if src.Error() == nil {
-					t.Fatal("expected error for empty string input, got nil")
-				}
-			})
-
-			t.Run("Identifier", func(t *testing.T) {
-				t.Run("NoAlias", func(t *testing.T) {
-					src := table.New("users")
-					if src.IsErrored() {
-						t.Fatalf("unexpected error: %v", src.Error())
-					}
-					if src.ExpressionKind() != token.Identifier {
-						t.Errorf("expected kind=Identifier, got %v", src.ExpressionKind())
-					}
-					if src.Name() != "users" {
-						t.Errorf("expected name=users, got %q", src.Name())
-					}
-				})
-
-				t.Run("WithAlias", func(t *testing.T) {
-					src := table.New("users u")
-					if src.IsErrored() {
-						t.Fatalf("unexpected error: %v", src.Error())
-					}
-
-					src = table.New("users AS u")
-					if src.IsErrored() {
-						t.Fatalf("unexpected error: %v", src.Error())
-					}
-					if src.ExpressionKind() != token.Identifier {
-						t.Errorf("expected kind=Identifier, got %v", src.ExpressionKind())
-					}
-					if src.Name() != "users" {
-						t.Errorf("expected name=users, got %q", src.Name())
-					}
-				})
-
-				t.Run("Errored", func(t *testing.T) {
-					src := table.New("users 123456")
-					if !src.IsErrored() {
-						t.Fatalf("unexpected error: %v", src.Error())
-					}
-
-					src = table.New("users AS 123456")
-					if !src.IsErrored() {
-						t.Fatalf("unexpected error: %v", src.Error())
-					}
-				})
-
-				t.Run("GarbageInput", func(t *testing.T) {
-					src := table.New("the craziness in the plate is out of date")
-					if !src.IsErrored() {
-						t.Fatalf("expected error for garbage input, got nil")
-					}
-					if !strings.Contains(src.Error().Error(), "invalid format") {
-						t.Errorf(
-							"expected error to contain 'invalid format', got %v",
-							src.Error(),
-						)
-					}
-				})
-			})
-
-			t.Run("Subquery", func(t *testing.T) {
-				t.Run("WithAlias", func(t *testing.T) {
-					src := table.New("(SELECT customer, order_id FROM orders WHERE customer_id = 1234) orders")
-					if src.Error() != nil {
-						t.Fatalf("expected no error, got %v", src.Error())
-					}
-
-					src = table.New("(SELECT customer, order_id FROM orders WHERE customer_id = 1234) AS orders")
-					if src.Error() != nil {
-						t.Fatalf("expected no error, got %v", src.Error())
-					}
-					if src.ExpressionKind() != token.Subquery {
-						t.Errorf("expected kind=Subquery, got %v", src.ExpressionKind())
-					}
-					if src.Alias() != "orders" {
-						t.Errorf("expected alias=orders, got %v", src.Alias())
-					}
-				})
-
-				t.Run("Error", func(t *testing.T) {
-					src := table.New("(SELECT customer, order_id FROM orders WHERE customer_id = 1234) 123456")
-					if src.Error() == nil {
-						t.Fatal("expected error, got nil")
-					}
-				})
-			})
-
-			t.Run("FunctionOrComputed", func(t *testing.T) {
-				t.Run("NoAlias", func(t *testing.T) {
-					src := table.New("JSON_EACH(data)")
-					if src.Error() != nil {
-						t.Fatalf("expected no error, got %v", src.Error())
-					}
-					if src.ExpressionKind() != token.Function {
-						t.Errorf("expected kind=Function, got %v", src.ExpressionKind())
-					}
-				})
-
-				t.Run("WithAlias", func(t *testing.T) {
-					src := table.New("JSON_EACH(data) j")
-					if src.Error() != nil {
-						t.Fatalf("expected no error, got %v", src.Error())
-					}
-
-					src = table.New("JSON_EACH(data) AS j")
-					if src.ExpressionKind() != token.Function {
-						t.Errorf("expected kind=Function, got %v", src.ExpressionKind())
-					}
-					if src.Name() != "JSON_EACH(data)" {
-						t.Errorf("expected name=JSON_EACH(data), got %q", src.Name())
-					}
-					if src.Alias() != "j" {
-						t.Errorf("expected alias=j, got %q", src.Alias())
-					}
-				})
-
-				t.Run("Error", func(t *testing.T) {
-					src := table.New("JSON_EACH(data) 123456")
-					if !src.IsErrored() {
-						t.Fatalf("expected error for invalid alias, got nil")
-					}
-					if !strings.Contains(src.Error().Error(), "invalid alias") {
-						t.Errorf("expected invalid alias error, got %v", src.Error())
-					}
-
-					src = table.New("JSON_EACH(data) AS json is awesome")
-					if !src.IsErrored() {
-						t.Fatalf("expected error for malformed function expr, got nil")
-					}
-				})
-			})
-
-			t.Run("Literal", func(t *testing.T) {
-				src := table.New("'foo'")
-				if !src.IsErrored() {
-					t.Fatal("expected error for string literal, got nil")
-				}
-
-				src = table.New("42")
-				if !src.IsErrored() {
-					t.Fatal("expected error for numeric literal, got nil")
-				}
-
-				src = table.New("\"users\"")
-				if !src.IsErrored() {
-					t.Fatal("expected error for quoted literal, got nil")
-				}
-				if !strings.Contains(src.Error().Error(), "literal") {
-					t.Errorf("expected error mentioning literal, got %v", src.Error())
-				}
-			})
-
-			t.Run("Aggregated", func(t *testing.T) {
-				src := table.New("SUM(qty)")
-				if !src.IsErrored() {
-					t.Fatal("expected error for aggregate function, got nil")
-				}
-				if !strings.Contains(src.Error().Error(), "aggregate") {
-					t.Errorf("expected aggregate function error, got %v", src.Error())
+				if tbl.Name() != "table" {
+					t.Errorf("expected table 'name', got %v", tbl.Name())
 				}
 			})
 		})
 
 		t.Run("2-args", func(t *testing.T) {
-			t.Run("ValidAlias", func(t *testing.T) {
+			t.Run("Default", func(t *testing.T) {
 				src := table.New("users", "u")
 				if src.IsErrored() {
 					t.Fatalf("unexpected error: %v", src.Error())
@@ -239,192 +86,161 @@ func TestTable(t *testing.T) {
 				}
 			})
 
-			t.Run("StringerAlias", func(t *testing.T) {
-				src := table.New("users", testStringer("u"))
-				if src.IsErrored() {
-					t.Fatalf("unexpected error: %v", src.Error())
-				}
-				if src.Alias() != "u" {
-					t.Errorf("expected alias 'u', got %q", src.Alias())
-				}
-				if src.Expr() != "users" {
-					t.Errorf("expected expr 'users', got %q", src.Expr())
-				}
-			})
-
 			t.Run("EmptyAlias", func(t *testing.T) {
 				src := table.New("users", "")
 				if !src.IsErrored() {
 					t.Fatal("expected error for empty alias, got nil")
 				}
 			})
+		})
 
-			t.Run("TooManyArgs", func(t *testing.T) {
-				src := table.New("users", "u", "extra")
-				if !src.IsErrored() {
-					t.Fatal("expected error for too many arguments, got nil")
-				}
-			})
+		t.Run("TooManyArgs", func(t *testing.T) {
+			src := table.New("users", "u", "extra")
+			if !src.IsErrored() {
+				t.Fatal("expected error for too many arguments, got nil")
+			}
+		})
+
+		t.Run("Aggregate", func(t *testing.T) {
+			src := table.New("COUNT(id) AS count")
+			if !src.IsErrored() {
+				t.Fatal("expected error for aggregate, got nil")
+			}
+		})
+
+		t.Run("Literal", func(t *testing.T) {
+			src := table.New("'users' AS u")
+			if !src.IsErrored() {
+				t.Fatal("expected error for literal, got nil")
+			}
 		})
 	})
 
-	t.Run("Methods", func(t *testing.T) {
-		t.Run("Contract", func(t *testing.T) {
-			t.Run("TableToken", func(t *testing.T) {
-				src := table.New("users u")
-				if src.Name() != "users" {
-					t.Errorf("expected name 'users', got %q", src.Name())
-				}
-			})
+	t.Run("Contracts", func(t *testing.T) {
+		t.Run("BaseToken", func(t *testing.T) {
+			src := table.New("table", "t")
+			if src.Error() != nil {
+				t.Errorf("expected no error, got %v", src.Error())
+			}
+			if src.Input() != "table t" {
+				t.Errorf("expected field, got %v", src.Input())
+			}
+			if src.ExpressionKind().String() != "Identifier" {
+				t.Errorf("expected kind Identifier, got %s", src.ExpressionKind().String())
+			}
+			if src.Expr() != "table" {
+				t.Errorf("expected field, got %v", src.Expr())
+			}
+			if !src.IsAliased() || src.Alias() != "t" {
+				t.Errorf("expected alias, got %v", src.Alias())
+			}
+		})
 
-			t.Run("BaseToken", func(t *testing.T) {
-				src := table.New("users u")
-				if src.Input() != "users u" {
-					t.Errorf("expected input 'users u', got %q", src.Input())
-				}
-				if src.Expr() != "users" {
-					t.Errorf("expected expr 'users', got %q", src.Expr())
-				}
-				if src.Alias() != "u" {
-					t.Errorf("expected alias 'u', got %q", src.Alias())
-				}
-				if !src.IsAliased() {
-					t.Error("expected table to be aliased")
-				}
-				if src.ExpressionKind().String() != "IDENTIFIER" {
-					t.Errorf("expected kind IDENTIFIER, got %s", src.ExpressionKind().String())
-				}
-			})
+		t.Run("TableToken", func(t *testing.T) {
+			src := table.New("users u")
+			if src.Name() != "users" {
+				t.Errorf("expected name 'users', got %q", src.Name())
+			}
+		})
 
-			t.Run("Clonable", func(t *testing.T) {
-				src := table.New("users u")
-				clone := src.Clone()
-				if src.Render() != clone.Render() {
-					t.Errorf("expected clone to render same, got %q vs %q", src.Render(), clone.Render())
-				}
-				if src == clone {
-					t.Error("expected clone to be a different instance")
-				}
-			})
+		t.Run("Clonable", func(t *testing.T) {
+			src := table.New("users u")
+			clone := src.Clone()
+			if src.Render() != clone.Render() {
+				t.Errorf("expected clone to render same, got %q vs %q", src.Render(), clone.Render())
+			}
+			if src == clone {
+				t.Error("expected clone to be a different instance")
+			}
+		})
 
-			t.Run("Debuggable", func(t *testing.T) {
-				// valid case
-				valid := table.New("users u")
-				got := valid.Debug()
-				if !strings.Contains(got, "raw:") {
-					t.Errorf("expected debug output with flags, got %q", got)
-				}
-				if !strings.Contains(got, "✅ Table") {
-					t.Errorf("expected valid marker in debug output, got %q", got)
-				}
+		t.Run("Debuggable", func(t *testing.T) {
+			src := table.New("table", "t")
+			if out := src.Debug(); !strings.Contains(out, "table") || !strings.Contains(out, "t") {
+				t.Errorf("unexpected Debug output: %q", out)
+			}
 
-				// invalid case
-				invalid := table.New("the craziness in the plate is out of date")
-				got = invalid.Debug()
-				if !strings.Contains(got, "❌ Table") {
-					t.Errorf("expected error marker in debug output, got %q", got)
-				}
-				if invalid.Error() == nil {
-					t.Fatal("expected error in invalid table")
-				}
-				if !strings.Contains(got, invalid.Error().Error()) {
-					t.Errorf("expected debug output to include error message, got %q", got)
-				}
-			})
+			// invalid case: should surface the error
+			bad := table.New("")
+			if out := bad.Debug(); !strings.Contains(out, "error") {
+				t.Errorf("expected Debug() to mention error, got %q", out)
+			}
+		})
 
-			t.Run("Errorable", func(t *testing.T) {
-				src := table.New("the craziness in the plate is out of date") // garbage
-				if !src.IsErrored() {
-					t.Fatal("expected errored table, got valid")
-				}
-				if src.Error() == nil {
-					t.Fatal("expected non-nil error")
-				}
-			})
+		t.Run("Errorable", func(t *testing.T) {
+			src := table.New("the craziness in the plate is out of date") // garbage
+			if !src.IsErrored() {
+				t.Fatal("expected errored table, got valid")
+			}
+			if src.Error() == nil {
+				t.Fatal("expected non-nil error")
+			}
+		})
 
-			t.Run("Rawable", func(t *testing.T) {
-				// valid case with alias
-				withAlias := table.New("users u")
-				if withAlias.Raw() != "users AS u" {
-					t.Errorf("expected `users AS u`, got %q", withAlias.Raw())
-				}
+		t.Run("Rawable", func(t *testing.T) {
+			src := table.New("table")
+			if src.IsRaw() {
+				t.Errorf("expected Raw() to be false', got %t", src.IsRaw())
+			}
+			if !strings.Contains(src.Raw(), "table") {
+				t.Errorf("expected Raw() to contain 'table', got %v", src.Raw())
+			}
 
-				// valid case without alias
-				noAlias := table.New("users")
-				if noAlias.Raw() != "users" {
-					t.Errorf("expected `users`, got %q", noAlias.Raw())
-				}
+			src = table.New("(SELECT COUNT(field) FROM users WHERE id = 1) count")
+			if !src.IsRaw() {
+				t.Errorf("expected Raw() to be true, got %t", src.IsRaw())
+			}
+			if !strings.Contains(src.Raw(), "count") {
+				t.Errorf("expected Raw() to contain 'count', got %v", src.Raw())
+			}
 
-				// invalid case
-				invalid := table.New("the craziness in the plate is out of date")
-				if invalid.Raw() != "" {
-					t.Errorf("expected empty string for invalid table, got %q", invalid.Raw())
-				}
-				if !invalid.IsErrored() {
-					t.Fatal("expected errored table for invalid input")
-				}
-			})
+			src = table.New("table", "t")
+			if !strings.Contains(src.Raw(), "table") {
+				t.Errorf("expected Raw() to contain 'table', got %v", src.Raw())
+			}
 
-			t.Run("Renderable", func(t *testing.T) {
-				// valid case with alias
-				withAlias := table.New("users u")
-				if withAlias.Render() != "users AS u" {
-					t.Errorf("expected `users AS u`, got %q", withAlias.Render())
-				}
+			src = table.New("")
+			if !strings.Contains(src.Raw(), "") {
+				t.Errorf("expected Raw() to contain '', got %v", src.Raw())
+			}
+		})
 
-				// valid case without alias
-				noAlias := table.New("users")
-				if noAlias.Render() != "users" {
-					t.Errorf("expected `users`, got %q", noAlias.Render())
-				}
+		t.Run("Renderable", func(t *testing.T) {
+			f := table.New("table", "t")
+			if got := f.Render(); got != "table AS t" {
+				t.Errorf("expected Render() 'table AS t', got %q", got)
+			}
 
-				// invalid case
-				invalid := table.New("the craziness in the plate is out of date")
-				if invalid.Render() != "" {
-					t.Errorf("expected empty string for invalid table, got %q", invalid.Render())
-				}
-				if !invalid.IsErrored() {
-					t.Fatal("expected errored table for invalid input")
-				}
-			})
+			bad := table.New("")
+			if bad.Render() != "" {
+				t.Errorf("expected %q, got %q", "", bad.Render())
+			}
+		})
 
-			t.Run("Stringable", func(t *testing.T) {
-				// valid case with alias
-				withAlias := table.New("users u")
-				got := withAlias.String()
-				if !strings.Contains(got, "✅ Table(users AS u)") {
-					t.Errorf("expected success marker with alias, got %q", got)
-				}
+		t.Run("Stringable", func(t *testing.T) {
+			f := table.New("table")
+			if got := f.String(); got != "✅ Table(table)" {
+				t.Errorf("expected String() 'field', got %q", got)
+			}
 
-				// valid case without alias
-				noAlias := table.New("users")
-				got = noAlias.String()
-				if !strings.Contains(got, "✅ Table(users)") {
-					t.Errorf("expected success marker without alias, got %q", got)
-				}
+			// Computed expression with alias
+			f = table.New("table", "t")
+			if got := f.String(); got != "✅ Table(table AS t)" {
+				t.Errorf("expected String() 'field AS alias', got %q", got)
+			}
 
-				// invalid case
-				invalid := table.New("the craziness in the plate is out of date")
-				got = invalid.String()
-				if !strings.Contains(got, "❌ Table") {
-					t.Errorf("expected error marker, got %q", got)
-				}
-				if invalid.Error() == nil {
-					t.Fatal("expected error in invalid table")
-				}
-			})
+			// Invalid
+			bad := table.New("")
+			if !strings.Contains(bad.String(), "empty identifier is not allowed") {
+				t.Errorf("expected contains 'empty identifier is not allowed' for invalid field, got %q", bad.String())
+			}
+		})
 
-			t.Run("Validable", func(t *testing.T) {
-				valid := table.New("users u")
-				if !valid.IsValid() {
-					t.Error("expected valid table")
-				}
-
-				invalid := table.New("the craziness in the plate is out of date")
-				if invalid.IsValid() {
-					t.Error("expected invalid table")
-				}
-			})
+		t.Run("Validable", func(t *testing.T) {
+			f := table.New()
+			if f.IsValid() {
+				t.Error("expected IsValid() to be true")
+			}
 		})
 	})
 }

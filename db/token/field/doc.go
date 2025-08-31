@@ -1,59 +1,73 @@
-// Package field defines the low-level primitives used by the SQL builder.
+// Package field defines the token.Field type, a low-level primitive used by the SQL builder.
 //
 // # Overview
 //
 // The token package provides fundamental structures to represent SQL query
 // fragments in a dialect-agnostic way. These tokens are consumed by higher-
-// level builders (e.g. SelectBuilder) to construct safe SQL statements.
+// level builders (e.g. SelectBuilder) to construct safe, expressive, and
+// auditable SQL statements.
 //
-// The primary type in this package is Field, which models a column or
-// expression in a SELECT clause.
+// The primary type in this package is Field, which models a column,
+// subquery, function, computed expression, or literal in a SELECT clause.
 //
-// # Field
+// A Field is built on top of the BaseToken contract, ensuring consistent
+// handling of input, expression, aliasing, raw detection, classification,
+// validation, and error state.
 //
-// A Field represents a single column or expression in a SELECT query.
-// It can optionally have an alias and may be marked as raw.
+// # Construction
 //
-// Field supports multiple instantiation forms through New:
+// Fields are created using New(...) or NewWithTable(...):
 //
-//   - New("expr")
-//     A single expression, e.g. "id"
+//   - No argument:
+//     field.New() → errored (empty input)
 //
-//   - New("expr alias")
-//     Expression with alias, parsed by space, e.g. "id user_id"
+//   - Plain field:
+//     field.New("id") → id
 //
-//   - New("expr AS alias")
-//     Expression with alias using AS, e.g. "id AS user_id"
+//   - Aliased (inline):
+//     field.New("id user_id")    → id AS user_id
+//     field.New("id AS user_id") → id AS user_id
 //
-//   - New("expr", "alias")
-//     Expression and alias provided separately
+//   - Aliased (explicit arguments):
+//     field.New("id", "user_id") → id AS user_id
+//     The second argument may also be any fmt.Stringer implementation.
+//     Aliases are validated via identifier.IsValidAlias.
 //
-//   - New("expr", "alias", true)
-//     Expression and alias with IsRaw set explicitly
+//   - Wildcard:
+//     field.New("*") → *
+//     field.New("* alias") → errored (wildcard cannot be aliased)
 //
-//   - New(*Field)
-//     Disallowed: users must call Clone() instead
+//   - Subquery (must have alias):
+//     field.New("(SELECT COUNT(*) FROM users) AS t") → (SELECT COUNT(*) FROM users) AS t
+//     field.New("(SELECT COUNT(*) FROM users)", "t") → (SELECT COUNT(*) FROM users) AS t
 //
-// # Field Behavior
+//   - Computed / Function / Literal:
+//     field.New("price * quantity", "total") → (price * quantity) AS total
+//     field.New("SUM(price)", "sum_price")  → SUM(price) AS sum_price
+//     field.New("'hello'", "greeting")      → 'hello' AS greeting
 //
-// A Field consists of:
-//   - Input: the raw user input
-//   - Expr: the resolved expression (e.g. "id")
-//   - Alias: the optional alias (e.g. "user_id")
-//   - IsRaw: whether this is a raw expression
-//   - Error: set if construction fails
+//   - Errors:
+//     field.New("")                  → errored
+//     field.New("field alias extra") → errored (too many tokens)
+//     field.New(field.New("id"))     → errored (use Clone() instead)
+//     field.New(123)                 → errored (invalid type)
 //
-// Methods include:
-//   - Render: returns a dialect-agnostic SQL fragment
-//   - Clone: produces a deep copy
-//   - IsAliased, IsErrored, IsValid: convenience checks
-//   - HasOwner: reports whether the field is qualified by a table name or alias
-//   - Owner: returns the owning table name (or alias) if one is set
-//   - SetOwner: assigns or clears the owning table name (passing nil clears it)
+// # Contracts
+//
+// Field implements the following contracts from db/contract:
+//
+//   - BaseToken   → Input(), Expr(), Alias(), IsAliased(), ExpressionKind()
+//   - Renderable  → Render()
+//   - Rawable     → Raw(), IsRaw()
+//   - Stringable  → String()
+//   - Debuggable  → Debug()
+//   - Clonable    → Clone()
+//   - Errorable   → IsErrored(), Error()
+//   - Validable   → IsValid()
 //
 // # Usage Example
 //
-// Select specific columns:
+// Select plain fields:
 //
 //	sb := builder.NewSelect(nil).
 //	    Fields("id", "name").
@@ -62,7 +76,7 @@
 //	sql, _ := sb.Build()
 //	// SELECT id, name FROM users
 //
-// Add aliases:
+// With aliases:
 //
 //	sb := builder.NewSelect(nil).
 //	    Fields("id user_id", "COUNT(*) total").
@@ -70,4 +84,22 @@
 //
 //	sql, _ := sb.Build()
 //	// SELECT id AS user_id, COUNT(*) AS total FROM users
+//
+// With subquery:
+//
+//	f := field.New("(SELECT COUNT(*) FROM users) AS t")
+//	fmt.Println(f.String())
+//	// field((SELECT COUNT(*) FROM users) AS t)
+//
+// Wildcard:
+//
+//	f := field.New("*")
+//	fmt.Println(f.String())
+//	// field(*)
+//
+// Invalid input:
+//
+//	f := field.New("id as user_id foo")
+//	fmt.Println(f.Error())
+//	// invalid format "id as user_id foo"
 package field

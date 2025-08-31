@@ -27,6 +27,16 @@ We have introduced a new **identifier.Type** enum to classify SQL expressions in
 
 ---
 
+
+### Database (field)
+- Updated **field.Token** documentation (`doc.go`):
+  - Added `BaseToken` and `Validable` contracts to the list of implemented interfaces.
+  - Expanded construction rules for plain fields, inline/explicit aliases, wildcards (with alias restriction), subqueries (alias required), computed expressions, functions, and literals.
+  - Clarified invalid cases (empty input, too many tokens, invalid alias, direct token usage without `Clone()`, unsupported types).
+  - Added detailed examples for `Render`, `String`, `Debug`, wildcards, subqueries, functions, literals, and invalid inputs.
+  - Reinforced design principles: immutability, auditability, strict validation, and safe cloning.
+
+---
 ### Token (helpers)
 #### Refactor
 - **ResolveExpression** in `helpers/identifier.go` has been streamlined:
