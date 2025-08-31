@@ -3,6 +3,7 @@ package join
 import (
 	"github.com/entiqon/entiqon/db/contract"
 	"github.com/entiqon/entiqon/db/token/table"
+	"github.com/entiqon/entiqon/db/token/types/join"
 )
 
 // Token is the contract implemented by all Join tokens.
@@ -17,17 +18,17 @@ import (
 //   - Stringable → concise string form
 //   - Validable  → structural validity
 //
-// In addition, Join tokens expose join-specific accessors:
+// In addition, Join tokens expose token-specific accessors:
 //
-//   - Kind()      → the join kind (INNER, LEFT, RIGHT, FULL)
+//   - Kind()      → the token kind (INNER, LEFT, RIGHT, FULL)
 //   - Left()      → the left table operand
 //   - Right()     → the right table operand
 //   - Condition() → the ON condition expression
 //
 // Example:
 //
-//	j := join.NewInner("users", "orders", "users.id = orders.user_id")
-//	fmt.Println(j.Kind())      // INNER JOIN
+//	j := token.NewInner("users", "orders", "users.id = orders.user_id")
+//	fmt.Println(j.Type())      // INNER JOIN
 //	fmt.Println(j.Left())      // users
 //	fmt.Println(j.Right())     // orders
 //	fmt.Println(j.Condition()) // users.id = orders.user_id
@@ -40,8 +41,8 @@ type Token interface {
 	contract.Stringable
 	contract.Validable
 
-	// Kind reports the type of join (INNER, LEFT, RIGHT, FULL).
-	Kind() Kind
+	// Kind reports the type of token (INNER, LEFT, RIGHT, FULL).
+	Kind() join.Type
 
 	// Left returns the left table operand.
 	Left() table.Token
@@ -53,5 +54,5 @@ type Token interface {
 	Condition() string
 }
 
-// Ensure join implements the Token interface.
-var _ Token = (*join)(nil)
+// Ensure token implements the Token interface.
+var _ Token = (*token)(nil)
