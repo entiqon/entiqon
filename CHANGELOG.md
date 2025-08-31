@@ -7,139 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v1.14.0 - Upcoming
 
-### Contract
-- Introduced **Identifiable** contract (`contract/identifiable.go`):
-  - Provides alias-free identity for tokens, exposing only:
-    - `Input()` → raw user-provided input.
-    - `Expr()` → normalized SQL expression.
-  - Designed for tokens where aliasing is not applicable (e.g., `condition.Token`).
-- Documentation updates:
-  - Added `Identifiable` entry in `contract/README.md` (table of contracts).
-  - Updated `contract/doc.go` overview with `Identifiable`.
-  - Extended `example_test.go` to show `Identifiable` usage alongside `BaseToken`.
+### Contracts
 
-### Field Token
-- Updated **field.Token** documentation (`doc.go`):
-  - Added `BaseToken` and `Validable` contracts to implemented interfaces.
-  - Expanded construction rules to cover plain fields, inline/explicit aliases, wildcards (with alias restriction), subqueries (alias required), computed expressions, functions, literals.
-  - Clarified invalid cases (empty input, too many tokens, invalid alias, direct token usage without `Clone()`, unsupported types).
-  - Improved examples for `Render`, `String`, `Debug`, and error reporting.
-  - Reinforced design principles: immutability, auditability, strict validation, and safe cloning.
+- Added **Kindable**: generic contract for enum-style classification (`Kind()`, `SetKind(T)`).
+- Added **Identifiable**: alias-free identity (`Input()`, `Expr()`).
+- Documentation updated (`doc.go`, `README.md`) to reflect new contracts; BaseToken kept temporarily.
 
-### Table/Field Token
-- Constructors now delegate to `resolver.ValidateType` for type safety.
-- Error states improved:
-    - Passing tokens directly now suggests using `Clone()`.
-    - Invalid literal/aggregate use as table sources rejected with clear error messages.
-    - Invalid alias cases correctly rejected (including reserved keywords).
+### Tokens
 
-### Join Token
-- Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
-    - Safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
-    - Flexible constructor: `New(kind any, left, right, condition)` for advanced/DSL scenarios.
-    - Core enum defined as **join.Type** (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`) with `String()`, `IsValid()`, and `ParseFrom()`.
-    - Early-exit validation: invalid type → `invalid join type (n)`, nil/errored tables, or empty condition (when required) → explicit error states.
-    - Implements all core contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
-- Added new join types:
-    - `Cross` → renders as `CROSS JOIN`.
-    - `Natural` → renders as `NATURAL JOIN`.
-- Documentation updated (`doc.go`, `README.md`, `example_test.go`) to cover the full set of supported joins.
-- Removed legacy `join.Kind` in favor of **join.Type** for clearer, type-safe representation of join kinds.
-- Deleted obsolete `kind.go` after migration.
-- Renamed struct from `join` → `token` to align with naming conventions across token packages.
-- Updated `contract.go` and `token.go` (formerly `join.go`) to reflect new type and struct naming.
+- **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
+- **Join**: new `join.Token` with type-safe `join.Type` (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy
+  `join.Kind` removed.
+- **Condition**: new `condition.Type` enum (`Invalid`, `Single`, `And`, `Or`).
+- **Identifier**: introduced `identifier.Type` enum (Identifier, Subquery, Literal, Aggregate, Function, Computed).
+- **ExpressionKind**: added `Invalid` classification; extended rules for aggregates, computed expressions, functions.
 
-### ExpressionKind Types
-- Added `Invalid` kind for unrecognized expressions.
-- Updated `String()` and `IsValid()` accordingly.
-- Extended classification rules:
-    - Aggregates (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) now reported as `Aggregate`.
-    - Computed expressions (`price * quantity`) reported as `Computed`.
-    - Functions (`JSON_EXTRACT(...)`) remain `Function`.
+### Helpers
 
-### Identifier Type
-- Introduced **identifier.Type** enum to classify SQL expressions:
-    - Categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
-    - Methods:
-        - `Alias()` provides short codes (`id`, `lt`, `fn`, `ag`, `cp`, `sq`, `ex`).
-        - `IsValid()` ensures strict recognition of supported kinds.
-        - `ParseFrom(any)` safely coerces from int, string, or existing Type.
-        - `String()` returns capitalized labels (`Identifier`, `Function`, …) with `Unknown` fallback.
-    - Documentation:
-        - Added `doc.go` with overview, categories, and philosophy.
-        - Updated `README.md` with examples, philosophy, and license section.
-        - Added `example_test.go` demonstrating usage including edge cases.
+- New `helpers` package: validation (identifiers, aliases, wildcards, reserved keywords), alias generation, expression
+  classification.
+- Refactored `ResolveExpression` for cleaner alias handling and coverage.
+- Added `ValidateType` for stricter input enforcement.
+- `ResolveExpression` extended with subquery detection, identifier checks, explicit alias support.
 
-### Condition Type
-- Introduced **condition.Type** enum to classify SQL conditional expressions:
-    - Supported values: `Invalid`, `Single`, `And`, `Or`.
-    - Methods:
-        - `IsValid()` validates recognized types.
-        - `ParseFrom(any)` coerces from `Type`, `int`, or `string`.
-        - `String()` returns canonical SQL keyword (`AND`, `OR`, or empty for `Single`).
-    - Includes `normalize()` helper for case-insensitive parsing of strings.
-- Added complete documentation:
-    - `doc.go` with overview, categories, and usage philosophy.
-    - `README.md` mirroring identifier/join structure with Purpose, Types, Example, Integration, License.
-    - `example_test.go` demonstrating usage for `IsValid`, `String`, and `ParseFrom`.
-    - `type_test.go` covering all constructors, branches, and edge cases with 100% coverage.
+### Docs & Tests
 
-### ResolveExpression Helper
-- Refactored **ResolveExpression** in `helpers/identifier.go`:
-  - Branches directly on `ResolveExpressionType`, eliminating redundant checks.
-  - Unified alias handling for all expression types (`Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`).
-  - Removed unreachable `default` branch, ensuring full coverage.
-  - Simplified responsibility split: classification validates kind/shape, resolution only extracts alias.
-
-### Validation Helpers
-- Introduced **helpers** package for reusable validation utilities.
-    - Identifier validation:
-        - `IsValidIdentifier` / `ValidateIdentifier` with strict rules.
-        - Non-ASCII identifiers (e.g. café, mañana, niño) explicitly rejected until dialect-specific rules are added.
-    - Alias validation:
-        - `IsValidAlias` / `ValidateAlias` to ensure aliases are valid identifiers and not reserved keywords.
-        - `ValidateTrailingAlias` / `HasTrailingAlias` to detect and validate trailing aliases (when no `AS` is present).
-        - `ReservedKeywords()` returns the dialect-agnostic set of disallowed aliases.
-    - Wildcard validation:
-        - `ValidateWildcard(expr, alias)` ensures that `*` is only used without alias or raw.
-        - Rejects invalid cases such as `* AS total`.
-    - Deterministic alias generation:
-        - `GenerateAlias(prefix, expr string)` produces safe aliases by combining a short code with a SHA-1 hash of the expression.
-    - Expression classification:
-        - Renamed `ClassifyExpression` → `ResolveExpressionType` and hosted in `helpers/identifier.go`.
-        - Provides syntactic classification of raw expressions into `identifier.Type`.
-        - `resolver.ResolveExpression` remains for now with a different return type (migration planned).
-        - All docs and examples updated to reference `ResolveExpressionType`.
-    - Independent test files with exhaustive valid/invalid cases and runnable examples.
-    - Includes `doc.go` and `README.md` documenting rules and the consistency pattern (`ValidateXxx`, `IsValidXxx`, `GenerateAlias`, `ResolveXxx`).
-
-### Resolver Helper
-- Added **resolver** module:
-    - `ValidateType` enforces input types:
-        - `string` accepted.
-        - Existing tokens (`Validable`) rejected with `unsupported type …; if you want to create a copy, use Clone() instead`.
-        - All other types → `invalid format (type …)`.
-    - `ResolveExpr` extended with:
-        - Subquery detection (input wrapped in parentheses treated as one expression).
-        - Strict identifier validation (must be a single token).
-        - Explicit alias handling (`AS`, trailing identifiers).
-
-### Tests & Docs
-- `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, wildcard validation, alias generation, expression classification).
-- `README.md` files updated:
-    - Root `token` README now lists `field`, `table`, `join`, `resolver`, `ExpressionKind`, and `helpers`.
-    - `helpers` README extended with identifiers, aliases, trailing alias rules, reserved keywords, wildcard validation, alias generation, and `ResolveExpressionType`.
-    - `table` README documents stricter alias validation, Clone() guidance, and error handling.
-    - Headings normalized (emoji removed from `# Token`).
-- `example_test.go` updated:
-    - Subquery examples uncommented and corrected.
-    - Added examples for identifiers, aliases, trailing aliases, wildcards, generated aliases, and expression classification.
-    - Added examples for invalid types and Clone() hints.
-    - Adjusted `IsRaw` examples (currently false, will later derive from `Kind()`).
+- Updated all `doc.go` and `README.md` files for new/changed tokens.
+- Expanded `example_test.go` with subqueries, identifiers, aliases, wildcards, generated aliases, and classification.
+- Achieved 100% coverage for new contracts and helpers.
 
 ## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-26
 
 ### Database (builder/select)
+
 - Added full clause support:
     - **Conditions**: `Where`, `And`, `Or` (reset, append, normalize with AND, ignore empty).
     - **Grouping**: `GroupBy`, `ThenGroupBy` (reset/append, ignore empty, rendered between WHERE and HAVING).
@@ -151,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - `Build()` aggregates invalid fields, detects nil receiver and missing source, with clear ❌ messages.
 
 ### Database (contract)
+
 - Introduced **BaseToken** contract (`db/contract/base_token.go`):
     - Provides core identity and validation for all tokens
     - Methods: `Input()`, `Expr()`, `Alias()`, `IsAliased()`, `IsValid()`
@@ -167,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Updated `doc.go`, `README.md`, and `example_test.go` to demonstrate usage
 
 ### Database (token/table)
+
 - Introduced **Table token** to represent SQL sources in builders:
     - Provides constructors and helpers to define tables, aliases, and raw inputs.
     - Supports consistent rendering across dialects.
@@ -177,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added **README.md** documenting purpose, design, and usage of token.Table.
 
 ### Database (token/field)
+
 - Struct `Field` is now hidden (`field` unexported); only the `Token` interface is public.
 - Constructors (`New`, `NewWithTable`) return `Token` instead of *field, ensuring encapsulation.
 - `Clone()` updated to return `Token`.
@@ -193,7 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Introduced **Token contract** as a scaffold to decompose Field identity into auditable pieces:
     - Aggregates `BaseToken`, `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, and `Stringable`.
     - Defines ownership methods: `HasOwner()`, `Owner()`, and `SetOwner()`.
-    - Intention: sort every identity aspect (expr, alias, owner, validity, raw state) into dedicated contracts for auditability.
+    - Intention: sort every identity aspect (expr, alias, owner, validity, raw state) into dedicated contracts for
+      auditability.
     - ⚠️ Currently only the contract and documentation are provided; implementation is staged for later commits.
 - Documentation updates:
     - `doc.go`: added `HasOwner`, `Owner`, `SetOwner` under **Field Behavior**.
@@ -203,24 +107,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Added `db/token/README.md` with purpose and subpackage table (field, table).
     - Added `db/token/doc.go` with GoDoc overview, principles, subpackages, and roadmap.
 
-
 ### Common (extension/integer)
+
 - Introduced **integer parser**:
     - `ParseFrom(any)` converts input safely to int, rejects invalid types.
     - `IntegerOr` shortcut with defaults.
     - Consistent with `boolean`, `float`, and `decimal` parsers.
 
 ### Tests & Docs
+
 - Comprehensive unit tests across Database and Common ensuring 100% coverage.
-- **README.md**, **doc.go**, and **example_test.go** updated with Conditions, Grouping, Having, Ordering, and Integer parser sections.
+- **README.md**, **doc.go**, and **example_test.go** updated with Conditions, Grouping, Having, Ordering, and Integer
+  parser sections.
 - Added runnable examples in `example_test.go` demonstrating new Having clause.
 
 ## [v1.12.0](https://github.com/entiqon/entiqon/releases/tag/v1.12.0) - 2025-08-22
 
 ### Highlights
 
-- **Parser Shortcuts**: Added `Or` variants (`BooleanOr`, `NumberOr`, `FloatOr`, `DecimalOr`, `DateOr`) to allow explicit fallback values.
-- **Extension Documentation**: Each extension subpackage (`boolean`, `date`, `decimal`, `float`, `number`, `object`, `collection`) now ships with `README.md`, `doc.go`, and `example_test.go`.
+- **Parser Shortcuts**: Added `Or` variants (`BooleanOr`, `NumberOr`, `FloatOr`, `DecimalOr`, `DateOr`) to allow
+  explicit fallback values.
+- **Extension Documentation**: Each extension subpackage (`boolean`, `date`, `decimal`, `float`, `number`, `object`,
+  `collection`) now ships with `README.md`, `doc.go`, and `example_test.go`.
 - **Object Helpers**: Normalized and moved from `common/object` → `common/extension/object`.
 - **Deprecations**:
     - `BoolToStr` has been renamed to `BoolToString` and moved into `common/extension/boolean`.
@@ -244,20 +152,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Highlights
 
--   **New parsing façade**: one-line helpers for `Boolean`, `Float`,
-    `Decimal`, and `Date`.
--   **Deterministic date cleaning**: `CleanAndParse`,
-    `CleanAndParseAsString`, strict `YYYYMMDD` prefix path, and 100%
-    tests.
--   **Boolean parser++**: extended tokens (`on/off`, `y/n`, `t/f`) and
-    explicit `nil` rejection.
--   **SQL Builder/Token overhaul**: `Column → Field`, `FieldCollection`,
-    deterministic `NewField` inputs, and Postgres/Base dialects with
-    tests.
+- **New parsing façade**: one-line helpers for `Boolean`, `Float`,
+  `Decimal`, and `Date`.
+- **Deterministic date cleaning**: `CleanAndParse`,
+  `CleanAndParseAsString`, strict `YYYYMMDD` prefix path, and 100%
+  tests.
+- **Boolean parser++**: extended tokens (`on/off`, `y/n`, `t/f`) and
+  explicit `nil` rejection.
+- **SQL Builder/Token overhaul**: `Column → Field`, `FieldCollection`,
+  deterministic `NewField` inputs, and Postgres/Base dialects with
+  tests.
 
 ## [v1.10.0](https://github.com/entiqon/entiqon/releases/tag/v1.10.0) - 2025-08-07
 
-- dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro Lopez)
+- dce6cf7 feat(object): enhance Exists, GetValue, SetValue with flexible types; add extensive tests; update docs (Isidro
+  Lopez)
 
 ## [v1.9.0](https://github.com/entiqon/entiqon/releases/tag/v1.9.0) - 2025-08-07
 
@@ -342,7 +251,6 @@ It's the first practical application of the previously introduced `AliasableToke
 **Codename:** Keystone
 
 ---
-
 
 ## [v1.5.0] – 2025-05-24
 
