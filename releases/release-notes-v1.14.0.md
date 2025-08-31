@@ -4,6 +4,19 @@
 
 This release further refines the database token system, with a focus on **JOIN handling**, **expression resolution**, and **documentation improvements**. It also introduces several breaking changes around join types and struct naming for consistency and clarity.
 
+## Contracts
+
+- Introduced **Identifiable** contract (`contract/identifiable.go`):
+  - Provides alias-free identity for tokens via:
+    - `Input()` → raw user input.
+    - `Expr()` → normalized expression.
+  - Useful for tokens where aliasing is not applicable (e.g. `condition.Token`).
+- Documentation updates:
+  - Added `Identifiable` entry in `contract/README.md` (contracts table).
+  - Updated `contract/doc.go` overview to include `Identifiable`.
+  - Extended `example_test.go` to demonstrate `Identifiable` alongside `BaseToken`.
+
+---
 ---
 
 ## Database (join)
