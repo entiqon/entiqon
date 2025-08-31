@@ -6,15 +6,6 @@ Entiqon/db is a modular SQL query engine for Go, designed for composable, type-s
 
 ---
 
-## 🧭 Doctrine
-- **Never panic** — always return a token or builder, errors are embedded not thrown.
-- **Auditability** — preserve user input for logs and error context.
-- **Strict validation** — invalid expressions rejected early.
-- **Delegation** — tokens own parsing/validation, builders compose them.
-
----
-
-## 🛠 Capabilities
 ## 🛠 Capabilities
 
 | Module                 | Feature                | Purpose                                                                    | Status      |
@@ -25,15 +16,18 @@ Entiqon/db is a modular SQL query engine for Go, designed for composable, type-s
 |                        | [delete](./builder)    | High-level SQL builder for DELETE statements                               | 📝 Planned  |
 |                        | [upsert](./builder)    | High-level SQL builder for UPSERT / MERGE statements                       | 📝 Planned  |
 | [token](./token)       | [field](./token/field) | Dialect-agnostic representation of SQL fields/expressions                  | ✅ Stable    |
-|                        | [table](./token/table) | Dialect-agnostic representation of SQL tables/sources                      | 🚧 On Going |
-| [contract](./contract) | BaseToken              | Common base for tokens (shared identity, ownership, validity checks)       | 📝 Planned  |
-|                        | Clonable               | Ensures semantic cloning of tokens without mutation                        | ✅ Stable    |
-|                        | Debuggable             | Provides developer-facing diagnostics (`Debug()`)                          | ✅ Stable    |
-|                        | Rawable                | Provides generic SQL output for logging (`Raw()`)                          | ✅ Stable    |
-|                        | Renderable             | Provides dialect-aware SQL rendering (`Render()`)                          | ✅ Stable    |
-|                        | Stringable             | Provides UX-facing, human-friendly string representations (`String()`)     | ✅ Stable    |
+|                        | [table](./token/table) | Dialect-agnostic representation of SQL tables/sources                      | ✅ Stable   |
+|                        | [join](./token/join)   | Dialect-agnostic representation of SQL join clauses                        | 🚧 Ongoing  |
+| [contract](./contract) | BaseToken              | Common base for tokens (shared identity, ownership, validity checks)       | ✅ Stable   |
+|                        | Clonable               | Ensures semantic cloning of tokens without mutation                        | ✅ Stable   |
+|                        | Debuggable             | Provides developer-facing diagnostics (`Debug()`)                          | ✅ Stable   |
+|                        | Rawable                | Provides generic SQL output for logging (`Raw()`)                          | ✅ Stable   |
+|                        | Renderable             | Provides dialect-aware SQL rendering (`Render()`)                          | ✅ Stable   |
+|                        | Stringable             | Provides UX-facing, human-friendly string representations (`String()`)     | ✅ Stable   |
+|                        | Validable              | Ensures tokens can self-validate construction rules                        | ✅ Stable   |
 
 ---
 
 ## 📄 License
 [MIT](../LICENSE) — © Entiqon Project
+

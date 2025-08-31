@@ -1,82 +1,108 @@
-# Release Notes
+# Release Notes v1.14.0
 
-## v1.14.0 - Upcoming
+## Highlights
 
-### Token (join)
-We have introduced **join.Type** as the canonical enum to represent SQL JOIN clauses.  
-This addition provides a type-safe, dialect-agnostic way to classify and render all supported JOIN operations.
-
-#### Features
-- **Supported join types**:
-    - `Inner` → `INNER JOIN`
-    - `Left` → `LEFT JOIN`
-    - `Right` → `RIGHT JOIN`
-    - `Full` → `FULL JOIN`
-    - `Cross` → `CROSS JOIN`
-    - `Natural` → `NATURAL JOIN`
-- **Methods**:
-    - `String()` returns canonical SQL92 keywords.
-    - `IsValid()` ensures strict recognition of supported joins.
-    - `ParseFrom(string)` safely normalizes user input (`"INNER"`, `"LEFT JOIN"`, `"CROSS"`, `"NATURAL JOIN"`, etc.).
-- **Validation**:
-    - Invalid or unrecognized join types are reported as `INVALID`.
-
-#### Documentation
-- Added `doc.go` with an overview, examples, and usage guidelines.
-- Added `README.md` describing supported joins and philosophy.
-- Added `example_test.go` with runnable examples for all join types.
+This release further refines the database token system, with a focus on **JOIN handling**, **expression resolution**, and **documentation improvements**. It also introduces several breaking changes around join types and struct naming for consistency and clarity.
 
 ---
 
-### Token (identifier)
-We have introduced a new **identifier.Type** enum to classify SQL expressions into broad syntactic categories. This addition provides a foundation for consistent parsing, validation, and auditability of expression inputs.
+## Database (join)
 
-#### Features
-- **Categories** supported:
-    - `Invalid`: could not classify
-    - `Subquery`: `(SELECT …)`
-    - `Computed`: parenthesized expressions like `(a+b)`
-    - `Aggregate`: `SUM`, `COUNT`, `AVG`, `MIN`, `MAX`
-    - `Function`: function calls such as `JSON_EXTRACT(data, '$.id')`
-    - `Literal`: quoted strings or numeric constants
-    - `Identifier`: plain table or column names (default fallback)
-- **Methods**:
-    - `Alias()` provides deterministic short codes (`id`, `lt`, `fn`, `ag`, `cp`, `sq`, `ex`).
-    - `IsValid()` ensures strict recognition of supported kinds.
-    - `ParseFrom(any)` safely coerces values from `int`, `string`, or an existing `Type`.
-    - `String()` returns capitalized labels (`Identifier`, `Function`, …) with `Unknown` fallback.
-
-#### Documentation
-- Added `doc.go` with overview, categories, and philosophy.
-- Updated `README.md` to reflect new examples, philosophy, and license reference.
-- Added `example_test.go` demonstrating usage and edge cases.
+- Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
+  - Added safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
+  - Added flexible constructor: `New(kind any, left, right, condition)` for DSL scenarios.
+  - Implemented new **join.Type** enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`).
+  - Added early validation: invalid types → `invalid join type (n)`, errored tables, or missing condition produce clear error states.
+  - Implements all core contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
+- Added new join types:
+  - `Cross` → renders as `CROSS JOIN`.
+  - `Natural` → renders as `NATURAL JOIN`.
+- **Breaking change**:
+  - Removed legacy `join.Kind` in favor of `join.Type`.
+  - Deleted `kind.go`.
+  - Renamed struct from `join` → `token` for consistency with field/table tokens.
+  - Updated `contract.go` and `token.go` (formerly `join.go`) accordingly.
 
 ---
 
-### Database (field)
-- Updated **field.Token** documentation (`doc.go`):
-    - Added `BaseToken` and `Validable` contracts to the list of implemented interfaces.
-    - Expanded construction rules for plain fields, inline/explicit aliases, wildcards (with alias restriction), subqueries (alias required), computed expressions, functions, and literals.
-    - Clarified invalid cases (empty input, too many tokens, invalid alias, direct token usage without `Clone()`, unsupported types).
-    - Added detailed examples for `Render`, `String`, `Debug`, wildcards, subqueries, functions, literals, and invalid inputs.
-    - Reinforced design principles: immutability, auditability, strict validation, and safe cloning.
+## Database (field)
+
+- Expanded **field.Token** construction rules:
+  - Plain identifiers, inline/explicit aliases, wildcards (with alias restriction).
+  - Subqueries (alias required), computed expressions, functions, literals.
+- Added `BaseToken` and `Validable` to contracts.
+- Clarified invalid cases (empty input, invalid alias, unsupported type, direct token without `Clone()`).
+- Improved examples for `Render`, `String`, `Debug`, and error reporting.
 
 ---
 
-### Token (helpers)
-#### Refactor
-- **ResolveExpression** in `helpers/identifier.go` has been streamlined:
-    - Branches directly on `ResolveExpressionType`, eliminating redundant checks.
-    - Unified alias handling for all expression types (`Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`).
-    - Removed unreachable `default` branch, ensuring full coverage.
-    - Simplified responsibility split: classification validates kind/shape, resolution only extracts alias.
+## Token (resolver)
 
-The expression classifier has been normalized and renamed.
-
-#### Changes
-- `ClassifyExpression` has been **renamed** to `ResolveExpressionType` and now lives in `helpers/identifier.go`.
-- Provides syntactic classification of raw expressions into `identifier.Type`.
-- `resolver.ResolveExpression` remains temporarily in `resolver.go` with a different return type until migration is complete.
-- All docs, examples, and tests have been updated to reference `ResolveExpressionType`.
+- Added new **resolver** module:
+  - `ValidateType` rejects unsupported tokens and suggests `Clone()` for copies.
+  - `ResolveExpr` extended with subquery detection, strict identifier validation, and explicit alias handling.
 
 ---
+
+## Token (ExpressionKind)
+
+- Added `Invalid` kind for unrecognized expressions.
+- Updated classification rules:
+  - Aggregates (`COUNT`, `SUM`, `AVG`, …) → `Aggregate`.
+  - Computed (`price * qty`) → `Computed`.
+  - Functions remain `Function`.
+
+---
+
+## Token (identifier)
+
+- Introduced **identifier.Type** enum with categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
+- Provides short codes via `Alias()` (`id`, `fn`, `ag`, …).
+- Added strict validation, parsing from `int|string|Type`, and safe `String()` output.
+
+---
+
+## Token (helpers)
+
+- Refactored **ResolveExpression** to branch directly on `ResolveExpressionType`, unifying alias handling.
+- Introduced **helpers** package:
+  - Identifier and alias validation, reserved keywords.
+  - Wildcard validation (`*` cannot be aliased).
+  - Deterministic alias generation (`prefix + SHA-1`).
+  - Expression classification via `ResolveExpressionType`.
+
+---
+
+## Database (table/field)
+
+- Constructors now delegate to `resolver.ValidateType`.
+- Clearer error messages for invalid literals, aggregates, or reserved aliases.
+- Direct token usage now explicitly suggests `Clone()`.
+
+---
+
+## Tests & Documentation
+
+- `doc.go` extended with resolver, ExpressionKind, join, and helpers.
+- Updated README files for `token`, `helpers`, and `table` with stricter rules, validation guidance, and alias handling.
+- Normalized headings.
+- `example_test.go` updated:
+  - Added examples for identifiers, aliases, wildcards, generated aliases, and expression classification.
+  - Added invalid type examples and Clone() hints.
+  - Adjusted IsRaw examples.
+
+---
+
+## Breaking Changes
+
+- `join.Kind` → removed. Use `join.Type`.
+- Struct `join` → renamed to `token`.
+- `kind.go` → deleted.
+- Contracts updated in `contract.go` and `token.go` (formerly `join.go`).
+
+---
+
+## Summary
+
+This release consolidates the **join API** with a type-safe enum, removes outdated constructs, and improves expression resolution across the board. It also strengthens validation and expands test/documentation coverage, ensuring tokens remain immutable, auditable, and safe to use in builders.
+

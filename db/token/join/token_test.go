@@ -6,6 +6,7 @@ import (
 
 	"github.com/entiqon/entiqon/db/token/join"
 	"github.com/entiqon/entiqon/db/token/table"
+	join2 "github.com/entiqon/entiqon/db/token/types/join"
 )
 
 func TestJoin(t *testing.T) {
@@ -14,32 +15,32 @@ func TestJoin(t *testing.T) {
 			t.Run("InvalidJoinType", func(t *testing.T) {
 				j := join.New("CRAsiNESS", nil, nil, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 				j = join.New(999, nil, nil, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
 			t.Run("TwoNil", func(t *testing.T) {
 				j := join.New("INNER", nil, nil, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
 			t.Run("LeftNil", func(t *testing.T) {
 				j := join.New("INNER", nil, "orders", "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
 			t.Run("RightNil", func(t *testing.T) {
 				j := join.New("INNER", "users", nil, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
@@ -48,7 +49,7 @@ func TestJoin(t *testing.T) {
 				bad2 := table.New("")
 				j := join.New("INNER", bad1, bad2, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
@@ -56,7 +57,7 @@ func TestJoin(t *testing.T) {
 				bad := table.New("")
 				j := join.New("INNER", bad, "orders", "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
@@ -64,21 +65,21 @@ func TestJoin(t *testing.T) {
 				bad := table.New("")
 				j := join.New("INNER", "users", bad, "id = 1")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
 			t.Run("EmptyCondition", func(t *testing.T) {
 				j := join.New("INNER", "users", "orders", "")
 				if j.IsValid() {
-					t.Errorf("expected invalid join, got valid: %v", j)
+					t.Errorf("expected invalid token, got valid: %v", j)
 				}
 			})
 
 			t.Run("InvalidCall", func(t *testing.T) {
 				j := join.New("INNER", 12345, "orders", "id = 1") // unsupported type
 				if j.IsValid() {
-					t.Errorf("expected invalid join due to unsupported type, got valid: %v", j)
+					t.Errorf("expected invalid token due to unsupported type, got valid: %v", j)
 				}
 			})
 		})
@@ -88,47 +89,47 @@ func TestJoin(t *testing.T) {
 			if j == nil {
 				t.Fatal("expected non-nil Join")
 			}
-			if j.Kind() != join.Inner {
+			if j.Kind() != join2.Inner {
 				t.Errorf("expected Inner, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Inner", func(t *testing.T) {
 			j := join.NewInner("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Inner {
+			if j.Kind() != join2.Inner {
 				t.Errorf("expected Inner, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Left", func(t *testing.T) {
 			j := join.NewLeft("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Left {
+			if j.Kind() != join2.Left {
 				t.Errorf("expected Left, got %v", j.Kind())
 			}
 			j = join.New("LEFT JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Left {
+			if j.Kind() != join2.Left {
 				t.Errorf("expected Left, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Right", func(t *testing.T) {
 			j := join.NewRight("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Right {
+			if j.Kind() != join2.Right {
 				t.Errorf("expected Right, got %v", j.Kind())
 			}
 			j = join.New("RIGHT JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Right {
+			if j.Kind() != join2.Right {
 				t.Errorf("expected Right, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Full", func(t *testing.T) {
 			j := join.NewFull("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Full {
+			if j.Kind() != join2.Full {
 				t.Errorf("expected Full, got %v", j.Kind())
 			}
 			j = join.New("FULL JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join.Full {
+			if j.Kind() != join2.Full {
 				t.Errorf("expected Full, got %v", j.Kind())
 			}
 		})
@@ -136,7 +137,7 @@ func TestJoin(t *testing.T) {
 
 	t.Run("Contract", func(t *testing.T) {
 		t.Run("Clonable", func(t *testing.T) {
-			// construct valid join
+			// construct valid token
 			j := join.NewInner("users", "orders", "users.id = orders.user_id")
 			clone := j.Clone()
 
@@ -151,7 +152,7 @@ func TestJoin(t *testing.T) {
 		t.Run("Debuggable", func(t *testing.T) {
 			j := join.NewFull("users", "orders", "users.id = orders.user_id")
 			d := j.Debug()
-			if !strings.Contains(d, "Join{Kind:") {
+			if !strings.Contains(d, "Join{Type:") {
 				t.Errorf("expected debug string, got %q", d)
 			}
 		})
@@ -184,15 +185,15 @@ func TestJoin(t *testing.T) {
 		t.Run("Stringable", func(t *testing.T) {
 			j := join.NewRight("users", "orders", "users.id = orders.user_id")
 			s := j.String()
-			if !strings.Contains(s, "join(") {
-				t.Errorf("expected string representation with 'join(', got %q", s)
+			if !strings.Contains(s, "token(") {
+				t.Errorf("expected string representation with 'token(', got %q", s)
 			}
 		})
 
 		t.Run("Validable", func(t *testing.T) {
 			j := join.NewInner("users", "orders", "users.id = orders.user_id")
 			if !j.IsValid() {
-				t.Error("expected valid join")
+				t.Error("expected valid token")
 			}
 		})
 	})

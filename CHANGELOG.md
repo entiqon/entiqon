@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - `Cross` → renders as `CROSS JOIN`.
     - `Natural` → renders as `NATURAL JOIN`.
 - Documentation updated (`doc.go`, `README.md`, `example_test.go`) to cover the full set of supported joins.
+- Removed legacy `join.Kind` in favor of **join.Type** for clearer, type-safe representation of join kinds.
+- Deleted obsolete `kind.go` after migration.
+- Renamed struct from `join` → `token` to align with naming conventions across token packages.
+- Updated `contract.go` and `token.go` (formerly `join.go`) to reflect new type and struct naming.
+
 
 ### Database (field)
 - Updated **field.Token** documentation (`doc.go`):
