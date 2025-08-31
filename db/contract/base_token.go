@@ -11,13 +11,7 @@ type BaseToken interface {
 	// underlying expression (Identifier, Literal, Subquery, etc.).
 	ExpressionKind() identifier.Type
 
-	// Input returns the raw user-provided string(s)
-	// before parsing/normalization. Useful for auditing and logs.
-	Input() string
-
-	// Expr returns the parsed/normalized SQL expression
-	// (e.g. "u.id" or "COUNT(*)").
-	Expr() string
+	Identifiable
 
 	// Alias returns the alias name, if present.
 	Alias() string
