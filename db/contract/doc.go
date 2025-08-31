@@ -6,16 +6,16 @@
 // composable capabilities. By design, contracts are intentionally
 // minimalistic and orthogonal:
 //
-//   - Kindable[T]: structural classification (enum-like contract)
 //   - Identifiable: raw input and normalized expression identity
+//   - Aliasable: alias surface (Alias, IsAliased)
 //   - BaseToken: core identity (input, expression, alias)
-//   - Validable: structural validation
-//   - Errorable[T]: error state management and reporting
+//   - Clonable[T]: semantic clone for safe mutation
 //   - Debuggable: developer-facing diagnostic view of internal state
+//   - Errorable[T]: error state management and reporting
 //   - Rawable: generic SQL fragment, dialect-agnostic
 //   - Renderable: canonical SQL output, dialect-aware
 //   - Stringable: human-facing representation for logs and audits
-//   - Clonable[T]: semantic clone for safe mutation
+//   - Validable: structural validation
 //
 // Example:
 //
@@ -49,6 +49,7 @@
 //
 //	func main() {
 //	    var id contract.Identifiable = ExampleToken{Name: "users", Alias: "u"}
+//	    var al contract.Aliasable   = ExampleToken{Name: "users", Alias: "u"}
 //	    var bt contract.BaseToken    = ExampleToken{Name: "users", Alias: "u"}
 //	    var c  contract.Clonable[*ExampleToken] = ExampleToken{Name: "users", Alias: "u"}
 //	    var d  contract.Debuggable   = ExampleToken{Name: "users", Alias: "u"}
@@ -58,14 +59,15 @@
 //	    var s  contract.Stringable   = ExampleToken{Name: "users", Alias: "u"}
 //	    var v  contract.Validable    = ExampleToken{Name: "users", Alias: "u"}
 //
-//	    fmt.Println(id.Input(), id.Expr())   							// identity only
+//	    fmt.Println(id.Input(), id.Expr())   // identity only
+//	    fmt.Println(al.Alias(), al.IsAliased()) // alias surface
 //	    fmt.Println(bt.Input(), bt.Expr(), bt.Alias(), bt.IsAliased())
-//	    fmt.Println(c.Clone())                         					// safe copy
-//	    fmt.Println(d.Debug())                         					// developer diagnostic
-//	    fmt.Println(e.IsErrored(), e.Error())          					// error state
-//	    fmt.Println(w.Raw())                           					// generic SQL
-//	    fmt.Println(r.Render())                        					// dialect-aware SQL
-//	    fmt.Println(s.String())                        					// audit/log
-//	    fmt.Println(v.IsValid())                       					// structural validation
+//	    fmt.Println(c.Clone())                         // safe copy
+//	    fmt.Println(d.Debug())                         // developer diagnostic
+//	    fmt.Println(e.IsErrored(), e.Error())          // error state
+//	    fmt.Println(w.Raw())                           // generic SQL
+//	    fmt.Println(r.Render())                        // dialect-aware SQL
+//	    fmt.Println(s.String())                        // audit/log
+//	    fmt.Println(v.IsValid())                       // structural validation
 //	}
 package contract

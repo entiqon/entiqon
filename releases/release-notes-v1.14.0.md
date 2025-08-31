@@ -7,25 +7,21 @@ This release further refines the database token system, with a focus on **JOIN h
 ## Contracts
 
 - Introduced **Kindable** contract (`contract/kindable.go`):
-    - Generic contract to expose structural classification via strongly-typed enums.
-    - Provides `Kind() T` and `SetKind(T)` methods.
-    - Applied for tokens like `condition.Token` (classification as `Single`, `And`, `Or`) and `identifier.Type` (`Identifier`, `Subquery`, etc.).
-- Documentation updates:
-    - Added Kindable entry in `contract/doc.go` with ordered relevance in the contract list.
-    - Updated `contract/README.md`:
-        - Contracts table reordered by relevance: Kindable, Identifiable, BaseToken, Validable, Debuggable, Rawable, Renderable, Stringable, Clonable.
-        - Added Kindable row in the table.
-  > **Note**: BaseToken remains documented for now but is marked for future removal. References are preserved only temporarily.
+    - Provides a generic way to classify tokens via strongly-typed enums.
+    - Used by tokens such as `condition.Token` (`Single`, `And`, `Or`) and `identifier.Type` (`Identifier`, `Subquery`, etc.).
 
 - Introduced **Identifiable** contract (`contract/identifiable.go`):
-    - Provides alias-free identity for tokens, exposing only:
-        - `Input()` → raw user-provided input.
-        - `Expr()` → normalized SQL expression.
-    - Designed for tokens where aliasing is not applicable (e.g., `condition.Token`).
-- Documentation updates:
-    - Added `Identifiable` entry in `contract/README.md` (contracts table).
-    - Updated `contract/doc.go` overview with `Identifiable`.
-    - Extended `example_test.go` to demonstrate `Identifiable` alongside `BaseToken`.
+    - Exposes alias-free identity with `Input()` and `Expr()`.
+    - Designed for tokens where aliasing is not applicable (e.g. `condition.Token`).
+
+- Introduced **Aliasable** contract (`contract/aliasable.go`):
+    - Exposes alias surface with `Alias()` and `IsAliased()`.
+    - Typical implementers include field and table tokens that render `AS <alias>` in SQL.
+    - Example provided in `example_test.go`.
+
+- **BaseToken** was refactored to compose Identifiable and Aliasable internally, avoiding duplication and clarifying responsibilities.
+
+- Documentation was updated (`doc.go`, `README.md`, examples) to reflect these new contracts and their relevance order.
 
 ---
 
