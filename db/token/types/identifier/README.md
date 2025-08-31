@@ -69,16 +69,6 @@ func main() {
 
 ---
 
-## Philosophy
-
-- **Never panic** — always return a valid `identifier.Type`, with
-  `Invalid` as a safe fallback.
-- **Auditability** — preserves the intent of user input during parsing.
-- **Strict enforcement** — higher-level resolvers must reject inputs
-  that are not classified correctly.
-
----
-
 ## License
 
 Released under the [MIT License](../../../../LICENSE).  

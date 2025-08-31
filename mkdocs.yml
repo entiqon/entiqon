@@ -23,6 +23,7 @@ nav:
 
   - 📦 Packages:
       - Overview: packages/overview.md
+      - cli: packages/cli/overview.md
       - Common:
           - Overview: packages/common/overview.md
           - Error: packages/common/errors/overview.md

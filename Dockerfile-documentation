@@ -10,6 +10,7 @@ COPY docs docs/
 COPY CHANGELOG.md docs/
 # Copy package READMEs as guides
 COPY README.md                             docs/packages/overview.md
+COPY cli/README.md                         docs/packages/cli/overview.md
 COPY common/README.md                      docs/packages/common/overview.md
 COPY common/errors/README.md               docs/packages/common/errors/overview.md
 COPY common/extension/boolean/README.md    docs/packages/common/extension/boolean.md
@@ -28,6 +29,7 @@ COPY db/token/field/README.md              docs/packages/db/token/field.md
 COPY db/token/table/README.md              docs/packages/db/token/table.md
 COPY db/token/join/README.md               docs/packages/db/token/join.md
 COPY db/token/types/identifier/README.md   docs/packages/db/token/types/identifier.md
+COPY db/token/types/join/README.md         docs/packages/db/token/types/join.md
 COPY db/token/helpers/README.md            docs/packages/db/token/helpers.md
 COPY releases/ docs/releases/
 RUN echo "Documentation content copied"
