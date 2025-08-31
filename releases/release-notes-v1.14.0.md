@@ -62,6 +62,23 @@ This release further refines the database token system, with a focus on **JOIN h
 
 ---
 
+## Token (condition)
+
+- Introduced **condition.Type** enum to classify SQL conditional expressions:
+    - Supported values: `Invalid`, `Single`, `And`, `Or`.
+    - Methods:
+        - `IsValid()` validates recognized types.
+        - `ParseFrom(any)` coerces from `Type`, `int`, or `string`.
+        - `String()` returns canonical SQL keyword (`AND`, `OR`, or empty for `Single`).
+    - Includes `normalize()` helper for case-insensitive parsing of strings.
+- Added complete documentation:
+    - `doc.go` with overview, categories, and usage philosophy.
+    - `README.md` mirroring identifier/join structure with Purpose, Types, Example, Integration, License.
+    - `example_test.go` demonstrating usage for `IsValid`, `String`, and `ParseFrom`.
+    - `type_test.go` covering all constructors, branches, and edge cases with 100% coverage.
+
+---
+
 ## Token (helpers)
 
 - Refactored **ResolveExpression** to branch directly on `ResolveExpressionType`, unifying alias handling.

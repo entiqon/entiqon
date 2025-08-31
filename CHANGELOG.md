@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v1.14.0 - Upcoming
 
-### Database (join)
+### Field Token
+- Updated **field.Token** documentation (`doc.go`):
+  - Added `BaseToken` and `Validable` contracts to implemented interfaces.
+  - Expanded construction rules to cover plain fields, inline/explicit aliases, wildcards (with alias restriction), subqueries (alias required), computed expressions, functions, literals.
+  - Clarified invalid cases (empty input, too many tokens, invalid alias, direct token usage without `Clone()`, unsupported types).
+  - Improved examples for `Render`, `String`, `Debug`, and error reporting.
+  - Reinforced design principles: immutability, auditability, strict validation, and safe cloning.
+
+### Table/Field Token
+- Constructors now delegate to `resolver.ValidateType` for type safety.
+- Error states improved:
+    - Passing tokens directly now suggests using `Clone()`.
+    - Invalid literal/aggregate use as table sources rejected with clear error messages.
+    - Invalid alias cases correctly rejected (including reserved keywords).
+
+### Join Token
 - Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
     - Safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
     - Flexible constructor: `New(kind any, left, right, condition)` for advanced/DSL scenarios.
@@ -23,34 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Renamed struct from `join` → `token` to align with naming conventions across token packages.
 - Updated `contract.go` and `token.go` (formerly `join.go`) to reflect new type and struct naming.
 
-
-### Database (field)
-- Updated **field.Token** documentation (`doc.go`):
-  - Added `BaseToken` and `Validable` contracts to implemented interfaces.
-  - Expanded construction rules to cover plain fields, inline/explicit aliases, wildcards (with alias restriction), subqueries (alias required), computed expressions, functions, literals.
-  - Clarified invalid cases (empty input, too many tokens, invalid alias, direct token usage without `Clone()`, unsupported types).
-  - Improved examples for `Render`, `String`, `Debug`, and error reporting.
-  - Reinforced design principles: immutability, auditability, strict validation, and safe cloning.
-### Token (resolver)
-- Added **resolver** module:
-    - `ValidateType` enforces input types:
-        - `string` accepted.
-        - Existing tokens (`Validable`) rejected with `unsupported type …; if you want to create a copy, use Clone() instead`.
-        - All other types → `invalid format (type …)`.
-    - `ResolveExpr` extended with:
-        - Subquery detection (input wrapped in parentheses treated as one expression).
-        - Strict identifier validation (must be a single token).
-        - Explicit alias handling (`AS`, trailing identifiers).
-
-### Token (ExpressionKind)
+#### ExpressionKind Types
 - Added `Invalid` kind for unrecognized expressions.
 - Updated `String()` and `IsValid()` accordingly.
 - Extended classification rules:
     - Aggregates (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) now reported as `Aggregate`.
     - Computed expressions (`price * quantity`) reported as `Computed`.
     - Functions (`JSON_EXTRACT(...)`) remain `Function`.
-
-### Token (identifier)
+    - 
+### Identifier Type
 - Introduced **identifier.Type** enum to classify SQL expressions:
     - Categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
     - Methods:
@@ -63,13 +59,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
         - Updated `README.md` with examples, philosophy, and license section.
         - Added `example_test.go` demonstrating usage including edge cases.
 
-### Token (helpers)
+### Condition Type
+- Introduced **condition.Type** enum to classify SQL conditional expressions:
+    - Supported values: `Invalid`, `Single`, `And`, `Or`.
+    - Methods:
+        - `IsValid()` validates recognized types.
+        - `ParseFrom(any)` coerces from `Type`, `int`, or `string`.
+        - `String()` returns canonical SQL keyword (`AND`, `OR`, or empty for `Single`).
+    - Includes `normalize()` helper for case-insensitive parsing of strings.
+- Added complete documentation:
+    - `doc.go` with overview, categories, and usage philosophy.
+    - `README.md` mirroring identifier/join structure with Purpose, Types, Example, Integration, License.
+    - `example_test.go` demonstrating usage for `IsValid`, `String`, and `ParseFrom`.
+    - `type_test.go` covering all constructors, branches, and edge cases with 100% coverage.
+
+### ResolveExpression Helper
 - Refactored **ResolveExpression** in `helpers/identifier.go`:
   - Branches directly on `ResolveExpressionType`, eliminating redundant checks.
   - Unified alias handling for all expression types (`Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`).
   - Removed unreachable `default` branch, ensuring full coverage.
   - Simplified responsibility split: classification validates kind/shape, resolution only extracts alias.
 
+### Validation Helpers
 - Introduced **helpers** package for reusable validation utilities.
     - Identifier validation:
         - `IsValidIdentifier` / `ValidateIdentifier` with strict rules.
@@ -91,12 +102,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - Independent test files with exhaustive valid/invalid cases and runnable examples.
     - Includes `doc.go` and `README.md` documenting rules and the consistency pattern (`ValidateXxx`, `IsValidXxx`, `GenerateAlias`, `ResolveXxx`).
 
-### Database (table/field)
-- Constructors now delegate to `resolver.ValidateType` for type safety.
-- Error states improved:
-    - Passing tokens directly now suggests using `Clone()`.
-    - Invalid literal/aggregate use as table sources rejected with clear error messages.
-    - Invalid alias cases correctly rejected (including reserved keywords).
+### Resolver Helper
+- Added **resolver** module:
+    - `ValidateType` enforces input types:
+        - `string` accepted.
+        - Existing tokens (`Validable`) rejected with `unsupported type …; if you want to create a copy, use Clone() instead`.
+        - All other types → `invalid format (type …)`.
+    - `ResolveExpr` extended with:
+        - Subquery detection (input wrapped in parentheses treated as one expression).
+        - Strict identifier validation (must be a single token).
+        - Explicit alias handling (`AS`, trailing identifiers).
 
 ### Tests & Docs
 - `doc.go` updated to include **resolver**, **ExpressionKind**, **join**, and **helpers** (identifiers, aliases, trailing alias detection, wildcard validation, alias generation, expression classification).
