@@ -1,12 +1,14 @@
 package helpers
 
 import (
-	"errors"
+	stdErr "errors"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/entiqon/entiqon/common/extension"
+	"github.com/entiqon/entiqon/db/contract"
+	"github.com/entiqon/entiqon/db/errors"
 	"github.com/entiqon/entiqon/db/token/types/identifier"
 )
 
@@ -21,34 +23,20 @@ func IsValidIdentifier(s string) bool {
 	return ValidateIdentifier(s) == nil
 }
 
-// ResolveExpression parses an input expression into (kind, expr, alias).
+// ResolveExpression classifies and normalizes a SQL expression.
 //
-// Rules:
+// It enforces type validation via ValidateType, and only accepts raw strings.
+// Passing an existing token (Field, Table, etc.) is rejected with a clear
+// message to use Clone() instead.
 //
-//   - 1-arg string may contain:
-//     "id"
-//     "id user_id"
-//     "id AS user_id"
-//     "(SELECT id FROM users)"
-//     "(SELECT id FROM users) u"
-//     "(SELECT id FROM users) AS u"
-//     "COUNT(id)"
-//     "COUNT(id) count"
-//     "COUNT(id) AS count"
-//     "(price*qty)"
-//     "(price*qty) total"
-//     "(price*qty) AS total"
-//     "price*qty"
-//     "'1' AS pack"
-//
-//     Invalid: more than 2 tokens without explicit AS → error
-//
-//   - Explicit aliases are only allowed if allowAlias=true.
+// Classification covers identifiers, subqueries, computed expressions,
+// aggregates, functions, and literals. Inline or explicit aliases are
+// supported depending on allowAlias.
 func ResolveExpression(
-	input string,
+	input any,
 	allowAlias bool,
 ) (identifier.Type, string, string, error) {
-	in := strings.TrimSpace(input)
+	in := strings.TrimSpace(input.(string))
 	kind := ResolveExpressionType(in)
 
 	switch kind {
@@ -59,32 +47,31 @@ func ResolveExpression(
 			return identifier.Identifier, parts[0], "", nil
 		case 2:
 			if !allowAlias {
-				return identifier.Invalid, "", "", errors.New("alias not allowed: " + in)
+				return identifier.Invalid, "", "", stdErr.New("alias not allowed: " + in)
 			}
 			if !IsValidAlias(parts[1]) {
-				return identifier.Invalid, parts[0], parts[1], errors.New("invalid alias: " + parts[1])
+				return identifier.Invalid, parts[0], parts[1],
+					stdErr.New("invalid alias: " + parts[1])
 			}
 			return identifier.Identifier, parts[0], parts[1], nil
 		case 3:
 			if strings.EqualFold(parts[1], "AS") {
 				if !allowAlias {
-					return identifier.Invalid, "", "", errors.New("alias not allowed: " + in)
+					return identifier.Invalid, "", "", stdErr.New("alias not allowed: " + in)
 				}
 				if !IsValidAlias(parts[2]) {
-					return identifier.Invalid, parts[0], parts[2], errors.New("invalid alias: " + parts[2])
+					return identifier.Invalid, parts[0], parts[2],
+						stdErr.New("invalid alias: " + parts[2])
 				}
 				return identifier.Identifier, parts[0], parts[2], nil
 			}
-			return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+			return identifier.Invalid, "", "", stdErr.New("invalid identifier: " + in)
 		default:
-			return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+			return identifier.Invalid, "", "", stdErr.New("invalid identifier: " + in)
 		}
 
 	case identifier.Subquery:
 		closeIdx := strings.LastIndex(in, ")")
-		if closeIdx == -1 {
-			return identifier.Invalid, "", "", errors.New("invalid subquery: missing closing parenthesis")
-		}
 		expr := strings.TrimSpace(in[:closeIdx+1])
 		rest := strings.TrimSpace(in[closeIdx+1:])
 		alias, err := resolveAlias(rest, in, allowAlias)
@@ -93,7 +80,7 @@ func ResolveExpression(
 		}
 		return identifier.Subquery, expr, alias, nil
 
-	case identifier.Computed:
+	case identifier.Computed, identifier.Aggregate, identifier.Function:
 		closeIdx := strings.LastIndex(in, ")")
 		expr := strings.TrimSpace(in[:closeIdx+1])
 		rest := strings.TrimSpace(in[closeIdx+1:])
@@ -101,27 +88,7 @@ func ResolveExpression(
 		if err != nil {
 			return identifier.Invalid, expr, alias, err
 		}
-		return identifier.Computed, expr, alias, nil
-
-	case identifier.Aggregate:
-		closeIdx := strings.LastIndex(in, ")")
-		expr := strings.TrimSpace(in[:closeIdx+1])
-		rest := strings.TrimSpace(in[closeIdx+1:])
-		alias, err := resolveAlias(rest, in, allowAlias)
-		if err != nil {
-			return identifier.Invalid, expr, alias, err
-		}
-		return identifier.Aggregate, expr, alias, nil
-
-	case identifier.Function:
-		closeIdx := strings.LastIndex(in, ")")
-		expr := strings.TrimSpace(in[:closeIdx+1])
-		rest := strings.TrimSpace(in[closeIdx+1:])
-		alias, err := resolveAlias(rest, in, allowAlias)
-		if err != nil {
-			return identifier.Invalid, expr, alias, err
-		}
-		return identifier.Function, expr, alias, nil
+		return kind, expr, alias, nil
 
 	case identifier.Literal:
 		parts := strings.Fields(in)
@@ -137,7 +104,10 @@ func ResolveExpression(
 		return identifier.Literal, expr, alias, nil
 
 	default:
-		return identifier.Invalid, "", "", errors.New("invalid identifier: " + in)
+		if in == "" {
+			return identifier.Invalid, "", "", fmt.Errorf("empty identifier is not allowed: %q", in)
+		}
+		return identifier.Invalid, "", "", stdErr.New("invalid because unknown identifier: " + in)
 	}
 }
 
@@ -224,6 +194,27 @@ func ValidateIdentifier(s string) error {
 		return fmt.Errorf("invalid identifier syntax: %q", s)
 	}
 	return nil
+}
+
+// ValidateType ensures input type is allowed for token constructors.
+//
+// Rules:
+//   - string → OK
+//   - any Validable (Field, Table, etc.) → ErrUnsupportedType
+//   - everything else → invalid format with type name
+func ValidateType(v any) error {
+	switch v.(type) {
+	case string:
+		return nil
+
+	case contract.Validable:
+		// Already a token (Field, Table, etc.)
+		return errors.UnsupportedTypeError
+
+	default:
+		// Everything else → invalid format
+		return fmt.Errorf("invalid format (type %T)", v)
+	}
 }
 
 // ValidateWildcard checks whether a wildcard expression ("*")

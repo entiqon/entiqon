@@ -1,5 +1,3 @@
-// File: db/builder/example_test.go
-
 package builder_test
 
 import (
@@ -63,9 +61,9 @@ func ExampleSelectBuilder_invalidFields() {
 		fmt.Println(err.Error())
 	}
 	// Output: ❌ [Build] - Invalid fields:
-	//	⛔️ field("true"): expr has unsupported type: bool
-	//	⛔️ field("false"): expr has unsupported type: bool
-	//	⛔️ field("123"): expr has unsupported type: int
+	//	⛔️ field(""): expr has invalid format (type bool)
+	//	⛔️ field(""): expr has invalid format (type bool)
+	//	⛔️ field(""): expr has invalid format (type int)
 }
 
 func ExampleSelectBuilder_where() {
@@ -152,4 +150,15 @@ func ExampleSelectBuilder_having() {
 	fmt.Println(sql)
 	// Output:
 	// SELECT department, COUNT(*) AS total FROM users GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
+}
+
+func ExampleSelectBuilder_limit() {
+	sql, _ := builder.NewSelect(nil).
+		Source("table").
+		Where("field = 1").
+		Limit(1).
+		Build()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM table WHERE field = 1 LIMIT 1
 }

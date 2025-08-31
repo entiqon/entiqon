@@ -1,12 +1,13 @@
 package table
 
 import (
-	"errors"
+	stdErr "errors"
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/contract"
-	"github.com/entiqon/entiqon/db/token"
+	"github.com/entiqon/entiqon/db/errors"
+	"github.com/entiqon/entiqon/db/token/helpers"
+	"github.com/entiqon/entiqon/db/token/types/identifier"
 )
 
 // table represents a SQL table token.
@@ -28,7 +29,7 @@ import (
 //   - isRaw: whether the table was constructed via the two-argument
 //     form or as a subquery.
 type table struct {
-	kind token.ExpressionKind
+	kind identifier.Type
 
 	// input is the exact user-provided string, never modified.
 	input string
@@ -63,61 +64,51 @@ type table struct {
 // If construction fails, the returned table is errored but
 // still carries the original input for diagnostics.
 func New(input ...any) Token {
-	t := &table{input: fmt.Sprint(input...)}
-	if len(input) == 0 {
-		return t.SetError(errors.New("empty input is not allowed"))
+	t := &table{
+		kind:  identifier.Invalid,
+		input: fmt.Sprint(input...),
 	}
 
-	// validate type of first argument
-	if err := contract.ValidateType(input[0]); err != nil {
-		if errors.Is(err, contract.ErrUnsupportedType) {
-			return t.SetError(fmt.Errorf("%w; if you want to create a copy, use Clone() instead", err))
+	if len(input) == 0 {
+		return t.SetError(stdErr.New("empty input is not allowed"))
+	}
+
+	if len(input) > 2 {
+		return t.SetError(fmt.Errorf("invalid table constructor signature: %d args", len(input)))
+	}
+
+	// Type validation (string only)
+	if err := helpers.ValidateType(input[0]); err != nil {
+		if stdErr.Is(err, errors.UnsupportedTypeError) {
+			return t.SetError(fmt.Errorf(
+				"%w; if you want to create a copy, use Clone() instead", err,
+			))
 		}
 		return t.SetError(fmt.Errorf("expr has %w", err))
 	}
 
-	switch len(input) {
-	case 1:
-		t.input = input[0].(string)
-		kind, name, alias, err := token.ResolveExpr(t.input, true)
-		if err != nil {
+	t.input = strings.Join(helpers.Stringify(input), " ") // keep audit trail
+
+	// always resolve the first part
+	kind, expr, alias, err := helpers.ResolveExpression(fmt.Sprint(input[0]), true)
+	if err != nil {
+		return t.SetError(err)
+	}
+	t.kind, t.name, t.alias = kind, expr, alias
+
+	if len(input) == 2 {
+		a, ok := input[1].(string)
+		if !ok {
+			return t.SetError(fmt.Errorf("alias must be a string, got %T", input[1]))
+		}
+		if err := helpers.ValidateAlias(a); err != nil {
 			return t.SetError(err)
 		}
-		t.kind, t.name, t.alias = kind, name, alias
-
-	case 2:
-		// explicit two-argument form: expr, alias
-		t.input = fmt.Sprint(input[0], " ", input[1])
-
-		// resolve only the core expression, alias is handled separately
-		kind, name, _, err := token.ResolveExpr(fmt.Sprint(input[0]), false)
-		if err != nil {
-			return t.SetError(err)
-		}
-		t.kind, t.name = kind, name
-
-		// handle alias from second arg
-		switch v := input[1].(type) {
-		case string:
-			t.alias = strings.TrimSpace(v)
-		case fmt.Stringer:
-			t.alias = strings.TrimSpace(v.String())
-		default:
-			return t.SetError(fmt.Errorf("alias must be a string, got %T", v))
-		}
-		if t.alias == "" {
-			return t.SetError(fmt.Errorf("alias must be non-empty"))
-		}
-		if !token.IsValidAlias(t.alias) {
-			return t.SetError(fmt.Errorf("invalid alias %q", t.alias))
-		}
-
-	default:
-		return t.SetError(fmt.Errorf("too many arguments"))
+		t.alias = a
 	}
 
 	// ✅ one place only: context rule
-	if t.kind == token.Literal || t.kind == token.Aggregate {
+	if t.kind == identifier.Literal || t.kind == identifier.Aggregate {
 		return t.SetError(fmt.Errorf(
 			"%s %q cannot be used as a table source",
 			strings.ToLower(t.kind.String()), t.name,
@@ -127,8 +118,8 @@ func New(input ...any) Token {
 	return t
 }
 
-// Kind returns the kind of token (always table).
-func (t *table) ExpressionKind() token.ExpressionKind { return t.kind }
+// ExpressionKind returns the kind of token (always table).
+func (t *table) ExpressionKind() identifier.Type { return t.kind }
 
 // Input returns the exact user-provided input string.
 func (t *table) Input() string { return t.input }
@@ -191,11 +182,8 @@ func (t *table) SetError(err error) Token {
 // IsRaw reports whether the table represents a raw expression
 // (subquery, explicit 2-arg form, or anything that is not a plain identifier).
 func (t *table) IsRaw() bool {
-	if t.IsErrored() {
-		return false
-	}
 	switch t.kind {
-	case token.Subquery, token.Computed, token.Function, token.Aggregate:
+	case identifier.Subquery, identifier.Computed, identifier.Function, identifier.Aggregate:
 		return true
 	default:
 		return false

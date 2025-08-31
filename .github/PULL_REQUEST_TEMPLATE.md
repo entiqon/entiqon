@@ -1,9 +1,7 @@
 # 📝 Contributor Quick Reference
 
 ## ✅ Before Commit
-- [ ] Tests written and passing (nil → valid → edge cases).  
-- [ ] Tests follow `file → methods → cases` pattern with **PascalCase**.  
-- [ ] Docs updated:
+- Tests follow `file → methods → cases` pattern with **PascalCase**.
   - [ ] `doc.go`
   - [ ] `README.md`
   - [ ] `example_test.go`
