@@ -2,9 +2,7 @@
 
 package field
 
-import (
-	"github.com/entiqon/entiqon/db/contract"
-)
+import "github.com/entiqon/entiqon/db/contract"
 
 // Token is the contract implemented by *Field.
 //

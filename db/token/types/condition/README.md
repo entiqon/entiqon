@@ -1,6 +1,6 @@
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
-
 # Condition Types
+
+> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
 
 The `condition` package classifies SQL conditional expressions
 (`WHERE`, `HAVING`, `ON`) into canonical types.

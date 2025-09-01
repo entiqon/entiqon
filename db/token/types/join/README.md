@@ -1,5 +1,7 @@
 # Join Types
 
+> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
+
 The `join` package classifies SQL `JOIN` clauses into canonical types.
 This classification is purely **syntactic**, not semantic,
 and is used internally by tokens and builders.
