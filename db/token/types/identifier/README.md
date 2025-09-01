@@ -1,5 +1,7 @@
 # Identifier Types
 
+> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
+
 The `identifier` package classifies SQL expressions into broad syntactic
 categories. This classification is purely **syntactic**, not semantic,
 and is used internally by token resolvers and helpers.

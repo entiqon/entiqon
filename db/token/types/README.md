@@ -1,6 +1,6 @@
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../) / [Token](../)
-
 # Token Types
+
+> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../) / [Token](../)
 
 The `types` package groups enum classifications that represent
 SQL structures in a consistent, dependency-free way.  
@@ -23,11 +23,12 @@ safe, auditable, and dialect-agnostic SQL generation.
 
 ## Available Types
 
-| Package                      | Purpose                                                                                                               |
-|------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| [`identifier`](./identifier) | Classifies SQL expressions into categories: `Identifier`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`. |
-| [`join`](./join)             | Classifies SQL JOIN operations: `Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`.                                 |
-| [`condition`](./condition)   | Classifies SQL conditional expressions: `Single`, `And`, `Or` for WHERE, HAVING, and ON clauses.                      |
+| Package                        | Purpose                                                                                                                   |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| [`identifier`](./identifier)   | Classifies SQL expressions into categories: `Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`, `Computed`.     |
+| [`join`](./join)               | Classifies SQL JOIN operations: `Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`.                                     |
+| [`condition`](./condition)     | Classifies SQL conditional expressions: `Single`, `And`, `Or` for WHERE, HAVING, and ON clauses.                          |
+| [`operator`](./operator)       | Registry of SQL comparison and predicate operators (`=`, `!=`, `IN`, `BETWEEN`, `IS NULL`, …) with aliases and synonyms.  |
 
 ---
 
@@ -38,10 +39,11 @@ package main
 
 import (
     "fmt"
-	
+
     "github.com/entiqon/entiqon/db/token/types/condition"
     "github.com/entiqon/entiqon/db/token/types/join"
     "github.com/entiqon/entiqon/db/token/types/identifier"
+    "github.com/entiqon/entiqon/db/token/types/operator"
 )
 
 func main() {
@@ -56,6 +58,10 @@ func main() {
     // Identifier type
     id := identifier.Function
     fmt.Println(id.String()) // Function
+
+    // Operator type
+    op := operator.ParseFrom("not in")
+    fmt.Println(op.String(), op.Alias()) // NOT IN nin
 }
 ```
 
