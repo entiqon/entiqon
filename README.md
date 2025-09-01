@@ -33,8 +33,10 @@
 * **Delegation** — tokens own parsing/validation, builders compose them.
 * **Layered validation** — `ResolveExpression` enforces correctness in three independent stages:
 
-    1. **Type validation**: only raw strings are accepted; existing tokens (Field, Table, etc.) are rejected with guidance to use `Clone()`.
-    2. **Classification**: expressions are categorized (`Identifier`, `Function`, `Aggregate`, `Subquery`, `Literal`, etc.) by syntax.
+    1. **Type validation**: only raw strings are accepted; existing tokens (Field, Table, etc.) are rejected with
+       guidance to use `Clone()`.
+    2. **Classification**: expressions are categorized (`Identifier`, `Function`, `Aggregate`, `Subquery`, `Literal`,
+       etc.) by syntax.
     3. **Resolution**: each category applies its own rules for parsing and alias validation.
 
   This separation keeps the API strict, predictable, and auditable without duplicating rules across layers.

@@ -2,143 +2,74 @@
 
 ## Highlights
 
-This release further refines the database token system, with a focus on **JOIN handling**, **expression resolution**, and **documentation improvements**. It also introduces several breaking changes around join types and struct naming for consistency and clarity.
+This release refines the database token system with a focus on **JOIN handling**, **expression resolution**, and **operator classification**. It introduces a type registry for operators, restructures type enums, and expands documentation and tests.
+
+---
 
 ## Contracts
 
-- Introduced **Kindable** contract (`contract/kindable.go`):
-    - Provides a generic way to classify tokens via strongly-typed enums.
-    - Used by tokens such as `condition.Token` (`Single`, `And`, `Or`) and `identifier.Type` (`Identifier`, `Subquery`, etc.).
-
-- Introduced **Identifiable** contract (`contract/identifiable.go`):
-    - Exposes alias-free identity with `Input()` and `Expr()`.
-    - Designed for tokens where aliasing is not applicable (e.g. `condition.Token`).
-
-- Introduced **Aliasable** contract (`contract/aliasable.go`):
-    - Exposes alias surface with `Alias()` and `IsAliased()`.
-    - Typical implementers include field and table tokens that render `AS <alias>` in SQL.
-    - Example provided in `example_test.go`.
-
-- **BaseToken** was refactored to compose Identifiable and Aliasable internally, avoiding duplication and clarifying responsibilities.
-
-- Documentation was updated (`doc.go`, `README.md`, examples) to reflect these new contracts and their relevance order.
+- Introduced **Kindable**, **Identifiable**, **Aliasable** contracts.
+- **BaseToken** composes Identifiable + Aliasable to avoid duplication.
+- Documentation updated (`doc.go`, `README.md`, examples).
 
 ---
 
-## Database (join)
+## Types
 
-- Introduced **Join token (`join.Token`)** to represent SQL JOIN clauses:
-  - Added safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
-  - Added flexible constructor: `New(kind any, left, right, condition)` for DSL scenarios.
-  - Implemented new **join.Type** enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`).
-  - Added early validation: invalid types → `invalid join type (n)`, errored tables, or missing condition produce clear error states.
-  - Implements all core contracts: `Clonable`, `Debuggable`, `Errorable`, `Rawable`, `Renderable`, `Stringable`, `Validable`.
-- Added new join types:
-  - `Cross` → renders as `CROSS JOIN`.
-  - `Natural` → renders as `NATURAL JOIN`.
-- **Breaking change**:
-  - Removed legacy `join.Kind` in favor of `join.Type`.
-  - Deleted `kind.go`.
-  - Renamed struct from `join` → `token` for consistency with field/table tokens.
-  - Updated `contract.go` and `token.go` (formerly `join.go`) accordingly.
+- **join.Type**: new enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); removed legacy `join.Kind`.
+- **condition.Type**: new enum (`Invalid`, `Single`, `And`, `Or`).
+- **identifier.Type**: new enum (`Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`, `Computed`).
+- **ExpressionKind**: added `Invalid` classification; extended for aggregates, computed, functions.
+- **operator.Type**: refactored to a typed **registry** `{String, Alias, Position, Synonyms}`:
+    - Deterministic `GetKnownOperators()` ordering by Position.
+    - O(1) `ParseFrom()` via reverse index; accepts symbols (`!=`, `>=`), words (`NOT IN`, `IS NULL`), aliases (`nin`, `gte`, `isnull`).
+    - Simplified `String()`, `Alias()`, `IsValid()` with registry lookups.
+    - Added full GoDoc, `doc.go`, README, and 100% tests.
 
 ---
 
-## Database (field)
+## Tokens
 
-- Expanded **field.Token** construction rules:
-  - Plain identifiers, inline/explicit aliases, wildcards (with alias restriction).
-  - Subqueries (alias required), computed expressions, functions, literals.
-- Added `BaseToken` and `Validable` to contracts.
-- Clarified invalid cases (empty input, invalid alias, unsupported type, direct token without `Clone()`).
-- Improved examples for `Render`, `String`, `Debug`, and error reporting.
+- **Join token (`join.Token`)**:
+    - New safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
+    - Flexible DSL constructor: `New(kind, left, right, condition)`.
+    - Added `Cross`, `Natural` join support.
+    - Implements all core contracts.
+    - **Breaking**: struct renamed `join` → `token`; `kind.go` deleted.
 
----
-
-## Token (resolver)
-
-- Added new **resolver** module:
-  - `ValidateType` rejects unsupported tokens and suggests `Clone()` for copies.
-  - `ResolveExpr` extended with subquery detection, strict identifier validation, and explicit alias handling.
+- **Field/Table tokens**:
+    - Constructors delegate to `resolver.ValidateType`.
+    - Clearer error messages and Clone() hints.
+    - Validation for invalid/empty inputs, wildcards, subqueries.
 
 ---
 
-## Token (ExpressionKind)
+## Helpers
 
-- Added `Invalid` kind for unrecognized expressions.
-- Updated classification rules:
-  - Aggregates (`COUNT`, `SUM`, `AVG`, …) → `Aggregate`.
-  - Computed (`price * qty`) → `Computed`.
-  - Functions remain `Function`.
-
----
-
-## Token (identifier)
-
-- Introduced **identifier.Type** enum with categories: `Invalid`, `Subquery`, `Computed`, `Aggregate`, `Function`, `Literal`, `Identifier`.
-- Provides short codes via `Alias()` (`id`, `fn`, `ag`, …).
-- Added strict validation, parsing from `int|string|Type`, and safe `String()` output.
+- New **helpers** package: identifier/alias validation, wildcard restrictions, reserved keywords.
+- `ResolveExpressionType`: classifies identifiers, literals, aggregates, functions, computed.
+- `ValidateType`: stricter type enforcement.
+- Alias generation via hash (`prefix + SHA1`).
 
 ---
 
-## Token (condition)
+## Documentation & Tests
 
-- Introduced **condition.Type** enum to classify SQL conditional expressions:
-    - Supported values: `Invalid`, `Single`, `And`, `Or`.
-    - Methods:
-        - `IsValid()` validates recognized types.
-        - `ParseFrom(any)` coerces from `Type`, `int`, or `string`.
-        - `String()` returns canonical SQL keyword (`AND`, `OR`, or empty for `Single`).
-    - Includes `normalize()` helper for case-insensitive parsing of strings.
-- Added complete documentation:
-    - `doc.go` with overview, categories, and usage philosophy.
-    - `README.md` mirroring identifier/join structure with Purpose, Types, Example, Integration, License.
-    - `example_test.go` demonstrating usage for `IsValid`, `String`, and `ParseFrom`.
-    - `type_test.go` covering all constructors, branches, and edge cases with 100% coverage.
-
----
-
-## Token (helpers)
-
-- Refactored **ResolveExpression** to branch directly on `ResolveExpressionType`, unifying alias handling.
-- Introduced **helpers** package:
-  - Identifier and alias validation, reserved keywords.
-  - Wildcard validation (`*` cannot be aliased).
-  - Deterministic alias generation (`prefix + SHA-1`).
-  - Expression classification via `ResolveExpressionType`.
-
----
-
-## Database (table/field)
-
-- Constructors now delegate to `resolver.ValidateType`.
-- Clearer error messages for invalid literals, aggregates, or reserved aliases.
-- Direct token usage now explicitly suggests `Clone()`.
-
----
-
-## Tests & Documentation
-
-- `doc.go` extended with resolver, ExpressionKind, join, and helpers.
-- Updated README files for `token`, `helpers`, and `table` with stricter rules, validation guidance, and alias handling.
-- Normalized headings.
-- `example_test.go` updated:
-  - Added examples for identifiers, aliases, wildcards, generated aliases, and expression classification.
-  - Added invalid type examples and Clone() hints.
-  - Adjusted IsRaw examples.
+- Updated all `doc.go` and `README.md` across tokens and helpers.
+- Expanded `example_test.go` with identifiers, aliases, wildcards, subqueries, generated aliases.
+- 100% coverage for new types (`condition`, `identifier`, `operator`) and helpers.
 
 ---
 
 ## Breaking Changes
 
-- `join.Kind` → removed. Use `join.Type`.
-- Struct `join` → renamed to `token`.
-- `kind.go` → deleted.
-- Contracts updated in `contract.go` and `token.go` (formerly `join.go`).
+- Removed `join.Kind` → use `join.Type`.
+- Renamed struct `join` → `token`.
+- Deleted `kind.go`.
+- Contracts updated in `contract.go` and `token.go`.
 
 ---
 
 ## Summary
 
-This release consolidates the **join API** with a type-safe enum, removes outdated constructs, and improves expression resolution across the board. It also strengthens validation and expands test/documentation coverage, ensuring tokens remain immutable, auditable, and safe to use in builders.
-
+This release consolidates **type safety** with dedicated enums, introduces a robust **operator registry**, and improves **validation and documentation** across tokens. Builders now have deterministic operator resolution, cleaner join APIs, and fully tested helpers.
