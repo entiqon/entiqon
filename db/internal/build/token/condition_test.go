@@ -11,7 +11,8 @@ import (
 	"testing"
 
 	"github.com/entiqon/entiqon/db/driver"
-	token2 "github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/entiqon/db/token/types/operator"
 )
 
 func TestNewCondition(t *testing.T) {
@@ -19,9 +20,9 @@ func TestNewCondition(t *testing.T) {
 
 	t.Run("Usage", func(t *testing.T) {
 		t.Run("Condition", func(t *testing.T) {
-			cond := token2.NewCondition("age", 18)
+			cond := token.NewCondition("age", 18)
 
-			if cond.Type != token2.ConditionTypeSimple {
+			if cond.Type != token.ConditionTypeSimple {
 				t.Errorf("expected Type = ConditionTypeSimple, got %v", cond.Type)
 			}
 			if !cond.IsValid() {
@@ -30,9 +31,9 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("ConditionAnd", func(t *testing.T) {
-			cond := token2.NewConditionAnd("age", 18)
+			cond := token.NewConditionAnd("age", 18)
 
-			if cond.Type != token2.ConditionTypeAnd {
+			if cond.Type != token.ConditionTypeAnd {
 				t.Errorf("expected Type = ConditionTypeAnd, got %v", cond.Type)
 			}
 			if !cond.IsValid() {
@@ -41,9 +42,9 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("ConditionOr", func(t *testing.T) {
-			cond := token2.NewConditionOr("age", 18)
+			cond := token.NewConditionOr("age", 18)
 
-			if cond.Type != token2.ConditionTypeOr {
+			if cond.Type != token.ConditionTypeOr {
 				t.Errorf("expected Type = ConditionTypeOr, got %v", cond.Type)
 			}
 			if !cond.IsValid() {
@@ -54,7 +55,7 @@ func TestNewCondition(t *testing.T) {
 
 	t.Run("Operators", func(t *testing.T) {
 		t.Run("Equal", func(t *testing.T) {
-			c := token2.NewCondition("status", "active")
+			c := token.NewCondition("status", "active")
 			sql, _ := c.Render(d)
 
 			expected := `"status" = $1`
@@ -64,7 +65,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("IN", func(t *testing.T) {
-			c := token2.NewCondition("type", token2.In, []any{"A", "B"})
+			c := token.NewCondition("type", operator.In, []any{"A", "B"})
 			sql, args := c.Render(d)
 
 			if sql != `"type" IN ($1, $2)` {
@@ -76,7 +77,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("BETWEEN", func(t *testing.T) {
-			c := token2.NewCondition("created_at", token2.Between, []any{"2024-01-01", "2024-12-31"})
+			c := token.NewCondition("created_at", operator.Between, []any{"2024-01-01", "2024-12-31"})
 			sql, args := c.Render(d)
 
 			expected := `"created_at" BETWEEN $1 AND $2`
@@ -89,7 +90,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("IS NULL", func(t *testing.T) {
-			c := token2.NewConditionWith(token2.ConditionTypeSimple, "deleted_at", token2.IsNull)
+			c := token.NewConditionWith(token.ConditionTypeSimple, "deleted_at", operator.IsNull)
 			sql, args := c.Render(d)
 
 			expected := `"deleted_at" IS NULL`
@@ -99,7 +100,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("IS NOT NULL", func(t *testing.T) {
-			c := token2.NewConditionWith(token2.ConditionTypeSimple, "deleted_at", token2.IsNotNull)
+			c := token.NewConditionWith(token.ConditionTypeSimple, "deleted_at", operator.IsNotNull)
 			sql, args := c.Render(d)
 
 			expected := `"deleted_at" IS NOT NULL`
@@ -109,37 +110,37 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("FromString", func(t *testing.T) {
-			op, err := token2.ParseConditionOperator("=")
-			if err != nil || op != token2.Equal {
-				t.Errorf("expected Equal, got %q, err=%v", op, err)
+			op := operator.ParseFrom("=")
+			if !op.IsValid() || op != operator.Equal {
+				t.Errorf("expected Equal, got %q", op)
 			}
 		})
 
 		t.Run("FromOperator", func(t *testing.T) {
-			op, err := token2.ParseConditionOperator(token2.In)
-			if err != nil || op != token2.In {
-				t.Errorf("expected In, got %q, err=%v", op, err)
+			op := operator.ParseFrom(operator.In)
+			if op != operator.In {
+				t.Errorf("expected In, got %q", op)
 			}
 		})
 
 		t.Run("FromBytes", func(t *testing.T) {
-			op, err := token2.ParseConditionOperator([]byte(">="))
-			if err != nil || op != token2.GreaterThanOrEqual {
-				t.Errorf("expected GreaterThanOrEqual, got %q, err=%v", op, err)
+			op := operator.ParseFrom([]byte(">="))
+			if !op.IsValid() || op != operator.GreaterThanOrEqual {
+				t.Errorf("expected GreaterThanOrEqual, got %q", op)
 			}
 		})
 
 		t.Run("InvalidType", func(t *testing.T) {
-			_, err := token2.ParseConditionOperator(123)
-			if err == nil || !strings.Contains(err.Error(), "unsupported operator type") {
-				t.Errorf("expected unsupported type error, got %v", err)
+			op := operator.ParseFrom(123)
+			if op.IsValid() {
+				t.Errorf("expected 'Invalid', got %v", op)
 			}
 		})
 	})
 
 	t.Run("Render", func(t *testing.T) {
 		t.Run("NilCondition", func(t *testing.T) {
-			var c *token2.Condition
+			var c *token.Condition
 			sql, args := c.Render(d)
 
 			if sql != "" || len(args) != 0 {
@@ -148,7 +149,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("EmptyColumn", func(t *testing.T) {
-			c := &token2.Condition{Operator: token2.Equal, Value: "x"}
+			c := &token.Condition{Operator: operator.Equal, Value: "x"}
 			sql, args := c.Render(d)
 
 			if sql != "" || len(args) != 0 {
@@ -157,7 +158,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("InInvalidType", func(t *testing.T) {
-			c := &token2.Condition{Column: token2.NewColumn("role"), Operator: token2.In, Value: "admin"}
+			c := &token.Condition{Column: token.NewColumn("role"), Operator: operator.In, Value: "admin"}
 			sql, args := c.Render(d)
 
 			if !strings.Contains(sql, "IN ()") || args != nil {
@@ -166,7 +167,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("InEmptySlice", func(t *testing.T) {
-			c := &token2.Condition{Column: token2.NewColumn("role"), Operator: token2.In, Value: []any{}}
+			c := &token.Condition{Column: token.NewColumn("role"), Operator: operator.In, Value: []any{}}
 			sql, args := c.Render(d)
 
 			if sql != `"role" IN ()` || args != nil {
@@ -175,7 +176,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("BetweenInvalidType", func(t *testing.T) {
-			c := &token2.Condition{Column: token2.NewColumn("created"), Operator: token2.Between, Value: "not a slice"}
+			c := &token.Condition{Column: token.NewColumn("created"), Operator: operator.Between, Value: "not a slice"}
 			sql, args := c.Render(d)
 
 			if sql != `"created" BETWEEN ? AND ?` || args != nil {
@@ -184,7 +185,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("BetweenWrongLength", func(t *testing.T) {
-			c := &token2.Condition{Column: token2.NewColumn("created"), Operator: token2.Between, Value: []any{"only-one"}}
+			c := &token.Condition{Column: token.NewColumn("created"), Operator: operator.Between, Value: []any{"only-one"}}
 			sql, args := c.Render(d)
 
 			if sql != `"created" BETWEEN ? AND ?` || args != nil {
@@ -195,7 +196,7 @@ func TestNewCondition(t *testing.T) {
 
 	t.Run("String", func(t *testing.T) {
 		t.Run("Valid", func(t *testing.T) {
-			c := token2.NewCondition("status", token2.Equal, "active")
+			c := token.NewCondition("status", operator.Equal, "active")
 			str := c.String()
 
 			expected := `Condition("status") [qualified: false, column: true, value: active, errored: false]`
@@ -205,7 +206,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("NilCondition", func(t *testing.T) {
-			var c *token2.Condition
+			var c *token.Condition
 			got := c.String()
 			want := "Condition(nil)"
 			if got != want {
@@ -216,15 +217,15 @@ func TestNewCondition(t *testing.T) {
 
 	t.Run("Validation", func(t *testing.T) {
 		t.Run("IsValid", func(t *testing.T) {
-			c := token2.NewCondition("status", "active")
+			c := token.NewCondition("status", "active")
 			if !c.IsValid() {
 				t.Error("expected condition to be valid")
 			}
 		})
 
 		t.Run("MissingColumn", func(t *testing.T) {
-			c := &token2.Condition{
-				Operator: token2.Equal,
+			c := &token.Condition{
+				Operator: operator.Equal,
 			}
 			if c.IsValid() {
 				t.Error("expected condition to be invalid due to missing column definition")
@@ -235,7 +236,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("EmptyColumn", func(t *testing.T) {
-			c := &token2.Condition{}
+			c := &token.Condition{}
 			sql, args := c.Render(d)
 			if sql != "" || len(args) != 0 {
 				t.Errorf("Expected empty output for nil condition, got sql=%q args=%v", sql, args)
@@ -243,7 +244,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("WithOperatorInvalid", func(t *testing.T) {
-			cond := token2.NewCondition("status", "UNKNOWN", "x")
+			cond := token.NewCondition("status", "UNKNOWN", "x")
 
 			if cond.IsValid() {
 				t.Errorf("expected condition to be invalid due to unrecognized operator string")
@@ -251,7 +252,7 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("TooManyArguments", func(t *testing.T) {
-			cond := token2.NewCondition("status", "IN", 1, 2, 3)
+			cond := token.NewCondition("status", "IN", 1, 2, 3)
 
 			if cond.IsValid() {
 				t.Errorf("expected condition to be invalid due to too many arguments")
@@ -262,9 +263,9 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("InvalidOperator", func(t *testing.T) {
-			c := &token2.Condition{
-				Column:   token2.NewColumn("status"),
-				Operator: "🤡", // invalid operator
+			c := &token.Condition{
+				Column:   token.NewColumn("status"),
+				Operator: operator.ParseFrom("🤡"), // invalid operator
 			}
 			if c.IsValid() {
 				t.Error("expected condition to be invalid due to unsupported operator")
@@ -275,9 +276,9 @@ func TestNewCondition(t *testing.T) {
 		})
 
 		t.Run("PreexistingError", func(t *testing.T) {
-			c := &token2.Condition{
-				Column:   token2.NewColumn("status"),
-				Operator: token2.Equal,
+			c := &token.Condition{
+				Column:   token.NewColumn("status"),
+				Operator: operator.Equal,
 				Error:    fmt.Errorf("some prior error"),
 			}
 			if c.IsValid() {
@@ -287,11 +288,11 @@ func TestNewCondition(t *testing.T) {
 	})
 
 	t.Run("resolveCondition", func(t *testing.T) {
-		c := token2.NewCondition("role", 99, "admin")
+		c := token.NewCondition("role", 99, "admin")
 		if c.IsValid() {
 			t.Error("expected condition to be invalid due to bad operator")
 		}
-		if c.Error == nil || !strings.Contains(c.Error.Error(), "unsupported operator") {
+		if c.Error == nil || !strings.Contains(c.Error.Error(), "invalid operator") {
 			t.Errorf("unexpected error: %v", c.Error)
 		}
 	})

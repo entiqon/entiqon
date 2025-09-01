@@ -30,6 +30,8 @@ COPY db/token/table/README.md              docs/packages/db/token/table.md
 COPY db/token/join/README.md               docs/packages/db/token/join.md
 COPY db/token/types/identifier/README.md   docs/packages/db/token/types/identifier.md
 COPY db/token/types/join/README.md         docs/packages/db/token/types/join.md
+COPY db/token/types/condition/README.md    docs/packages/db/token/types/condition.md
+COPY db/token/types/operator/README.md     docs/packages/db/token/types/operator.md
 COPY db/token/helpers/README.md            docs/packages/db/token/helpers.md
 COPY releases/ docs/releases/
 RUN echo "Documentation content copied"

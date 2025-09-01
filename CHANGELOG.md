@@ -14,14 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **BaseToken** now composes Identifiable and Aliasable internally to avoid duplication.
 - Documentation updated (`doc.go`, `README.md`, examples) to reflect new contracts and relevance order.
 
+### Types
+
+- **Join.Type**: new `join.Type` enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy `join.Kind` removed.
+- **Condition.Type**: new `condition.Type` enum (`Invalid`, `Single`, `And`, `Or`).
+- **Identifier.Type**: introduced `identifier.Type` enum (`Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`, `Computed`).
+- **ExpressionKind**: added `Invalid` classification; extended rules for aggregates, computed expressions, functions.
+- **Operator.Type**: refactored to a typed registry with deterministic order, reverse-indexed parsing, and full documentation/tests.
+
 ### Tokens
 
 - **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
-- **Join**: new `join.Token` with type-safe `join.Type` (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy
-  `join.Kind` removed.
-- **Condition**: new `condition.Type` enum (`Invalid`, `Single`, `And`, `Or`).
-- **Identifier**: introduced `identifier.Type` enum (Identifier, Subquery, Literal, Aggregate, Function, Computed).
-- **ExpressionKind**: added `Invalid` classification; extended rules for aggregates, computed expressions, functions.
 
 ### Helpers
 

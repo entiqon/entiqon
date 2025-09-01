@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/entiqon/db/token/types/operator"
 )
 
 // Condition represents a simple SQL condition like "column = value" or "column IN (?)".
@@ -25,11 +26,11 @@ import (
 //	fmt.Println(cond.Value)     // 1
 //	fmt.Println(cond.IsValid()) // true
 type Condition struct {
-	Type     ConditionType     // Clause type: Simple (WHERE), AND, OR
-	Column   *Column           // Column definition
-	Operator ConditionOperator // SQL operator (e.g. "=", "IN")
-	Value    any               // Value(s) to compare against
-	Error    error             // Validation error, if any
+	Type     ConditionType // Clause type: Simple (WHERE), AND, OR
+	Column   *Column       // Column definition
+	Operator operator.Type // SQL operator (e.g. "=", "IN")
+	Value    any           // Value(s) to compare against
+	Error    error         // Validation error, if any
 }
 
 // NewCondition creates a new SQL condition using the given column and value.
@@ -77,7 +78,7 @@ func NewConditionOr(column string, args ...any) *Condition {
 //	c := NewConditionWith(ConditionTypeSimple, "created_at", GreaterThan, "2024-01-01")
 //	fmt.Println(c.Type)     // ConditionTypeSimple
 //	fmt.Println(c.Operator) // ">"
-func NewConditionWith(kind ConditionType, name string, operator ConditionOperator, values ...any) *Condition {
+func NewConditionWith(kind ConditionType, name string, op operator.Type, values ...any) *Condition {
 	var value any
 	if len(values) == 1 {
 		value = values[0]
@@ -88,7 +89,7 @@ func NewConditionWith(kind ConditionType, name string, operator ConditionOperato
 	return &Condition{
 		Type:     kind,
 		Column:   NewColumn(name),
-		Operator: operator,
+		Operator: op,
 		Value:    value,
 	}
 }
@@ -138,10 +139,10 @@ func (c *Condition) Render(d driver.Dialect) (string, []any) {
 	col := c.Column.Render(d)
 
 	switch c.Operator {
-	case IsNull, IsNotNull:
+	case operator.IsNull, operator.IsNotNull:
 		return fmt.Sprintf("%s %s", col, c.Operator), nil
 
-	case In, NotIn:
+	case operator.In, operator.NotIn:
 		values, ok := c.Value.([]any)
 		if !ok || len(values) == 0 {
 			return fmt.Sprintf("%s %s ()", col, c.Operator), nil
@@ -152,7 +153,7 @@ func (c *Condition) Render(d driver.Dialect) (string, []any) {
 		}
 		return fmt.Sprintf("%s %s (%s)", col, c.Operator, strings.Join(placeholders, ", ")), values
 
-	case Between:
+	case operator.Between:
 		values, ok := c.Value.([]any)
 		if !ok || len(values) != 2 {
 			return fmt.Sprintf("%s BETWEEN ? AND ?", col), nil
@@ -214,12 +215,12 @@ func (c *Condition) String() string {
 func resolveCondition(kind ConditionType, column string, args ...any) *Condition {
 	switch len(args) {
 	case 1:
-		return NewConditionWith(kind, column, Equal, args[0])
+		return NewConditionWith(kind, column, operator.Equal, args[0])
 
 	case 2:
-		op, err := ParseConditionOperator(args[0])
-		if err != nil {
-			return invalidCondition(kind, column, err)
+		op := operator.ParseFrom(args[0])
+		if !op.IsValid() {
+			return invalidCondition(kind, column, fmt.Errorf("invalid operator: %q", op))
 		}
 		return NewConditionWith(kind, column, op, args[1])
 
