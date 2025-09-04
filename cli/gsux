@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+#
+# gsux - Git Stash Utility Extended
+# Manage Git stashes: stash, apply, pop, drop, clear, or list
+#
+# Version: v1.14.0 (Part of Entiqon Ecosystem)
+
+set -euo pipefail
+
+VERSION="v1.14.0"
+
+MODE=""
+INDEX=0
+MESSAGE="Auto-stash"
+UNTRACKED=false
+VERBOSE=false
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") <mode> [options]
+
+Modes:
+  stash           Create a new stash (supports -m/--message, -u/--untracked, -v/--verbose)
+  apply           Apply a stash (default index=0)
+  pop             Apply + drop a stash
+  drop            Drop a stash at given index
+  clear           Clear all stashes
+  list            List all stashes
+
+Options:
+  -m, --message <msg>   Stash message (for 'stash' mode)
+  -i, --index <n>       Specify stash index (default: 0, latest)
+  -u, --untracked       Include untracked files (for 'stash' mode)
+  -v, --verbose         Enable detailed output
+  -V, --version         Show version and exit
+  -h, --help            Show this help message and exit
+
+Examples:
+  gsux stash -m "WIP changes" -u -v
+  gsux apply -i 1 -v
+  gsux pop -i 2
+  gsux drop -i 0
+  gsux clear -v
+  gsux list
+EOF
+}
+
+log() {
+  if $VERBOSE; then
+    echo "$@"
+  fi
+}
+
+main() {
+  if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+  fi
+
+  MODE="$1"
+  shift
+
+  # parse options
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -m|--message) MESSAGE="$2"; shift ;;
+      -i|--index) INDEX="$2"; shift ;;
+      -u|--untracked) UNTRACKED=true ;;
+      -v|--verbose) VERBOSE=true ;;
+      -V|--version) echo "$(basename "$0") $VERSION"; exit 0 ;;
+      -h|--help) usage; exit 0 ;;
+      *) echo "❌ Unknown option: $1"; usage; exit 1 ;;
+    esac
+    shift
+  done
+
+  case "$MODE" in
+    stash)
+      log "📦 Creating new stash: \"$MESSAGE\" (untracked=$UNTRACKED)"
+      if $UNTRACKED; then
+        git stash push -u -m "$MESSAGE"
+      else
+        git stash push -m "$MESSAGE"
+      fi
+      log "✅ Stash created"
+      ;;
+    apply)
+      log "🔄 Applying stash@{$INDEX}"
+      git stash apply "stash@{$INDEX}" && log "✅ Applied" || log "❌ Failed"
+      ;;
+    pop)
+      log "⬇️  Popping stash@{$INDEX}"
+      git stash pop "stash@{$INDEX}" && log "✅ Popped" || log "❌ Failed"
+      ;;
+    drop)
+      log "🗑️  Dropping stash@{$INDEX}"
+      git stash drop "stash@{$INDEX}" && log "✅ Dropped" || log "❌ Failed"
+      ;;
+    clear)
+      log "🔥 Clearing all stashes"
+      git stash clear && log "✅ Cleared" || log "❌ Failed"
+      ;;
+    list)
+      log "📜 Listing all stashes"
+      git stash list
+      ;;
+    *)
+      echo "❌ Unknown mode: $MODE"
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
