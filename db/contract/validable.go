@@ -4,7 +4,6 @@ package contract
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -49,25 +48,4 @@ type Validable interface {
 	// It must return true only when the token has no error
 	// and its essential invariants are satisfied.
 	IsValid() bool
-}
-
-// ValidateType ensures input type is allowed for token constructors.
-//
-// Rules:
-//   - string → OK
-//   - any Validable (Field, Table, etc.) → ErrUnsupportedType
-//   - everything else → invalid format with type name
-func ValidateType(v any) error {
-	switch v.(type) {
-	case string:
-		return nil
-
-	case Validable:
-		// Already a token (Field, Table, etc.)
-		return ErrUnsupportedType
-
-	default:
-		// Everything else → invalid format
-		return fmt.Errorf("invalid format (type %T)", v)
-	}
 }
