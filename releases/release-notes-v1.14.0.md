@@ -46,10 +46,22 @@ This release refines the database token system with a focus on **JOIN handling**
 
 ## Helpers
 
-- New **helpers** package: identifier/alias validation, wildcard restrictions, reserved keywords.
-- `ResolveExpressionType`: classifies identifiers, literals, aggregates, functions, computed.
-- `ValidateType`: stricter type enforcement.
-- Alias generation via hash (`prefix + SHA1`).
+- New **helpers** package: identifier/alias validation, wildcard restrictions, reserved keywords, expression and condition resolution.
+- **Alias generation**:
+    - `GenerateAlias(prefix, expr)` produces deterministic, safe aliases by combining a two-letter prefix with a SHA-1 hash of the expression.
+- **Expression resolution**:
+    - `ResolveExpressionType` classifies identifiers, literals, aggregates, functions, and computed expressions.
+    - `ResolveExpression` simplified default branch with unified invalid error handling.
+- **Condition resolution**:
+    - `ResolveCondition` parses conditions into `(field, operator, value)`.
+    - Bare identifiers default to `=` (e.g. `"id"` → `id = :id`).
+    - Invalid expressions (e.g. `"id ++ 1"`) return clear errors.
+- **Operator/value validation**:
+    - `IsValidSlice` enforces consistency:
+        - `IN` / `NOT IN` require non-empty slices.
+        - `BETWEEN` requires exactly two values.
+- **Utility helpers**:
+    - `parseBetween`, `parseList`, `coerceScalar`, `ToParamKey`, `splitCSVRespectingQuotes`.
 
 ---
 

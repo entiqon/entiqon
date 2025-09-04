@@ -1,10 +1,13 @@
 package helpers_test
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/entiqon/entiqon/db/token/field"
 	"github.com/entiqon/entiqon/db/token/helpers"
+	"github.com/entiqon/entiqon/db/token/types/operator"
 )
 
 func TestHelpers(t *testing.T) {
@@ -349,6 +352,180 @@ func TestHelpers(t *testing.T) {
 					t.Errorf("%s: expected alias=%q, got %q", tt.name, tt.wantAlias, alias)
 				}
 			})
+		}
+	})
+}
+
+func TestValidateType(t *testing.T) {
+	err := helpers.ValidateType("string")
+	if err != nil {
+		t.Error("expected error, got nil")
+	}
+	err = helpers.ValidateType(123456)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+	err = helpers.ValidateType(field.New("id"))
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestCondition(t *testing.T) {
+	t.Run("ResolveCondition", func(t *testing.T) {
+		tests := []struct {
+			name      string
+			input     string
+			wantOp    operator.Type
+			wantField string
+			wantVal   any
+			wantErr   bool
+		}{
+			{
+				name:      "EqualCondition",
+				input:     "id = 1",
+				wantOp:    operator.Equal,
+				wantField: "id",
+				wantVal:   1,
+			},
+			{
+				name:      "ValidCondition",
+				input:     "id",
+				wantOp:    operator.Equal,
+				wantField: "id",
+				wantVal:   nil,
+				wantErr:   false,
+			},
+			{
+				name:      "InvalidCondition",
+				input:     "",
+				wantOp:    operator.Equal,
+				wantField: "",
+				wantVal:   nil,
+				wantErr:   true,
+			},
+			{
+				name:      "InList",
+				input:     "lastname IN ('smith','brown')",
+				wantOp:    operator.In,
+				wantField: "lastname",
+				wantVal:   []any{"smith", "brown"},
+			},
+			{
+				name:      "InInvalid",
+				input:     "lastname IN ()",
+				wantOp:    operator.In,
+				wantField: "lastname",
+				wantVal:   []any{},
+				wantErr:   true,
+			},
+			{
+				name:      "BetweenRange",
+				input:     "price BETWEEN 1 AND 10",
+				wantOp:    operator.Between,
+				wantField: "price",
+				wantVal:   []any{1, 10},
+			},
+			{
+				name:      "BetweenInvalid",
+				input:     "price BETWEEN 1 AND",
+				wantOp:    operator.Invalid,
+				wantField: "price",
+				wantVal:   nil,
+				wantErr:   true,
+			},
+			{
+				name:      "IsNullCondition",
+				input:     "deleted_at IS NULL",
+				wantOp:    operator.IsNull,
+				wantField: "deleted_at",
+				wantVal:   nil,
+			},
+			{
+				name:      "InvalidOperator",
+				input:     "id ++ 1",
+				wantOp:    operator.Invalid,
+				wantField: "",
+				wantErr:   true,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				field, op, val, err := helpers.ResolveCondition(tt.input)
+				if (err != nil) != tt.wantErr {
+					t.Fatalf("expected error=%v, got %v", tt.wantErr, err)
+				}
+				if !tt.wantErr {
+					if op != tt.wantOp {
+						t.Errorf("expected op=%v, got %v", tt.wantOp, op)
+					}
+					if field != tt.wantField {
+						t.Errorf("expected field=%q, got %q", tt.wantField, field)
+					}
+					if !reflect.DeepEqual(val, tt.wantVal) {
+						t.Errorf("expected val=%v, got %v", tt.wantVal, val)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("IsValidSlice", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			op       operator.Type
+			value    any
+			expected bool
+		}{
+			// IN operator
+			{"In_NonEmptyInts", operator.In, []int{1, 2, 3}, true},
+			{"In_EmptyInts", operator.In, []int{}, false},
+			{"In_EmptyInt64s", operator.In, []int64{}, false},
+			{"In_EmptyFloat64s", operator.In, []float64{}, false},
+			{"In_NonEmptyStrings", operator.In, []string{"a", "b"}, true},
+			{"In_EmptyStrings", operator.In, []string{}, false},
+			{"In_Nil", operator.In, []struct{}{}, false},
+			{"In_Nil", operator.In, nil, false},
+
+			// NOT IN operator
+			{"NotIn_NonEmpty", operator.NotIn, []any{"x"}, true},
+			{"NotIn_Empty", operator.NotIn, []any{}, false},
+
+			// BETWEEN operator
+			{"Between_ExactlyTwo", operator.Between, []int{1, 10}, true},
+			{"Between_OneValue", operator.Between, []int{1}, false},
+			{"Between_ThreeValues", operator.Between, []int{1, 2, 3}, false},
+			{"Between_Nil", operator.Between, nil, false},
+
+			// Other operators should always fail
+			{"Equal_WithSlice", operator.Equal, []int{1, 2}, false},
+			{"InvalidOperator", operator.Invalid, []int{1}, false},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				ok := helpers.IsValidSlice(tt.op, tt.value)
+				if ok != tt.expected {
+					t.Errorf("IsValidSlice(%v, %v) = %v, want %v",
+						tt.op, tt.value, ok, tt.expected)
+				}
+			})
+		}
+	})
+
+	t.Run("ToParamKey", func(t *testing.T) {
+		cases := map[string]string{
+			`users.id`:         "users_id",
+			`"last name"`:      "last_name",
+			`u."last name"`:    "u_last_name",
+			``:                 "field",
+			`some-weird$field`: "some_weird_field",
+		}
+		for in, want := range cases {
+			if got := helpers.ToParamKey(in); got != want {
+				t.Errorf("ToParamKey(%q)=%q, want %q", in, got, want)
+			}
 		}
 	})
 }
