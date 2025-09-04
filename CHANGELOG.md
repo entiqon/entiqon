@@ -27,12 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
 
 ### Helpers
-
-- New `helpers` package: validation (identifiers, aliases, wildcards, reserved keywords), alias generation, expression
-  classification.
-- Refactored `ResolveExpression` for cleaner alias handling and coverage.
-- Added `ValidateType` for stricter input enforcement.
-- `ResolveExpression` extended with subquery detection, identifier checks, explicit alias support.
+- Simplified `ResolveExpression` default branch (unified invalid error).
+- Extended `ResolveCondition`: bare identifiers default to `=`, invalid expressions return clear errors.
+- Added `IsValidSlice` to enforce operator/value rules (`IN`/`NOT IN` non-empty, `BETWEEN` exactly two).
+- Documented and tested low-level utilities (`parseBetween`, `parseList`, `coerceScalar`, `ToParamKey`, etc.).
 
 ### Docs & Tests
 

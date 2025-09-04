@@ -104,10 +104,7 @@ func ResolveExpression(
 		return identifier.Literal, expr, alias, nil
 
 	default:
-		if in == "" {
-			return identifier.Invalid, "", "", fmt.Errorf("empty identifier is not allowed: %q", in)
-		}
-		return identifier.Invalid, "", "", stdErr.New("invalid because unknown identifier: " + in)
+		return identifier.Invalid, "", "", fmt.Errorf("empty identifier is not allowed: %q", in)
 	}
 }
 

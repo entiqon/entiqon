@@ -1,8 +1,8 @@
 // Package helpers provides classification and resolution utilities for
 // SQL token parsing. It defines common helpers to validate identifiers,
-// wildcards, and to classify or resolve expressions into their kind and alias.
+// wildcards, classify/resolve expressions, and parse condition operators.
 //
-// # Current Rules
+// # Expression Classification
 //
 // The classifier ResolveExpressionType inspects an input string and
 // returns its high-level type:
@@ -17,36 +17,59 @@
 //
 // # Expression Resolution
 //
-// Beyond classification, the ResolveExpression function provides
-// a higher-level resolver that splits an input string into its
-// core expression and optional alias.
+// Beyond classification, ResolveExpression splits an input string into
+// its core expression and optional alias. Aliases may use either:
 //
-// ResolveExpression is classifier-driven:
+//   - Trailing form → "expr alias"
+//   - AS form       → "expr AS alias"
 //
-//   - Identifiers → "id", "id alias", "id AS alias"
-//   - Subqueries → "(SELECT ...)", "(SELECT ...) alias", "(SELECT ...) AS alias"
-//   - Computed   → "(a+b)", "(a+b) alias", "(a+b) AS alias"
-//   - Aggregates → "COUNT(...)", "SUM(...)", with alias variants
-//   - Functions  → "FUNC(...)", with alias variants
-//   - Literals   → "'text'", "123", with alias variants
+// Alias validation enforces reserved keywords and identifier rules,
+// and can be toggled via the allowAlias flag.
 //
-// Each branch enforces strict rules:
-//   - Subqueries and Computed expressions must be parenthesized.
-//   - Aggregates and Functions must include parentheses.
-//   - Aliases are allowed only if explicitly permitted via allowAlias.
-//   - Aliases may use either the space form ("expr alias") or
-//     the explicit AS form ("expr AS alias").
-//   - Invalid alias formats or reserved keywords are rejected.
+// # Condition Resolution
 //
-// This ensures consistency: classification determines the kind,
-// resolution enforces alias rules, and all branches are covered
-// explicitly without fallthrough defaults.
+// The ResolveCondition function parses SQL-like condition inputs into:
+//
+//   - field → the identifier being compared (e.g. "id")
+//   - op    → the detected operator (e.g. =, IN, BETWEEN, IS NULL)
+//   - value → the right-hand side, normalized as:
+//   - scalar (any Go type)
+//   - slice for IN/NOT IN and BETWEEN
+//   - nil for IS NULL / IS NOT NULL
+//
+// Examples:
+//
+//	"id = 1"                   → field="id", op="=", value=1
+//	"price BETWEEN 1 AND 10"   → field="price", op="BETWEEN", value=[1,10]
+//	"lastname IN ('a','b')"    → field="lastname", op="IN", value=["a","b"]
+//	"deleted_at IS NULL"       → field="deleted_at", op="IS NULL", value=nil
+//
+// If the operator is missing, a bare identifier defaults to "=".
+// For example, "id" is resolved as field="id", op="=", value=nil.
+//
+// # Condition Validation
+//
+// The IsValidSlice helper ensures operator/value consistency:
+//
+//   - IN / NOT IN → require a non-empty slice
+//   - BETWEEN     → requires exactly 2 values
+//
+// Invalid operator/value pairs are rejected during condition construction.
+//
+// # Supporting Utilities
+//
+// Additional helpers provide low-level parsing and normalization:
+//
+//   - parseBetween → splits "x AND y" into [x,y]
+//   - parseList    → parses CSV or parenthesized lists into []any
+//   - coerceScalar → converts string tokens into int, float64, nil, or string
+//   - ToParamKey   → converts identifiers like "users.id" into safe keys ("users_id")
+//   - splitCSVRespectingQuotes → splits lists while preserving quoted commas
 //
 // # Future Dialect-Specific Rules
 //
-// Dialects may extend classification or resolution with additional
-// rules for functions, operators, or literals. For example, PostgreSQL
-// introduces JSON operators and type casts, while MySQL introduces
-// special string functions. These extensions should be handled by
-// layering dialect-specific checks on top of the generic helpers.
+// Dialects may extend classification, resolution, or condition parsing
+// with additional rules for functions, operators, or literals.
+// For example, PostgreSQL introduces JSON operators and type casts,
+// while MySQL introduces special string functions.
 package helpers
