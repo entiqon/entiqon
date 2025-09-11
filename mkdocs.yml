@@ -45,6 +45,7 @@ nav:
               - Overview: packages/db/token/overview.md
               - Types: packages/db/token/types/identifier.md
               - Helpers: packages/db/token/helpers.md
+              - Condition: packages/db/token/condition.md
               - Field: packages/db/token/field.md
               - Table: packages/db/token/table.md
               - Join: packages/db/token/join.md
