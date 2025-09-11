@@ -71,16 +71,16 @@ func NewFull(left, right any, condition string) Token {
 }
 
 // NewCross constructs an explicit CROSS JOIN.
-func NewCross(left, right any, condition string) Token {
-	return newWithKind(join.Full, left, right, condition)
+func NewCross(left, right any) Token {
+	return newWithKind(join.Cross, left, right, "")
 }
 
 // NewNatural constructs an explicit NATURAL JOIN.
-func NewNatural(left, right any, condition string) Token {
-	return newWithKind(join.Full, left, right, condition)
+func NewNatural(left, right any) Token {
+	return newWithKind(join.Natural, left, right, "")
 }
 
-// Clone returns a deep copy of the token token.
+// Clone returns a deep copy of the token.
 func (t *token) Clone() Token {
 	return &token{
 		kind:      t.kind,
@@ -173,6 +173,12 @@ func (t *token) Raw() string {
 	if t.err != nil {
 		return ""
 	}
+
+	// 🔑 Special rendering for CROSS / NATURAL joins
+	if t.kind == join.Cross || t.kind == join.Natural {
+		return fmt.Sprintf("%s %s", t.kind, t.right.Raw())
+	}
+
 	return fmt.Sprintf("%s %s ON %s",
 		t.kind,
 		t.right.Raw(),
@@ -189,21 +195,25 @@ func (t *token) Render() string {
 // String returns a concise, loggable representation of the token.
 // Valid joins are marked with ✅, invalid ones with ⛔.
 func (t *token) String() string {
-	base := fmt.Sprintf("%s %s ON %s",
-		t.kind,
-		func() string {
-			if t.right != nil {
-				return t.right.Raw()
-			}
-			return ""
-		}(),
-		strings.TrimSpace(t.condition),
-	)
+	var base string
+	if t.kind == join.Cross || t.kind == join.Natural {
+		base = fmt.Sprintf("%s %s", t.kind, t.right.Raw())
+	} else {
+		base = fmt.Sprintf("%s %s ON %s",
+			t.kind,
+			func() string {
+				if t.right != nil {
+					return t.right.Raw()
+				}
+				return ""
+			}(),
+			strings.TrimSpace(t.condition),
+		)
+	}
 
 	if !t.IsValid() {
 		return fmt.Sprintf("⛔ token(%q): %v", base, t.err)
 	}
-
 	return fmt.Sprintf("✅ token(%q)", base)
 }
 
@@ -212,8 +222,6 @@ func (t *token) IsValid() bool {
 	return !t.IsErrored()
 }
 
-// newWithKind is the internal constructor.
-// It enforces early exit for invalid kinds and validates operands and condition.
 func newWithKind(kind any, left, right any, condition string) Token {
 	jk := normalizeKind(kind)
 	if !jk.IsValid() {
@@ -239,6 +247,14 @@ func newWithKind(kind any, left, right any, condition string) Token {
 		}
 		return j.SetError(fmt.Errorf("token invalid: %s", strings.Join(errs, "; ")))
 	}
+
+	// 🔑 Special case for CROSS / NATURAL: they must NOT have conditions
+	if jk == join.Cross || jk == join.Natural {
+		j.condition = ""
+		return j
+	}
+
+	// For all other join kinds: require condition
 	if condition == "" {
 		return j.SetError(fmt.Errorf("token condition is empty"))
 	}

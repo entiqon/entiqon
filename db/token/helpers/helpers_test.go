@@ -452,7 +452,7 @@ func TestCondition(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				field, op, val, err := helpers.ResolveCondition(tt.input)
+				f, op, val, err := helpers.ResolveCondition(tt.input)
 				if (err != nil) != tt.wantErr {
 					t.Fatalf("expected error=%v, got %v", tt.wantErr, err)
 				}
@@ -460,8 +460,8 @@ func TestCondition(t *testing.T) {
 					if op != tt.wantOp {
 						t.Errorf("expected op=%v, got %v", tt.wantOp, op)
 					}
-					if field != tt.wantField {
-						t.Errorf("expected field=%q, got %q", tt.wantField, field)
+					if f != tt.wantField {
+						t.Errorf("expected field=%q, got %q", tt.wantField, f)
 					}
 					if !reflect.DeepEqual(val, tt.wantVal) {
 						t.Errorf("expected val=%v, got %v", tt.wantVal, val)
