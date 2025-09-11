@@ -24,9 +24,14 @@ func (t *myToken) SetKind(k myKind) { t.kind = k }
 func ExampleKindable() {
 	var k contract.Kindable[myKind] = &myToken{}
 	k.SetKind(Custom)
-
 	fmt.Printf("Kind=%v\n", k.Kind())
-	// Output: Kind=1
+
+	k.SetKind(Invalid)
+	fmt.Printf("Kind=%v\n", k.Kind())
+
+	// Output:
+	// Kind=1
+	// Kind=0
 }
 
 // ExampleIdentifiable demonstrates using a Field as a BaseToken.
@@ -70,8 +75,9 @@ func ExampleDebuggable() {
 	t := table.New("users", "u")
 	var d contract.Debuggable = t
 	fmt.Println(d.Debug())
+
 	// Output:
-	// ✅ Table("users u"): [raw:false, aliased:true, errored:false]
+	// Table("users u"): [raw:false, aliased:true, errored:false]
 }
 
 // ExampleErrorable demonstrates using a Table as an Errorable.
@@ -117,7 +123,7 @@ func ExampleStringable() {
 	t := table.New("users", "u")
 	var s contract.Stringable = t
 	fmt.Println(s.String())
-	// Output: ✅ Table(users AS u)
+	// Output: Table(users AS u)
 }
 
 // ExampleValidable demonstrates using a Table as a Validable.

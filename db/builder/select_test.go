@@ -141,7 +141,7 @@ func TestSelectBuilder(t *testing.T) {
 				}
 			})
 
-			t.Run("Table", func(t *testing.T) {
+			t.Run("table", func(t *testing.T) {
 				sql, err := builder.NewSelect(nil).
 					Source(table.New("users")).
 					Build()
@@ -198,6 +198,134 @@ func TestSelectBuilder(t *testing.T) {
 			if fields.Length() != 3 {
 				t.Errorf("expected 3 fields, got %d", fields.Length())
 			}
+		})
+
+		t.Run("Joins", func(t *testing.T) {
+			t.Run("NilCollection", func(t *testing.T) {
+				source := table.New("users u")
+				sb := &builder.SelectBuilder{}
+				sb.Fields("u.id")
+				sb.Source(source)
+				sb.InnerJoin(source.Render(), "orders o", "u.id = o.user_id")
+
+				sql, err := sb.Build()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				expected := "SELECT u.id FROM users AS u INNER JOIN orders AS o ON u.id = o.user_id"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("InnerJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					InnerJoin("users u", "orders o", "u.id = o.user_id")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u INNER JOIN orders AS o ON u.id = o.user_id"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("LeftJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					LeftJoin("users u", "profiles p", "u.id = p.user_id")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u LEFT JOIN profiles AS p ON u.id = p.user_id"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("RightJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					RightJoin("users u", "logs l", "u.id = l.user_id")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u RIGHT JOIN logs AS l ON u.id = l.user_id"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("FullJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					FullJoin("users u", "archives a", "u.id = a.user_id")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u FULL JOIN archives AS a ON u.id = a.user_id"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("CrossJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					CrossJoin("users u", "countries c")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u CROSS JOIN countries AS c"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("NaturalJoin", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					NaturalJoin("departments d").
+					NaturalJoin("states s")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u NATURAL JOIN departments AS d NATURAL JOIN states AS s"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("MultipleJoins", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					AddFields("o.id").
+					AddFields("p.amount").
+					Source("users u").
+					InnerJoin("users u", "orders o", "u.id = o.user_id").
+					LeftJoin("orders o", "payments p", "o.id = p.order_id").
+					CrossJoin("orders o", "currencies c")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id, o.id, p.amount FROM users AS u INNER JOIN orders AS o ON u.id = o.user_id LEFT JOIN payments AS p ON o.id = p.order_id CROSS JOIN currencies AS c"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
+
+			t.Run("IgnoreEmptyTable", func(t *testing.T) {
+				sb := builder.NewSelect(nil).
+					Fields("u.id").
+					Source("users u").
+					InnerJoin("users", "   ", "u.id = o.user_id")
+
+				sql, _ := sb.Build()
+				expected := "SELECT u.id FROM users AS u"
+				if sql != expected {
+					t.Errorf("expected %q, got %q", expected, sql)
+				}
+			})
 		})
 
 		t.Run("Conditions", func(t *testing.T) {
@@ -737,7 +865,7 @@ func TestSelectBuilder(t *testing.T) {
 			t.Run("WithSource", func(t *testing.T) {
 				sb := builder.NewSelect(nil).Source("users")
 				got := sb.Debug()
-				want := "✅ SelectBuilder{fields:0, source: ✅ Table(users), where:0, groupBy:0, having:0, orderBy:0}"
+				want := "SelectBuilder{fields:0, source: Table(\"users\"), where:0, groupBy:0, having:0, orderBy:0}"
 				if got != want {
 					t.Errorf("expected %q, got %q", want, got)
 				}
@@ -748,7 +876,7 @@ func TestSelectBuilder(t *testing.T) {
 					Source("orders").
 					Having("SUM(quantity) > 2")
 				got := sb.Debug()
-				want := "✅ SelectBuilder{fields:0, source: ✅ Table(orders), where:0, groupBy:0, having:1, orderBy:0}"
+				want := "SelectBuilder{fields:0, source: Table(\"orders\"), where:0, groupBy:0, having:1, orderBy:0}"
 				if got != want {
 					t.Errorf("expected %q, got %q", want, got)
 				}
@@ -758,7 +886,7 @@ func TestSelectBuilder(t *testing.T) {
 				t.Run("NilReceiver", func(t *testing.T) {
 					var sb *builder.SelectBuilder = nil // nil receiver
 					got := sb.Debug()
-					want := "❌ SelectBuilder(nil)"
+					want := "SelectBuilder(nil)"
 					if got != want {
 						t.Errorf("expected %q, got %q", want, got)
 					}
@@ -767,7 +895,7 @@ func TestSelectBuilder(t *testing.T) {
 				t.Run("EmptySource", func(t *testing.T) {
 					sb := builder.NewSelect(nil)
 					got := sb.Debug()
-					want := "❌ SelectBuilder{fields:0, source:<nil>, where:0, groupBy:0, having:0, orderBy:0}"
+					want := "SelectBuilder{fields:0, source:<nil>, where:0, groupBy:0, having:0, orderBy:0}"
 					if got != want {
 						t.Errorf("expected %q, got %q", want, got)
 					}

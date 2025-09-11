@@ -2,7 +2,10 @@
 
 ## Highlights
 
-This release refines the database token system with a focus on **JOIN handling**, **expression resolution**, and **operator classification**. It introduces a type registry for operators, restructures type enums, and expands documentation and tests.
+This release refines the database token system with a focus on **JOIN handling**, **expression resolution**, and *
+*operator classification**. It introduces a type registry for operators, restructures type enums, and expands
+documentation and tests.  
+It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`).
 
 ---
 
@@ -22,7 +25,8 @@ This release refines the database token system with a focus on **JOIN handling**
 - **ExpressionKind**: added `Invalid` classification; extended for aggregates, computed, functions.
 - **operator.Type**: refactored to a typed **registry** `{String, Alias, Position, Synonyms}`:
     - Deterministic `GetKnownOperators()` ordering by Position.
-    - O(1) `ParseFrom()` via reverse index; accepts symbols (`!=`, `>=`), words (`NOT IN`, `IS NULL`), aliases (`nin`, `gte`, `isnull`).
+    - O(1) `ParseFrom()` via reverse index; accepts symbols (`!=`, `>=`), words (`NOT IN`, `IS NULL`), aliases (`nin`,
+      `gte`, `isnull`).
     - Simplified `String()`, `Alias()`, `IsValid()` with registry lookups.
     - Added full GoDoc, `doc.go`, README, and 100% tests.
 
@@ -35,7 +39,8 @@ This release refines the database token system with a focus on **JOIN handling**
     - New constructors: `New`, `NewAnd`, `NewOr`.
     - Supports inline expressions, named parameters, and operator/value inputs.
     - Enforces operator/value validation (`IN`, `NOT IN`, `BETWEEN` rules).
-    - Implements all shared contracts (Kindable, Identifiable, Errorable, Debuggable, Rawable, Renderable, Stringable, Validable).
+    - Implements all shared contracts (Kindable, Identifiable, Errorable, Debuggable, Rawable, Renderable, Stringable,
+      Validable).
     - Full unit tests and examples with 100% coverage.
 
 - **Join token (`join.Token`)**:
@@ -52,11 +57,24 @@ This release refines the database token system with a focus on **JOIN handling**
 
 ---
 
+## Builder
+
+- **SelectBuilder**:
+    - Added full join support: `InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`, `CrossJoin`, `NaturalJoin`.
+    - Supports `WHERE` conditions, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`) in one consistent API.
+    - Default fallback to `SELECT *` when no fields are provided.
+    - Enhanced `Build()` aggregation across fields, joins, conditions, and pagination.
+- Examples updated in `doc.go`, `README.md`, and `example_test.go` to include join + where + ordering flows.
+
+---
+
 ## Helpers
 
-- New **helpers** package: identifier/alias validation, wildcard restrictions, reserved keywords, expression and condition resolution.
+- New **helpers** package: identifier/alias validation, wildcard restrictions, reserved keywords, expression and
+  condition resolution.
 - **Alias generation**:
-    - `GenerateAlias(prefix, expr)` produces deterministic, safe aliases by combining a two-letter prefix with a SHA-1 hash of the expression.
+    - `GenerateAlias(prefix, expr)` produces deterministic, safe aliases by combining a two-letter prefix with a SHA-1
+      hash of the expression.
 - **Expression resolution**:
     - `ResolveExpressionType` classifies identifiers, literals, aggregates, functions, and computed expressions.
     - `ResolveExpression` simplified default branch with unified invalid error handling.
@@ -75,9 +93,10 @@ This release refines the database token system with a focus on **JOIN handling**
 
 ## Documentation & Tests
 
-- Updated all `doc.go` and `README.md` across tokens and helpers.
-- Expanded `example_test.go` with identifiers, aliases, wildcards, subqueries, generated aliases.
-- 100% coverage for new types (`condition`, `identifier`, `operator`) and helpers.
+- Updated all `doc.go` and `README.md` across tokens and builder.
+- Expanded `example_test.go` with joins, subqueries, identifiers, aliases, wildcards, and classification.
+- Examples now show `WHERE`, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`) together with joins.
+- 100% coverage for new tokens, helpers, and builder flows.
 
 ---
 
@@ -92,4 +111,7 @@ This release refines the database token system with a focus on **JOIN handling**
 
 ## Summary
 
-This release consolidates **type safety** with dedicated enums, introduces a robust **operator registry**, and improves **validation and documentation** across tokens. Builders now have deterministic operator resolution, cleaner join APIs, and fully tested helpers.
+This release consolidates **type safety** with dedicated enums, introduces a robust **operator registry**, and improves
+**validation and documentation** across tokens.  
+It also extends **SelectBuilder** with complete join support, conditions, ordering, and pagination — making it
+production-ready for complex SQL queries.

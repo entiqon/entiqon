@@ -1,7 +1,7 @@
 // Package builder provides a fluent API to construct SQL SELECT queries.
 //
 // The SelectBuilder type allows incremental composition of SELECT statements
-// with support for fields, sources, conditions, grouping, having, ordering, limits, and offsets.
+// with support for fields, sources, joins, conditions, grouping, having, ordering, limits, and offsets.
 // It is simple, extensible, and dialect-aware.
 //
 // # Overview
@@ -22,6 +22,12 @@
 //   - Fields(...interface{}): reset and set fields for the SELECT clause.
 //   - AddFields(...interface{}): append fields without resetting.
 //   - Source(string): set the source table.
+//   - InnerJoin(left, right, on): add INNER JOIN.
+//   - LeftJoin(left, right, on): add LEFT JOIN.
+//   - RightJoin(left, right, on): add RIGHT JOIN.
+//   - FullJoin(left, right, on): add FULL JOIN.
+//   - CrossJoin(left, right, on): add CROSS JOIN.
+//   - NaturalJoin(left, right, on): add NATURAL JOIN.
 //   - Where(...string): reset and set conditions for the WHERE clause.
 //   - And(...string): append conditions with AND.
 //   - Or(...string): append conditions with OR.
@@ -35,7 +41,8 @@
 //   - Limit(int): apply LIMIT.
 //   - Offset(int): apply OFFSET.
 //   - Build(): construct the SQL string or return an error.
-//   - String(): status output with the built SQL or error.
+//   - String(): status output with a concise summary.
+//   - Debug(): developer-facing detailed internal state.
 //
 // # Field Inputs
 //
@@ -48,6 +55,45 @@
 // Unsupported inputs are rejected and recorded as errored fields.
 // Build() will collect all invalid fields and return a descriptive error.
 //
+// # Joins
+//
+// Join methods add JOIN clauses between the source table and another table.
+//
+//   - InnerJoin(left, right, on): INNER JOIN
+//   - LeftJoin(left, right, on): LEFT JOIN
+//   - RightJoin(left, right, on): RIGHT JOIN
+//   - FullJoin(left, right, on): FULL JOIN
+//   - CrossJoin(left, right, on): CROSS JOIN (Cartesian product)
+//   - NaturalJoin(left, right, on): NATURAL JOIN (implicit column matching)
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Fields("u.id").
+//	    AddFields("o.id").
+//	    AddFields("p.amount").
+//	    Source("users u").
+//	    InnerJoin("users u", "orders o", "u.id = o.user_id").
+//	    LeftJoin("orders o", "payments p", "o.id = p.order_id").
+//	    CrossJoin("orders o", "currencies c").
+//	    NaturalJoin("departments d", "states s").
+//	    Where("u.active = true").
+//	    OrderBy("p.amount DESC").
+//	    Limit(10).
+//	    Offset(20)
+//
+//	sql, _ := sb.Build()
+//	// SELECT u.id, o.id, p.amount
+//	// FROM users u
+//	// INNER JOIN orders o ON u.id = o.user_id
+//	// LEFT JOIN payments p ON o.id = p.order_id
+//	// CROSS JOIN currencies c
+//	// NATURAL JOIN states s
+//	// WHERE u.active = true
+//	// ORDER BY p.amount DESC
+//	// LIMIT 10
+//	// OFFSET 20
+//
 // # Conditions
 //
 // Are expressed as raw strings. They are combined as follows:
@@ -57,78 +103,26 @@
 //   - Or() appends conditions joined by OR.
 //   - Multiple conditions in one call to Where() are normalized with AND.
 //
-// For example:
-//
-//	sb := builder.NewSelect(nil).
-//		Fields("id, name").
-//		Source("users").
-//		Where("age > 18", "status = 'active'").
-//		Or("role = 'admin'").
-//		And("country = 'US'")
-//
-//	sql, _ := sb.Build()
-//	// SELECT id, name FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
-//
 // # Grouping
-//
-// Grouping is expressed as raw strings (e.g. "department"). They are combined as follows:
 //
 //   - GroupBy() clears existing grouping and sets new ones.
 //   - ThenGroupBy() appends additional GROUP BY fields.
-//   - Empty or whitespace-only strings are ignored.
-//
-// For example:
-//
-//	sb := builder.NewSelect(nil).
-//		Fields("id, COUNT(*) AS total").
-//		Source("users").
-//		GroupBy("department").
-//		ThenGroupBy("role")
-//
-//	sql, _ := sb.Build()
-//	// SELECT id, COUNT(*) AS total FROM users GROUP BY department, role
 //
 // # Having
-//
-// Having is expressed as raw strings (e.g. "COUNT(*) > 5"). They are combined as follows:
 //
 //   - Having() clears existing conditions and sets new ones.
 //   - AndHaving() appends conditions joined by AND.
 //   - OrHaving() appends conditions joined by OR.
-//   - Multiple conditions in one call to Having() are normalized with AND.
-//   - Empty or whitespace-only strings are ignored.
-//
-// For example:
-//
-//	sb := builder.NewSelect(nil).
-//		Fields("department, COUNT(*) AS total").
-//		Source("users").
-//		GroupBy("department").
-//		Having("COUNT(*) > 5", "AVG(age) > 30").
-//		OrHaving("SUM(salary) > 100000")
-//
-//	sql, _ := sb.Build()
-//	// SELECT department, COUNT(*) AS total FROM users
-//	// GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
 //
 // # Ordering
 //
-// Ordering is expressed as raw strings (e.g. "created_at DESC"). They are combined as follows:
-//
 //   - OrderBy() clears existing ordering and sets new ones.
 //   - ThenOrderBy() appends additional ORDER BY fields.
-//   - Empty or whitespace-only strings are ignored.
 //
-// For example:
+// # Diagnostics
 //
-//	sb := builder.NewSelect(nil).
-//		Fields("id, name").
-//		Source("users").
-//		OrderBy("created_at DESC").
-//		ThenOrderBy("id ASC")
-//
-//	sql, _ := sb.Build()
-//	// SELECT id, name FROM users ORDER BY created_at DESC, id ASC
+// - Debug(): verbose internal state, intended for developers.
+// - String(): concise human-facing status, suitable for audit logs.
 //
 // # Error Handling
 //
@@ -140,19 +134,19 @@
 // # Example
 //
 //	sql, err := builder.NewSelect(nil).
-//		Fields("id, name").
-//		Source("users").
-//		Where("age > 18").
-//		GroupBy("department").
-//		Having("COUNT(*) > 5").
-//		OrderBy("created_at DESC").
-//		Limit(10).
-//		Offset(20).
-//		Build()
+//	    Fields("id, name").
+//	    Source("users").
+//	    Where("age > 18").
+//	    GroupBy("department").
+//	    Having("COUNT(*) > 5").
+//	    OrderBy("created_at DESC").
+//	    Limit(10).
+//	    Offset(20).
+//	    Build()
 //	if err != nil {
-//		log.Fatal(err)
+//	    log.Fatal(err)
 //	}
-//	fmt.Println(sql) // SELECT id, name FROM users WHERE age > 18 GROUP BY department HAVING COUNT(*) > 5 ORDER BY created_at DESC LIMIT 10 OFFSET 20
+//	fmt.Println(sql)
 //
 // With no fields specified, the builder defaults to:
 //

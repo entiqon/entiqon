@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Condition**: introduced `Token` interface and implementation with constructors (`New`, `NewAnd`, `NewOr`) and
   operator/value validation.
 - **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
+- **Join**: added support for CROSS and NATURAL joins, with consistent token modeling (anchor `left`, hosted `right`).
+
+### Builder
+
+- **SelectBuilder** extended:
+    - Full join support: `InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`, `CrossJoin`, `NaturalJoin`.
+    - Added chaining for `Where`, `OrderBy`, `Limit`, `Offset` in examples and documentation.
+    - Improved `Build()` aggregation to include joins and ordering consistently.
 
 ### Helpers
 
@@ -41,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Docs & Tests
 
-- Updated all `doc.go` and `README.md` files for new/changed tokens.
-- Expanded `example_test.go` with subqueries, identifiers, aliases, wildcards, generated aliases, and classification.
-- Achieved 100% coverage for new contracts and helpers.
+- Updated all `doc.go` and `README.md` files for new/changed tokens and builder features.
+- Expanded `example_test.go` with join examples, subqueries, identifiers, aliases, wildcards, and classification.
+- Achieved 100% coverage for new contracts, helpers, and builder flows.
 
 ## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-26
 

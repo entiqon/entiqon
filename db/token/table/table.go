@@ -162,7 +162,7 @@ func (t *table) Debug() string {
 	if !t.IsValid() {
 		return fmt.Sprintf("❌ Table(%q): %s {err=%v}", t.input, flags, t.err)
 	}
-	return fmt.Sprintf("✅ Table(%q): %s", t.input, flags)
+	return fmt.Sprintf("Table(%q): %s", t.input, flags)
 }
 
 // IsErrored reports whether the table was constructed with an error.
@@ -233,12 +233,12 @@ func (t *table) Render() string {
 func (t *table) String() string {
 	if !t.IsValid() {
 		// Always show original input and error
-		return fmt.Sprintf("❌ Table(%q): %v", t.input, t.err)
+		return fmt.Sprintf("Table(%q): %v", t.input, t.err)
 	}
 	if t.alias != "" {
-		return fmt.Sprintf("✅ Table(%s AS %s)", t.name, t.alias)
+		return fmt.Sprintf("Table(%s AS %s)", t.name, t.alias)
 	}
-	return fmt.Sprintf("✅ Table(%s)", t.name)
+	return fmt.Sprintf("Table(%q)", t.name)
 }
 
 // IsValid reports whether the table has a non-empty name and no error.

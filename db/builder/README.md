@@ -14,6 +14,7 @@ It is designed to be **simple**, **strict**, and **dialect-aware**.
 - Support for:
   - Fields (`Fields`, `AddFields`) with strict rules
   - Source (`Source`)
+  - Joins (`InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`, `CrossJoin`, `NaturalJoin`)
   - Conditions (`Where`, `And`, `Or`)
   - Grouping (`GroupBy`, `ThenGroupBy`)
   - Having (`Having`, `AndHaving`, `OrHaving`)
@@ -39,6 +40,44 @@ if err != nil {
 }
 fmt.Println(sql)
 // Output: SELECT id, name FROM users LIMIT 10 OFFSET 20
+```
+
+---
+
+### Join Example
+
+```go
+sql, err := builder.NewSelect(nil).
+    Fields("u.id").
+    AddFields("o.id").
+    AddFields("p.amount").
+    Source("users u").
+    InnerJoin("users u", "orders o", "u.id = o.user_id").
+    LeftJoin("orders o", "payments p", "o.id = p.order_id").
+    CrossJoin("orders o", "currencies c").
+    NaturalJoin("departments d", "states s").
+    Where("u.active = true").
+    OrderBy("p.amount DESC").
+    Limit(10).
+    Offset(20).
+    Build()
+
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(sql)
+
+// Output:
+// SELECT u.id, o.id, p.amount
+// FROM users u
+// INNER JOIN orders o ON u.id = o.user_id
+// LEFT JOIN payments p ON o.id = p.order_id
+// CROSS JOIN currencies c
+// NATURAL JOIN states s
+// WHERE u.active = true
+// ORDER BY p.amount DESC
+// LIMIT 10
+// OFFSET 20
 ```
 
 ---
@@ -92,17 +131,9 @@ fmt.Println(sql)
 // Output: SELECT id, name FROM users WHERE age > 18 AND status = 'active' OR role = 'admin' AND country = 'US'
 ```
 
-Rules:
-- `Where` resets conditions (like `Fields`).
-- `And` appends with `AND`.
-- `Or` appends with `OR`.
-- Multiple conditions in one `Where(...)` are normalized with `AND`.
-
 ---
 
 ### Ordering
-
-You can build `ORDER BY` clauses using `OrderBy` and `ThenOrderBy`:
 
 ```go
 sql, _ := builder.NewSelect(nil).
@@ -116,16 +147,9 @@ fmt.Println(sql)
 // Output: SELECT id, name FROM users ORDER BY created_at DESC, id ASC
 ```
 
-Rules:
-- `OrderBy` resets ordering (like `Fields`).
-- `ThenOrderBy` appends additional fields.
-- Empty or whitespace values are ignored.
-
 ---
 
 ### Grouping
-
-You can build `GROUP BY` clauses using `GroupBy` and `ThenGroupBy`:
 
 ```go
 sql, _ := builder.NewSelect(nil).
@@ -139,16 +163,9 @@ fmt.Println(sql)
 // Output: SELECT id, COUNT(*) AS total FROM users GROUP BY department, role
 ```
 
-Rules:
-- `GroupBy` resets grouping (like `Fields`).
-- `ThenGroupBy` appends additional grouping fields.
-- Empty or whitespace values are ignored.
-
 ---
 
 ### Having
-
-You can build `HAVING` clauses using `Having`, `AndHaving`, and `OrHaving`:
 
 ```go
 sql, _ := builder.NewSelect(nil).
@@ -164,63 +181,11 @@ fmt.Println(sql)
 // Output: SELECT department, COUNT(*) AS total FROM users GROUP BY department HAVING COUNT(*) > 5 AND AVG(age) > 30 OR SUM(salary) > 100000
 ```
 
-Rules:
-- `Having` resets conditions (like `Where`).
-- `AndHaving` appends with `AND`.
-- `OrHaving` appends with `OR`.
-- Multiple conditions in one `Having(...)` are normalized with `AND`.
-- Empty or whitespace values are ignored.
-
 ---
 
 ### Debugging Fields
 
-Use `String()` and `Debug()` to understand how a field was parsed:
-
-```go
-f := token.NewField("COUNT(*) AS total")
-
-fmt.Println(f.String())
-// ✅ Field("COUNT(*) AS total")
-
-fmt.Println(f.Debug())
-// ✅ Field("COUNT(*) AS total"): [raw: true, aliased: true, errored: false]
-
-f2 := token.NewField(true)
-
-fmt.Println(f2.String())
-// ⛔️ Field("true"): input type unsupported: bool
-
-fmt.Println(f2.Debug())
-// ⛔️ Field("true"): [raw: false, aliased: false, errored: true] – input type unsupported: bool
-```
-
----
-
-### Error Cases
-
-- `Build()` on a nil receiver:
-  ```
-  ❌ [Build] - Wrong initialization. Cannot build on receiver nil
-  ```
-
-- No source specified:
-  ```
-  ❌ [Build] - No source specified
-  ```
-
-- Invalid fields (detailed diagnostics):
-  ```
-  ❌ [Build] - Invalid fields:
-      ⛔️ Field("true"): input type unsupported: bool
-      ⛔️ Field("false"): input type unsupported: bool
-      ⛔️ Field("123"): input type unsupported: int
-  ```
-
-- Raw expression with alias but without explicit `AS`:
-  ```
-  ⛔️ Field("(field1 || field2) alias"): [raw: true, aliased: false, errored: true] – raw expressions must use explicit AS for alias
-  ```
+Use `String()` and `Debug()` to understand how a field was parsed.
 
 ---
 
@@ -229,6 +194,7 @@ fmt.Println(f2.Debug())
 Currently, supports:
 - Field selection and aliasing (strict rules enforced)
 - Single source
+- Joins (INNER, LEFT, RIGHT, FULL, CROSS, NATURAL)
 - WHERE conditions with AND/OR composition
 - GROUP BY with multiple fields
 - HAVING with AND/OR composition
@@ -237,8 +203,8 @@ Currently, supports:
 - Error reporting for invalid fields with ✅/⛔️ diagnostics
 
 Planned extensions include:
-- Joins
 - Parameter binding
+- Subqueries as sources
 
 ---
 
