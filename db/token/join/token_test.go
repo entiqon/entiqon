@@ -6,7 +6,7 @@ import (
 
 	"github.com/entiqon/entiqon/db/token/join"
 	"github.com/entiqon/entiqon/db/token/table"
-	join2 "github.com/entiqon/entiqon/db/token/types/join"
+	jt "github.com/entiqon/entiqon/db/token/types/join"
 )
 
 func TestJoin(t *testing.T) {
@@ -89,48 +89,70 @@ func TestJoin(t *testing.T) {
 			if j == nil {
 				t.Fatal("expected non-nil Join")
 			}
-			if j.Kind() != join2.Inner {
+			if j.Kind() != jt.Inner {
 				t.Errorf("expected Inner, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Inner", func(t *testing.T) {
 			j := join.NewInner("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Inner {
+			if j.Kind() != jt.Inner {
 				t.Errorf("expected Inner, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Left", func(t *testing.T) {
 			j := join.NewLeft("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Left {
+			if j.Kind() != jt.Left {
 				t.Errorf("expected Left, got %v", j.Kind())
 			}
 			j = join.New("LEFT JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Left {
+			if j.Kind() != jt.Left {
 				t.Errorf("expected Left, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Right", func(t *testing.T) {
 			j := join.NewRight("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Right {
+			if j.Kind() != jt.Right {
 				t.Errorf("expected Right, got %v", j.Kind())
 			}
 			j = join.New("RIGHT JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Right {
+			if j.Kind() != jt.Right {
 				t.Errorf("expected Right, got %v", j.Kind())
 			}
 		})
 
 		t.Run("Full", func(t *testing.T) {
 			j := join.NewFull("users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Full {
+			if j.Kind() != jt.Full {
 				t.Errorf("expected Full, got %v", j.Kind())
 			}
 			j = join.New("FULL JOIN", "users", "orders", "users.id = orders.user_id")
-			if j.Kind() != join2.Full {
+			if j.Kind() != jt.Full {
 				t.Errorf("expected Full, got %v", j.Kind())
+			}
+		})
+
+		t.Run("Cross", func(t *testing.T) {
+			j := join.NewCross("users", "orders")
+			if j.Kind() != jt.Cross {
+				t.Errorf("expected Cross, got %v", j.Kind())
+			}
+			j = join.New(jt.Cross, "users", "orders", "")
+			if j.Kind() != jt.Cross {
+				t.Errorf("expected Cross, got %v", j.Kind())
+			}
+		})
+
+		t.Run("Natural", func(t *testing.T) {
+			j := join.NewNatural("users", "orders")
+			if j.Kind() != jt.Natural {
+				t.Errorf("expected Natural, got %v", j.Kind())
+			}
+			j = join.New(jt.Natural, "users", "orders", "")
+			if j.Kind() != jt.Natural {
+				t.Errorf("expected Natural, got %v", j.Kind())
 			}
 		})
 	})
@@ -172,6 +194,10 @@ func TestJoin(t *testing.T) {
 			if !strings.HasPrefix(j.Raw(), "LEFT JOIN") {
 				t.Errorf("expected LEFT JOIN in raw, got %q", j.Raw())
 			}
+			j = join.NewNatural("users", "orders")
+			if !strings.HasPrefix(j.Raw(), "NATURAL JOIN") {
+				t.Errorf("expected NATURAL JOIN in raw, got %q", j.Raw())
+			}
 		})
 
 		t.Run("Renderable", func(t *testing.T) {
@@ -187,6 +213,11 @@ func TestJoin(t *testing.T) {
 			s := j.String()
 			if !strings.Contains(s, "token(") {
 				t.Errorf("expected string representation with 'token(', got %q", s)
+			}
+			j = join.NewCross("users", "orders")
+			s = j.String()
+			if !strings.Contains(s, "✅ token(\"CROSS JOIN orders\")") {
+				t.Errorf("expected string representation with 'users.id', got %q", s)
 			}
 		})
 
