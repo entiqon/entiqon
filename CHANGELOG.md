@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## v1.14.0 - Upcoming
 
 ### Contracts
+
 - Added **Kindable**: generic contract for enum-style classification (`Kind()`, `SetKind(T)`).
 - Added **Identifiable**: alias-free identity (`Input()`, `Expr()`).
 - Added **Aliasable**: alias surface (`Alias()`, `IsAliased()`).
@@ -16,17 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Types
 
-- **Join.Type**: new `join.Type` enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy `join.Kind` removed.
+- **Join.Type**: new `join.Type` enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy `join.Kind`
+  removed.
 - **Condition.Type**: new `condition.Type` enum (`Invalid`, `Single`, `And`, `Or`).
-- **Identifier.Type**: introduced `identifier.Type` enum (`Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`, `Computed`).
+- **Identifier.Type**: introduced `identifier.Type` enum (`Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`,
+  `Computed`).
 - **ExpressionKind**: added `Invalid` classification; extended rules for aggregates, computed expressions, functions.
-- **Operator.Type**: refactored to a typed registry with deterministic order, reverse-indexed parsing, and full documentation/tests.
+- **Operator.Type**: refactored to a typed registry with deterministic order, reverse-indexed parsing, and full
+  documentation/tests.
 
 ### Tokens
 
+- **Condition**: introduced `Token` interface and implementation with constructors (`New`, `NewAnd`, `NewOr`) and
+  operator/value validation.
 - **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
 
 ### Helpers
+
 - Simplified `ResolveExpression` default branch (unified invalid error).
 - Extended `ResolveCondition`: bare identifiers default to `=`, invalid expressions return clear errors.
 - Added `IsValidSlice` to enforce operator/value rules (`IN`/`NOT IN` non-empty, `BETWEEN` exactly two).

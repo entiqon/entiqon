@@ -30,6 +30,14 @@ This release refines the database token system with a focus on **JOIN handling**
 
 ## Tokens
 
+- **Condition token (`condition.Token`)**:
+    - Introduced `Token` interface and concrete implementation.
+    - New constructors: `New`, `NewAnd`, `NewOr`.
+    - Supports inline expressions, named parameters, and operator/value inputs.
+    - Enforces operator/value validation (`IN`, `NOT IN`, `BETWEEN` rules).
+    - Implements all shared contracts (Kindable, Identifiable, Errorable, Debuggable, Rawable, Renderable, Stringable, Validable).
+    - Full unit tests and examples with 100% coverage.
+
 - **Join token (`join.Token`)**:
     - New safe constructors: `NewInner`, `NewLeft`, `NewRight`, `NewFull`.
     - Flexible DSL constructor: `New(kind, left, right, condition)`.
