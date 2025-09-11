@@ -62,21 +62,42 @@ func TestSelectBuilder(t *testing.T) {
 				}
 			})
 
-			t.Run("Pointer", func(t *testing.T) {
+			// Note: At() always yields field.Token (interface).
+			// Even if input was *field.Token, it is deref’d and normalized here.
+			// The dynamic type inside remains *field.field, but this is not exposed.
+			t.Run("Field", func(t *testing.T) {
 				sb := builder.NewSelect(nil).
-					Fields(field.New("id")) // *token.field
+					Fields(field.New("id")) // Token (interface, dynamic *field)
 				fields := sb.GetFields()
 				if fields.Length() != 1 {
 					t.Errorf("expected 1 field, got %d", fields.Length())
 				}
-			})
 
-			t.Run("NotPointer", func(t *testing.T) {
-				sb := builder.NewSelect(nil).
-					Fields(field.New("id")) // token.field (value)
-				fields := sb.GetFields()
-				if fields.Length() != 1 {
-					t.Errorf("expected 1 field, got %d", fields.Length())
+				// f is a Token (interface), not a pointer
+				f := field.New("email")
+
+				// &f → *Token (pointer to interface container)
+				sb.AddFields(&f)
+				fields = sb.GetFields()
+				if fields.Length() != 2 {
+					t.Errorf("expected 2 fields, got %d", fields.Length())
+				}
+
+				// --- check dynamic types ---
+				first, ok := fields.At(0)
+				if !ok {
+					t.Fatal("expected first field")
+				}
+				if _, ok := first.(field.Token); !ok {
+					t.Errorf("expected container type field.Token, got %T", first)
+				}
+
+				second, ok := fields.At(1)
+				if !ok {
+					t.Error("expected a field")
+				}
+				if _, ok := second.(field.Token); !ok {
+					t.Errorf("expected container type field.Token, got %T", second)
 				}
 			})
 
