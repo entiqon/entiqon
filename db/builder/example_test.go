@@ -18,6 +18,7 @@ func ExampleSelectBuilder_basic() {
 		log.Fatal(err)
 	}
 	fmt.Println(sql)
+
 	// Output:
 	// SELECT id, name FROM users LIMIT 10 OFFSET 20
 }
@@ -32,6 +33,7 @@ func ExampleSelectBuilder_addFields() {
 		log.Fatal(err)
 	}
 	fmt.Println(sql)
+
 	// Output:
 	// SELECT id, name FROM users
 }
@@ -60,6 +62,7 @@ func ExampleSelectBuilder_invalidFields() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
 	// Output: ❌ [Build] - Invalid fields:
 	//	⛔️ field(""): expr has invalid format (type bool)
 	//	⛔️ field(""): expr has invalid format (type bool)
@@ -107,8 +110,6 @@ func ExampleSelectBuilder_whereReset() {
 	// SELECT id FROM users WHERE role = 'admin'
 }
 
-// ExampleSelectBuilder_ordering demonstrates how to use OrderBy and ThenOrderBy
-// to build an ORDER BY clause in a SELECT statement.
 func ExampleSelectBuilder_ordering() {
 	sql, _ := builder.NewSelect(nil).
 		Fields("id, name").
@@ -121,8 +122,6 @@ func ExampleSelectBuilder_ordering() {
 	// Output: SELECT id, name FROM users ORDER BY created_at DESC, id ASC
 }
 
-// ExampleSelectBuilder_grouping demonstrates how to use GroupBy and ThenGroupBy
-// to build a GROUP BY clause in a SELECT statement.
 func ExampleSelectBuilder_grouping() {
 	sql, _ := builder.NewSelect(nil).
 		Fields("department, COUNT(*) AS total").
@@ -135,8 +134,6 @@ func ExampleSelectBuilder_grouping() {
 	// Output: SELECT department, COUNT(*) AS total FROM users GROUP BY department, role
 }
 
-// ExampleSelectBuilder_having demonstrates how to use Having, AndHaving,
-// and OrHaving to build a HAVING clause in a SELECT statement.
 func ExampleSelectBuilder_having() {
 	sql, _ := builder.NewSelect(nil).
 		Fields("department, COUNT(*) AS total").
@@ -159,6 +156,7 @@ func ExampleSelectBuilder_limit() {
 		Limit(1).
 		Build()
 	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM table WHERE field = 1 LIMIT 1
 }
