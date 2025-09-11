@@ -219,14 +219,14 @@ func TestTable(t *testing.T) {
 
 		t.Run("Stringable", func(t *testing.T) {
 			f := table.New("table")
-			if got := f.String(); got != "✅ Table(table)" {
-				t.Errorf("expected String() 'field', got %q", got)
+			if got := f.String(); got != "Table(\"table\")" {
+				t.Errorf("expected 'Table(\"table\")', got %q", got)
 			}
 
 			// Computed expression with alias
 			f = table.New("table", "t")
-			if got := f.String(); got != "✅ Table(table AS t)" {
-				t.Errorf("expected String() 'field AS alias', got %q", got)
+			if got := f.String(); got != "Table(table AS t)" {
+				t.Errorf("expected String() 'Table(\"table AS t\")', got %q", got)
 			}
 
 			// Invalid

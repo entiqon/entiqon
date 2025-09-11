@@ -76,14 +76,16 @@ func ExampleToken_isValid() {
 func ExampleToken_string() {
 	t := table.New("users", "u")
 	fmt.Println(t.String())
-	// Output: ✅ Table(users AS u)
+
+	// Output: Table(users AS u)
 }
 
 // ExampleTable_Debug demonstrates Debug() output for diagnostics.
 func ExampleToken_debug() {
 	t := table.New("users u")
 	fmt.Println(t.Debug())
-	// Output: ✅ Table("users u"): [raw:false, aliased:true, errored:false]
+
+	// Output: Table("users u"): [raw:false, aliased:true, errored:false]
 }
 
 // ExampleTable_Error demonstrates handling of invalid input.
@@ -92,8 +94,9 @@ func ExampleToken_error() {
 	fmt.Println(t.String())
 	fmt.Println(t.IsErrored())
 	fmt.Println(t.Error())
+
 	// Output:
-	// ❌ Table("users AS"): invalid alias: AS
+	// Table("users AS"): invalid alias: AS
 	// true
 	// invalid alias: AS
 }

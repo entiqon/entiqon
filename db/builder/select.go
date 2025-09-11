@@ -10,7 +10,9 @@ import (
 	"github.com/entiqon/entiqon/common/extension/collection"
 	"github.com/entiqon/entiqon/db/dialect"
 	"github.com/entiqon/entiqon/db/token/field"
+	"github.com/entiqon/entiqon/db/token/join"
 	"github.com/entiqon/entiqon/db/token/table"
+	jt "github.com/entiqon/entiqon/db/token/types/join"
 )
 
 // SelectBuilder builds simple SELECT queries.
@@ -18,6 +20,7 @@ type SelectBuilder struct {
 	dialect    dialect.Dialect
 	fields     *collection.Collection[field.Token]
 	source     table.Token
+	joins      *collection.Collection[join.Token]
 	conditions *collection.Collection[string]
 	groupings  *collection.Collection[string]
 	sorting    *collection.Collection[string]
@@ -89,7 +92,7 @@ func (b *SelectBuilder) Source(args ...any) *SelectBuilder {
 		if len(args) == 1 {
 			b.source = v
 		} else {
-			// multiple args but first is *table.Table → invalid
+			// multiple args but first is table.Token → invalid
 			b.source = table.New("too many arguments")
 		}
 	default:
@@ -98,6 +101,130 @@ func (b *SelectBuilder) Source(args ...any) *SelectBuilder {
 	}
 
 	return b
+}
+
+// InnerJoin adds an INNER JOIN clause to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("users u").
+//	    InnerJoin("users u", "orders o", "u.id = o.user_id")
+//
+// The left parameter can match the current source table (with or without alias).
+// If it matches, the existing source token is reused; otherwise, a new table
+// token is constructed.
+func (b *SelectBuilder) InnerJoin(left string, right string, condition string) *SelectBuilder {
+	var leftTable table.Token
+	if left == b.source.Render() || left == b.source.Name() {
+		leftTable = b.source
+	} else {
+		leftTable = table.New(left)
+	}
+
+	return b.addJoin(jt.Inner, leftTable, table.New(right), condition)
+}
+
+// LeftJoin adds a LEFT JOIN clause to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("users u").
+//	    LeftJoin("users u", "orders o", "u.id = o.user_id")
+//
+// The left parameter can match the current source table (with or without alias).
+// If it matches, the existing source token is reused; otherwise, a new table
+// token is constructed.
+func (b *SelectBuilder) LeftJoin(left string, right string, condition string) *SelectBuilder {
+	var leftTable table.Token
+	if left == b.source.Render() || left == b.source.Name() {
+		leftTable = b.source
+	} else {
+		leftTable = table.New(left)
+	}
+
+	return b.addJoin(jt.Left, leftTable, table.New(right), condition)
+}
+
+// RightJoin adds a RIGHT JOIN clause to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("users u").
+//	    RightJoin("users u", "orders o", "u.id = o.user_id")
+//
+// The left parameter can match the current source table (with or without alias).
+// If it matches, the existing source token is reused; otherwise, a new table
+// token is constructed.
+func (b *SelectBuilder) RightJoin(left string, right string, condition string) *SelectBuilder {
+	var leftTable table.Token
+	if left == b.source.Render() || left == b.source.Name() {
+		leftTable = b.source
+	} else {
+		leftTable = table.New(left)
+	}
+
+	return b.addJoin(jt.Right, leftTable, table.New(right), condition)
+}
+
+// FullJoin adds a FULL JOIN clause to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("users u").
+//	    FullJoin("users u", "orders o", "u.id = o.user_id")
+//
+// The left parameter can match the current source table (with or without alias).
+// If it matches, the existing source token is reused; otherwise, a new table
+// token is constructed.
+func (b *SelectBuilder) FullJoin(left string, right string, condition string) *SelectBuilder {
+	var leftTable table.Token
+	if left == b.source.Render() || left == b.source.Name() {
+		leftTable = b.source
+	} else {
+		leftTable = table.New(left)
+	}
+
+	return b.addJoin(jt.Full, leftTable, table.New(right), condition)
+}
+
+// CrossJoin adds a CROSS JOIN (Cartesian product) to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("users u").
+//	    CrossJoin("users u", "roles r")
+//
+// CROSS JOIN never accepts a condition; any ON clause is invalid SQL.
+func (b *SelectBuilder) CrossJoin(left string, right string) *SelectBuilder {
+	var leftTable table.Token
+	if left == b.source.Input() || left == b.source.Name() {
+		leftTable = b.source
+	} else {
+		leftTable = table.New(left)
+	}
+
+	// Force no condition
+	return b.addJoin(jt.Cross, leftTable, table.New(right), "")
+}
+
+// NaturalJoin adds a NATURAL JOIN to the query.
+//
+// Example:
+//
+//	sb := builder.NewSelect(nil).
+//	    Source("employees e").
+//	    NaturalJoin("employees e", "departments d")
+//
+// NATURAL JOIN derives the join condition implicitly from columns
+// with matching names. No condition is accepted by SQL.
+func (b *SelectBuilder) NaturalJoin(right string) *SelectBuilder {
+	// Force no condition
+	return b.addJoin(jt.Natural, b.source, table.New(right), "")
 }
 
 // Where sets the initial WHERE clause conditions, replacing any existing ones.
@@ -114,8 +241,6 @@ func (b *SelectBuilder) And(conditions ...string) *SelectBuilder {
 
 // Or appends additional conditions to the WHERE clause with OR.
 // Empty or whitespace-only expressions are ignored.
-// Or appends additional conditions joined with OR.
-// If this is the first condition, it behaves like Where().
 func (b *SelectBuilder) Or(conditions ...string) *SelectBuilder {
 	return b.addConditions("OR", false, conditions...)
 }
@@ -191,12 +316,7 @@ func (b *SelectBuilder) Offset(offset int) *SelectBuilder {
 //	// Output: ✅ SelectBuilder{fields:2, source:✅ Table(users AS u), where:0, groupBy:0, having:0, orderBy:0}
 func (b *SelectBuilder) Debug() string {
 	if b == nil {
-		return "❌ SelectBuilder(nil)"
-	}
-
-	status := "✅"
-	if b.source == nil || b.source.IsErrored() {
-		status = "❌"
+		return "SelectBuilder(nil)"
 	}
 
 	src := "source:<nil>"
@@ -222,8 +342,7 @@ func (b *SelectBuilder) Debug() string {
 	}
 
 	return fmt.Sprintf(
-		"%s SelectBuilder{fields:%d, %s, where:%d, groupBy:%d, having:%d, orderBy:%d}",
-		status,
+		"SelectBuilder{fields:%d, %s, where:%d, groupBy:%d, having:%d, orderBy:%d}",
 		fieldsLen,
 		src,
 		whereLen,
@@ -323,6 +442,14 @@ func (b *SelectBuilder) Build() (string, error) {
 
 	sql := strings.Join(tokens, " ")
 
+	if b.joins != nil && b.joins.Length() > 0 {
+		parts := make([]string, 0, b.joins.Length())
+		for _, j := range b.joins.Items() {
+			parts = append(parts, j.Render())
+		}
+		sql += " " + strings.Join(parts, " ")
+	}
+
 	if b.conditions != nil && b.conditions.Length() > 0 {
 		sql += " WHERE " + strings.Join(b.conditions.Items(), " ")
 	}
@@ -346,7 +473,88 @@ func (b *SelectBuilder) Build() (string, error) {
 		sql += fmt.Sprintf(" OFFSET %d", b.offset)
 	}
 
-	return sql, nil
+	return strings.TrimSpace(sql), nil
+}
+
+// addConditions adds one or more conditions to the builder.
+// prefix is "", "AND", or "OR" depending on caller semantics.
+// If reset is true, the collection is cleared first.
+func (b *SelectBuilder) addConditions(
+	prefix string,
+	reset bool, conditions ...string,
+) *SelectBuilder {
+	if b.conditions == nil {
+		b.conditions = collection.New[string]()
+	} else if reset {
+		b.conditions.Clear()
+	}
+
+	for _, cond := range conditions {
+		trimmed := strings.TrimSpace(cond)
+		if trimmed == "" {
+			continue
+		}
+
+		// First condition → always stored without prefix
+		if b.conditions.Length() == 0 {
+			b.conditions.Add(trimmed)
+			continue
+		}
+
+		// Subsequent conditions
+		if prefix != "" {
+			b.conditions.Add(prefix + " " + trimmed)
+		} else {
+			// If no prefix (Where with multiple args), default to AND
+			b.conditions.Add("AND " + trimmed)
+		}
+	}
+	return b
+}
+
+// addHaving adds one or more conditions to the builder.
+// prefix is "", "AND", or "OR" depending on caller semantics.
+// If reset is true, the collection is cleared first.
+func (b *SelectBuilder) addHaving(
+	prefix string,
+	reset bool,
+	conditions ...string,
+) *SelectBuilder {
+	if b.having == nil {
+		b.having = collection.New[string]()
+	} else if reset {
+		b.having.Clear()
+	}
+
+	for _, cond := range conditions {
+		trimmed := strings.TrimSpace(cond)
+		if trimmed == "" {
+			continue
+		}
+
+		if b.having.Length() == 0 {
+			b.having.Add(trimmed)
+		} else if prefix != "" {
+			b.having.Add(prefix + " " + trimmed)
+		} else {
+			// default joiner for multiple conditions in Having is AND
+			b.having.Add("AND " + trimmed)
+		}
+	}
+	return b
+}
+
+func (b *SelectBuilder) addJoin(
+	kind jt.Type,
+	left table.Token,
+	right table.Token,
+	on string,
+) *SelectBuilder {
+	if b.joins == nil {
+		b.joins = collection.New[join.Token]()
+	}
+	b.joins.Add(join.New(kind, left, right, on))
+	return b
 }
 
 func splitAndTrim(s, sep string) []string {
@@ -395,42 +603,6 @@ func (b *SelectBuilder) appendFields(cols ...interface{}) *SelectBuilder {
 	return b
 }
 
-// addConditions adds one or more conditions to the builder.
-// prefix is "", "AND", or "OR" depending on caller semantics.
-// If reset is true, the collection is cleared first.
-func (b *SelectBuilder) addConditions(
-	prefix string,
-	reset bool, conditions ...string,
-) *SelectBuilder {
-	if b.conditions == nil {
-		b.conditions = collection.New[string]()
-	} else if reset {
-		b.conditions.Clear()
-	}
-
-	for _, cond := range conditions {
-		trimmed := strings.TrimSpace(cond)
-		if trimmed == "" {
-			continue
-		}
-
-		// First condition → always stored without prefix
-		if b.conditions.Length() == 0 {
-			b.conditions.Add(trimmed)
-			continue
-		}
-
-		// Subsequent conditions
-		if prefix != "" {
-			b.conditions.Add(prefix + " " + trimmed)
-		} else {
-			// If no prefix (Where with multiple args), default to AND
-			b.conditions.Add("AND " + trimmed)
-		}
-	}
-	return b
-}
-
 // addGroupBy ensures init and handles reset
 func (b *SelectBuilder) addGroupBy(reset bool, fields ...string) *SelectBuilder {
 	if b.groupings == nil {
@@ -443,34 +615,6 @@ func (b *SelectBuilder) addGroupBy(reset bool, fields ...string) *SelectBuilder 
 		trimmed := strings.TrimSpace(f)
 		if trimmed != "" {
 			b.groupings.Add(trimmed)
-		}
-	}
-	return b
-}
-
-// addHaving adds one or more conditions to the builder.
-// prefix is "", "AND", or "OR" depending on caller semantics.
-// If reset is true, the collection is cleared first.
-func (b *SelectBuilder) addHaving(prefix string, reset bool, conditions ...string) *SelectBuilder {
-	if b.having == nil {
-		b.having = collection.New[string]()
-	} else if reset {
-		b.having.Clear()
-	}
-
-	for _, cond := range conditions {
-		trimmed := strings.TrimSpace(cond)
-		if trimmed == "" {
-			continue
-		}
-
-		if b.having.Length() == 0 {
-			b.having.Add(trimmed)
-		} else if prefix != "" {
-			b.having.Add(prefix + " " + trimmed)
-		} else {
-			// default joiner for multiple conditions in Having is AND
-			b.having.Add("AND " + trimmed)
 		}
 	}
 	return b
