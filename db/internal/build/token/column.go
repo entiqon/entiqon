@@ -8,8 +8,8 @@ package token
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/driver"
-	contract2 "github.com/entiqon/entiqon/db/internal/core/contract"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/contract"
 )
 
 // Column represents a SQL column reference used within SELECT, WHERE, ORDER BY, and similar clauses.
@@ -69,7 +69,7 @@ type Column struct {
 //	NewColumn("users.id", "alias")     → name: "id", table: "users", alias: "alias"
 func NewColumn(expr string, alias ...string) *Column {
 	base := NewBaseToken(expr, alias...)
-	base.SetKind(contract2.ColumnKind)
+	base.SetKind(contract.ColumnKind)
 
 	// **Early exit on parse error**: preserve the original BaseToken error
 	if base.IsErrored() {
@@ -388,9 +388,9 @@ func (c *Column) WithTable(table *Table) *Column {
 
 // Ensure Column satisfies the GenericToken interface.
 var _ GenericToken = &Column{}
-var _ contract2.MutableToken = &Column{}
-var _ contract2.Errorable = &Column{}
-var _ contract2.Kindable = &Column{}
-var _ contract2.Renderable = &Column{}
-var _ contract2.Rawable = &Column{}
-var _ contract2.Qualifiable = &Column{}
+var _ contract.MutableToken = &Column{}
+var _ contract.Errorable = &Column{}
+var _ contract.Kindable = &Column{}
+var _ contract.Renderable = &Column{}
+var _ contract.Rawable = &Column{}
+var _ contract.Qualifiable = &Column{}

@@ -3,7 +3,7 @@ package integer_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/integer"
+	"github.com/entiqon/common/extension/integer"
 )
 
 // ExampleParseFrom demonstrates using integer.ParseFrom

@@ -3,7 +3,7 @@ package table_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/table"
+	"github.com/entiqon/db/token/table"
 )
 
 // ExampleNew_plain demonstrates creating a plain table.

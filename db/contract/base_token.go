@@ -2,7 +2,7 @@
 
 package contract
 
-import "github.com/entiqon/entiqon/db/token/types/identifier"
+import "github.com/entiqon/db/token/types/identifier"
 
 // BaseToken is implemented by all SQL tokens that carry an expression
 // and optional alias. It defines common behaviors for identity and validation.

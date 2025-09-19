@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/token/table"
-	"github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/token/table"
+	"github.com/entiqon/db/token/types/join"
 )
 
 // token is the unexported implementation of the Token interface.

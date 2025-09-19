@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/object"
+	"github.com/entiqon/common/extension/object"
 )
 
 type TestStruct struct {

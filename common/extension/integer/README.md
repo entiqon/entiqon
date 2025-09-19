@@ -23,7 +23,7 @@ No fractional values are preserved.
 ## Installation
 
 ```go
-import "github.com/entiqon/entiqon/common/extension/integer"
+import "github.com/entiqon/common/extension/integer"
 ```
 
 ---
@@ -35,7 +35,8 @@ package main
 
 import (
     "fmt"
-    "github.com/entiqon/entiqon/common/extension/integer"
+	
+    "github.com/entiqon/common/extension/integer"
 )
 
 func main() {

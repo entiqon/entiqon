@@ -3,7 +3,7 @@ package boolean_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/boolean"
+	"github.com/entiqon/common/extension/boolean"
 )
 
 func ExampleParseFrom() {
@@ -18,9 +18,4 @@ func ExampleBoolToString() {
 	// Output:
 	// yes
 	// disabled
-}
-
-func ExampleBoolToStr_deprecated() {
-	fmt.Println(boolean.BoolToStr(true, "Y", "N"))
-	// Output: Y
 }

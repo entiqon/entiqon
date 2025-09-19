@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/errors"
-	"github.com/entiqon/entiqon/db/token/helpers"
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/errors"
+	"github.com/entiqon/db/token/helpers"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 // field represents a column or expression in a SELECT clause.

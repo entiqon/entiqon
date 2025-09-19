@@ -43,7 +43,7 @@ package main
 
 import (
     "fmt"
-    "github.com/entiqon/entiqon/common/extension/float"
+    "github.com/entiqon/common/extension/float"
 )
 
 func main() {

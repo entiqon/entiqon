@@ -5,8 +5,8 @@ package selects_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/builder/selects"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/builder/selects"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 func ExampleSelectBuilder_fields() {

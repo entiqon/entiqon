@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/field"
-	"github.com/entiqon/entiqon/db/token/helpers"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/token/field"
+	"github.com/entiqon/db/token/helpers"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 func TestHelpers(t *testing.T) {

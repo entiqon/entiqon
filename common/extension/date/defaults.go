@@ -5,7 +5,7 @@ package date
 import (
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/date/internal"
+	"github.com/entiqon/common/extension/date/internal"
 )
 
 // DefaultLayouts returns a fresh copy so callers can’t mutate the source.

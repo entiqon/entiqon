@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/date"
+	"github.com/entiqon/common/extension/date"
 )
 
 func TestCleaner(t *testing.T) {

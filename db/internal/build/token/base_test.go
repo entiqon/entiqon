@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/token"
-	"github.com/entiqon/entiqon/db/internal/core/contract"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/internal/core/contract"
 )
 
 func TestBaseToken(t *testing.T) {

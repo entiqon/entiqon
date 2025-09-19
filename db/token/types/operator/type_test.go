@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 // TestTypeMethods verifies Alias, IsValid, and String basic behavior.

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/entiqon/entiqon/common"
-	enterrors "github.com/entiqon/entiqon/common/errors"
+	"github.com/entiqon/common"
+	enterrors "github.com/entiqon/common/errors"
 )
 
 func ExampleNewCausableError() {

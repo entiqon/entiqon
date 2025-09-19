@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/common/extension/collection"
-	"github.com/entiqon/entiqon/db/dialect"
-	"github.com/entiqon/entiqon/db/token/condition"
-	"github.com/entiqon/entiqon/db/token/field"
-	"github.com/entiqon/entiqon/db/token/join"
-	"github.com/entiqon/entiqon/db/token/table"
-	ct "github.com/entiqon/entiqon/db/token/types/condition"
-	jt "github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/common/extension/collection"
+	"github.com/entiqon/db/dialect"
+	"github.com/entiqon/db/token/condition"
+	"github.com/entiqon/db/token/field"
+	"github.com/entiqon/db/token/join"
+	"github.com/entiqon/db/token/table"
+	ct "github.com/entiqon/db/token/types/condition"
+	jt "github.com/entiqon/db/token/types/join"
 )
 
 // SelectBuilder builds simple SELECT queries.

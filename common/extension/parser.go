@@ -3,12 +3,12 @@ package extension
 import (
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/boolean"
-	"github.com/entiqon/entiqon/common/extension/date"
-	"github.com/entiqon/entiqon/common/extension/decimal"
-	"github.com/entiqon/entiqon/common/extension/float"
-	"github.com/entiqon/entiqon/common/extension/integer"
-	"github.com/entiqon/entiqon/common/extension/number"
+	"github.com/entiqon/common/extension/boolean"
+	"github.com/entiqon/common/extension/date"
+	"github.com/entiqon/common/extension/decimal"
+	"github.com/entiqon/common/extension/float"
+	"github.com/entiqon/common/extension/integer"
+	"github.com/entiqon/common/extension/number"
 )
 
 // Boolean parses a value into a bool.

@@ -1,54 +1,67 @@
-// File: db/internal/build/render/table_test.go
-
 package render_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/render"
-	token2 "github.com/entiqon/entiqon/db/internal/build/token"
-	"github.com/stretchr/testify/assert"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/render"
+	"github.com/entiqon/db/internal/build/token"
 )
 
 func TestRenderTable(t *testing.T) {
 	t.Run("ValidCases", func(t *testing.T) {
 		d := driver.NewGenericDialect()
 
-		tbl := token2.NewTable("users")
-		assert.Equal(t, "users", render.Table(d, *tbl))
+		tbl := token.NewTable("users")
+		if got := render.Table(d, *tbl); got != "users" {
+			t.Errorf("expected %q, got %q", "users", got)
+		}
 
-		tbl = token2.NewTable("users AS u")
-		assert.Equal(t, "users AS u", render.Table(d, *tbl))
+		tbl = token.NewTable("users AS u")
+		if got := render.Table(d, *tbl); got != "users AS u" {
+			t.Errorf("expected %q, got %q", "users AS u", got)
+		}
 
-		tbl = token2.NewTable("users", "u")
-		assert.Equal(t, "users AS u", render.Table(d, *tbl))
+		tbl = token.NewTable("users", "u")
+		if got := render.Table(d, *tbl); got != "users AS u" {
+			t.Errorf("expected %q, got %q", "users AS u", got)
+		}
 	})
 
-	t.Run("ValidCases", func(t *testing.T) {
+	t.Run("InvalidCases", func(t *testing.T) {
 		d := driver.NewGenericDialect()
 
-		tbl := (&token2.Table{BaseToken: &token2.BaseToken{}}).
+		tbl := (&token.Table{BaseToken: &token.BaseToken{}}).
 			SetErrorWith("", fmt.Errorf("invalid"))
-		assert.Equal(t, "", render.Table(d, *tbl))
+		if got := render.Table(d, *tbl); got != "" {
+			t.Errorf("expected empty string, got %q", got)
+		}
 
-		tbl = token2.NewTable("users AS x", "y") // alias mismatch
-		assert.Equal(t, "", render.Table(d, *tbl))
+		tbl = token.NewTable("users AS x", "y") // alias mismatch
+		if got := render.Table(d, *tbl); got != "" {
+			t.Errorf("expected empty string, got %q", got)
+		}
 
-		tbl = token2.NewTable("users, orders") // comma not allowed
-		assert.Equal(t, "", render.Table(d, *tbl))
+		tbl = token.NewTable("users, orders") // comma not allowed
+		if got := render.Table(d, *tbl); got != "" {
+			t.Errorf("expected empty string, got %q", got)
+		}
 	})
 
 	t.Run("With", func(t *testing.T) {
 		t.Run("NilDialect", func(t *testing.T) {
-			tbl := token2.NewTable("users AS u")
-			assert.Equal(t, "users AS u", render.Table(nil, *tbl)) // fallback to generic
+			tbl := token.NewTable("users AS u")
+			if got := render.Table(nil, *tbl); got != "users AS u" {
+				t.Errorf("expected %q, got %q", "users AS u", got)
+			}
 		})
 
 		t.Run("PostgresDialect", func(t *testing.T) {
-			tbl := token2.NewTable("users AS u")
-			assert.Equal(t, "\"users\" AS \"u\"", render.Table(driver.NewPostgresDialect(), *tbl))
+			tbl := token.NewTable("users AS u")
+			if got := render.Table(driver.NewPostgresDialect(), *tbl); got != `"users" AS "u"` {
+				t.Errorf("expected %q, got %q", `"users" AS "u"`, got)
+			}
 		})
 	})
 }

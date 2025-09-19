@@ -3,9 +3,9 @@ package join_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/join"
-	"github.com/entiqon/entiqon/db/token/table"
-	join2 "github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/token/join"
+	"github.com/entiqon/db/token/table"
+	jt "github.com/entiqon/db/token/types/join"
 )
 
 // ExampleNew demonstrates constructing token tokens
@@ -14,15 +14,15 @@ func ExampleNew() {
 	// Valid token: users LEFT JOIN accounts
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.String())
 
 	// Invalid token: missing right table
-	j2 := join.New(join2.Inner, users, nil, "U.id = 1")
+	j2 := join.New(jt.Inner, users, nil, "U.id = 1")
 	fmt.Println(j2.String())
 
 	// Invalid token: empty condition
-	j3 := join.New(join2.Inner, users, accounts, "")
+	j3 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j3.String())
 
 	// Output:
@@ -35,7 +35,7 @@ func ExampleNew() {
 func ExampleToken_kind() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j.Kind())
 
 	// Output:
@@ -46,7 +46,7 @@ func ExampleToken_kind() {
 func ExampleToken_Left() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j.Left().Raw())
 
 	// Output:
@@ -57,7 +57,7 @@ func ExampleToken_Left() {
 func ExampleToken_Right() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j.Right().Raw())
 
 	// Output:
@@ -68,7 +68,7 @@ func ExampleToken_Right() {
 func ExampleToken_Condition() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j.Condition())
 
 	// Output:
@@ -79,7 +79,7 @@ func ExampleToken_Condition() {
 func ExampleToken_clone() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 
 	clone := j.Clone()
 	fmt.Println("Original: ", j.String())
@@ -96,11 +96,11 @@ func ExampleToken_debug() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.Debug())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.Debug())
 
 	// Output:
@@ -114,11 +114,11 @@ func ExampleToken_error() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.Error())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.Error())
 
 	// Output:
@@ -132,11 +132,11 @@ func ExampleToken_ssErrored() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.IsErrored())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.IsErrored())
 
 	// Output:
@@ -148,7 +148,7 @@ func ExampleToken_ssErrored() {
 func ExampleToken_setError() {
 	users := table.New("User U")
 	accounts := table.New("Account A")
-	j := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 
 	// Force an error
 	j = j.SetError(fmt.Errorf("forced error"))
@@ -167,11 +167,11 @@ func ExampleToken_raw() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.Raw())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.Raw())
 
 	// Output:
@@ -185,11 +185,11 @@ func ExampleToken_isRaw() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.IsRaw())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.IsRaw())
 
 	// Output:
@@ -203,11 +203,11 @@ func ExampleToken_render() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.Render())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.Render())
 
 	// Output:
@@ -221,11 +221,11 @@ func ExampleToken_string() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.String())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.String())
 
 	// Output:
@@ -239,11 +239,11 @@ func ExampleToken_isValid() {
 	accounts := table.New("Account A")
 
 	// Valid token
-	j1 := join.New(join2.Inner, users, accounts, "A.userId = U.id")
+	j1 := join.New(jt.Inner, users, accounts, "A.userId = U.id")
 	fmt.Println(j1.IsValid())
 
 	// Invalid token: empty condition
-	j2 := join.New(join2.Inner, users, accounts, "")
+	j2 := join.New(jt.Inner, users, accounts, "")
 	fmt.Println(j2.IsValid())
 
 	// Output:

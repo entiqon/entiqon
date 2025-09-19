@@ -3,9 +3,9 @@
 package condition
 
 import (
-	"github.com/entiqon/entiqon/db/contract"
-	"github.com/entiqon/entiqon/db/token/types/condition"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/contract"
+	"github.com/entiqon/db/token/types/condition"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 // Token is the contract implemented by *Field.

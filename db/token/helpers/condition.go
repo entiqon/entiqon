@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 // ResolveCondition parses a SQL-like condition and returns:

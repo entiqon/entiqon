@@ -6,38 +6,45 @@ package token_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/internal/core/token"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/internal/core/token"
 )
 
-type TableSuite struct {
-	suite.Suite
+func TestNewTable_Basic(t *testing.T) {
+	tbl := token.NewTable("users")
+	if !tbl.IsValid() {
+		t.Errorf("expected table to be valid")
+	}
+	if got := tbl.String(); got != "users" {
+		t.Errorf("expected %q, got %q", "users", got)
+	}
 }
 
-func (s *TableSuite) TestBasicTable() {
-	t := token.NewTable("users")
-	s.True(t.IsValid())
-	s.Equal("users", t.String())
+func TestNewTableWithAlias(t *testing.T) {
+	tbl := token.NewTableWithAlias("orders", "o")
+	if !tbl.IsValid() {
+		t.Errorf("expected table to be valid")
+	}
+	if got := tbl.String(); got != "orders o" {
+		t.Errorf("expected %q, got %q", "orders o", got)
+	}
 }
 
-func (s *TableSuite) TestTableWithAlias() {
-	t := token.NewTableWithAlias("orders", "o")
-	s.True(t.IsValid())
-	s.Equal("orders o", t.String())
+func TestNewTable_Empty(t *testing.T) {
+	tbl := token.NewTable("")
+	if tbl.IsValid() {
+		t.Errorf("expected empty table to be invalid")
+	}
+	if got := tbl.String(); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
 }
 
-func (s *TableSuite) TestEmptyTable() {
-	t := token.NewTable("")
-	s.False(t.IsValid())
-	s.Equal("", t.String())
-}
-
-func (s *TableSuite) TestTrimmedInput() {
-	t := token.NewTableWithAlias("  logs  ", "  l ")
-	s.True(t.IsValid())
-	s.Equal("logs l", t.String())
-}
-
-func TestTableSuite(t *testing.T) {
-	suite.Run(t, new(TableSuite))
+func TestNewTableWithAlias_TrimmedInput(t *testing.T) {
+	tbl := token.NewTableWithAlias("  logs  ", "  l ")
+	if !tbl.IsValid() {
+		t.Errorf("expected table to be valid")
+	}
+	if got := tbl.String(); got != "logs l" {
+		t.Errorf("expected %q, got %q", "logs l", got)
+	}
 }

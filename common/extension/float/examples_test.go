@@ -3,7 +3,7 @@ package float_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/float"
+	"github.com/entiqon/common/extension/float"
 )
 
 func ExampleParseFrom_string() {

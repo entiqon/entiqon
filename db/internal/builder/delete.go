@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/core/builder"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/builder"
+	"github.com/entiqon/db/internal/core/builder/bind"
+	"github.com/entiqon/db/internal/core/errors"
+	"github.com/entiqon/db/internal/core/token"
 )
 
 // DeleteBuilder builds a SQL DELETE statement with optional WHERE and LIMIT clauses.
@@ -22,7 +22,7 @@ type DeleteBuilder struct {
 	binder     bind.ParamBinder
 	table      string
 	alias      string
-	conditions []token2.Condition
+	conditions []token.Condition
 	limit      int
 }
 
@@ -45,7 +45,7 @@ func NewDelete(dialect driver.Dialect) *DeleteBuilder {
 // From sets the target table for the DELETE operation.
 func (b *DeleteBuilder) From(table string, alias ...string) *DeleteBuilder {
 	if table == "" {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
+		b.Validator.AddStageError(errors.StageFrom, fmt.Errorf("table is empty"))
 	}
 	b.table = table
 	if len(alias) > 0 {
@@ -57,19 +57,19 @@ func (b *DeleteBuilder) From(table string, alias ...string) *DeleteBuilder {
 // Where sets the initial WHERE clause for the DELETE statement,
 // replacing any previously defined conditions.
 func (b *DeleteBuilder) Where(condition string, values ...any) *DeleteBuilder {
-	c := token2.NewCondition(token2.ConditionSimple, condition, values...)
+	c := token.NewCondition(token.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		b.Validator.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(errors.StageWhere, c.Error)
 	}
-	b.conditions = []token2.Condition{c}
+	b.conditions = []token.Condition{c}
 	return b
 }
 
 // AndWhere appends a condition to the WHERE clause using logical AND.
 func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder {
-	c := token2.NewCondition(token2.ConditionAnd, condition, values...)
+	c := token.NewCondition(token.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		b.Validator.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -77,9 +77,9 @@ func (b *DeleteBuilder) AndWhere(condition string, values ...any) *DeleteBuilder
 
 // OrWhere appends a condition to the WHERE clause using logical OR.
 func (b *DeleteBuilder) OrWhere(condition string, values ...any) *DeleteBuilder {
-	c := token2.NewCondition(token2.ConditionOr, condition, values...)
+	c := token.NewCondition(token.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		b.Validator.AddStageError(core.StageWhere, c.Error)
+		b.Validator.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -103,7 +103,7 @@ func (b *DeleteBuilder) Limit(n int) *DeleteBuilder {
 // Updated: v1.4.0
 func (b *DeleteBuilder) Build() (string, []any, error) {
 	if b.table == "" {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("table is empty"))
+		b.Validator.AddStageError(errors.StageFrom, fmt.Errorf("table is empty"))
 	}
 
 	var whereClause string
@@ -114,7 +114,7 @@ func (b *DeleteBuilder) Build() (string, []any, error) {
 		var condErr error
 		whereClause, args, condErr = builder.RenderConditionsWithBinder(b.Dialect, b.conditions, binder)
 		if condErr != nil {
-			b.Validator.AddStageError(core.StageWhere, condErr)
+			b.Validator.AddStageError(errors.StageWhere, condErr)
 		}
 	}
 

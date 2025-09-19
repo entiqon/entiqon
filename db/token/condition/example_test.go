@@ -3,8 +3,8 @@ package condition_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/condition"
-	ct "github.com/entiqon/entiqon/db/token/types/condition"
+	"github.com/entiqon/db/token/condition"
+	ct "github.com/entiqon/db/token/types/condition"
 )
 
 //func ExampleNew() {

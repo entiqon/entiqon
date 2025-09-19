@@ -3,7 +3,7 @@ package number_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/number"
+	"github.com/entiqon/common/extension/number"
 )
 
 func ExampleParseFrom_round() {

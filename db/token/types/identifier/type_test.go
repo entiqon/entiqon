@@ -3,7 +3,7 @@ package identifier_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 func TestType(t *testing.T) {

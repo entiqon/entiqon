@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/common/extension/collection"
+	"github.com/entiqon/common/extension/collection"
 )
 
 func TestCollection(t *testing.T) {

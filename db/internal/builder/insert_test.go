@@ -4,140 +4,137 @@ package builder_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
-	driver2 "github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/builder"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/builder"
+	"github.com/entiqon/db/internal/core/token"
 )
 
-type InsertBuilderTestSuite struct {
-	suite.Suite
-	qb *builder.InsertBuilder
-}
-
-func (s *InsertBuilderTestSuite) SetupTest() {
-	s.qb = builder.NewInsert(nil)
-}
-
-// ─────────────────────────────────────────────
-// 🧪 Columns()
-// ─────────────────────────────────────────────
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoColumns() {
+func TestInsertBuilder_NoColumns(t *testing.T) {
 	b := builder.NewInsert(nil).Into("users").Values(1, "Watson")
 	_, _, err := b.BuildInsertOnly()
-	s.ErrorContains(err, "at least one column is required")
+	if err == nil || !strings.Contains(err.Error(), "at least one column is required") {
+		t.Errorf("expected error about required columns, got %v", err)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Values
-// ─────────────────────────────────────────────
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_NoValues() {
+func TestInsertBuilder_NoValues(t *testing.T) {
 	b := builder.NewInsert(nil).Into("users").Columns("id", "name")
 	_, _, err := b.BuildInsertOnly()
-	s.ErrorContains(err, "at least one set of values is required")
+	if err == nil || !strings.Contains(err.Error(), "at least one set of values is required") {
+		t.Errorf("expected error about required values, got %v", err)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Returning
-// ─────────────────────────────────────────────
-func (s *InsertBuilderTestSuite) TestInsertBuilder_WithReturning() {
-	q := builder.NewInsert(driver2.NewPostgresDialect()).
+func TestInsertBuilder_WithReturning(t *testing.T) {
+	q := builder.NewInsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
 		Returning("id", "created_at")
 
 	sql, args, err := q.Build()
-	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id", "name") VALUES ($1, $2) RETURNING "id", "created_at"`, sql)
-	s.Equal([]any{1, "Watson"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "users" ("id", "name") VALUES ($1, $2) RETURNING "id", "created_at"`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "Watson" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Dialect Handling
-// ─────────────────────────────────────────────
-func (s *InsertBuilderTestSuite) TestInsertBuilder_WithDialect_Postgres() {
-	sql, _, err := builder.NewInsert(driver2.NewPostgresDialect()).
+func TestInsertBuilder_WithDialect_Postgres(t *testing.T) {
+	sql, _, err := builder.NewInsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
 		Build()
 
-	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id", "name") VALUES ($1, $2)`, sql)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "users" ("id", "name") VALUES ($1, $2)`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Build()
-// ─────────────────────────────────────────────
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MismatchedRowLength() {
+func TestInsertBuilder_MismatchedRowLength(t *testing.T) {
 	b := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1)
 
 	_, _, err := b.BuildInsertOnly()
-	s.ErrorContains(err, "row 1 has 1 values, expected 2")
+	if err == nil || !strings.Contains(err.Error(), "row 1 has 1 values") {
+		t.Errorf("expected mismatch error, got %v", err)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_BuildErrors() {
-	// Missing table
-	_, _, err := builder.NewInsert(nil).
-		Columns("id").
-		Values(1).
-		Build()
-	s.Error(err)
+func TestInsertBuilder_BuildErrors(t *testing.T) {
+	_, _, err := builder.NewInsert(nil).Columns("id").Values(1).Build()
+	if err == nil {
+		t.Errorf("expected error for missing table")
+	}
 
-	// Missing columns
-	_, _, err = builder.NewInsert(nil).
-		Into("users").
-		Values(1).
-		Build()
-	s.Error(err)
+	_, _, err = builder.NewInsert(nil).Into("users").Values(1).Build()
+	if err == nil {
+		t.Errorf("expected error for missing columns")
+	}
 
-	// Missing values
-	_, _, err = builder.NewInsert(nil).
-		Into("users").
-		Columns("id").
-		Build()
-	s.Error(err)
+	_, _, err = builder.NewInsert(nil).Into("users").Columns("id").Build()
+	if err == nil {
+		t.Errorf("expected error for missing values")
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_MismatchedValueCount() {
+func TestInsertBuilder_MismatchedValueCount(t *testing.T) {
 	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1).
 		Build()
-	s.Error(err)
+	if err == nil {
+		t.Errorf("expected mismatched value count error")
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_MissingFieldError() {
+func TestInsertBuilder_MissingFieldError(t *testing.T) {
 	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name", "email").
-		Values(1, "Watson"). // Only 2 values for 3 columns
+		Values(1, "Watson").
 		Build()
 
-	s.Error(err)
-	s.Contains(err.Error(), "row 1 has 2 values")
+	if err == nil || !strings.Contains(err.Error(), "row 1 has 2 values") {
+		t.Errorf("expected row mismatch error, got %v", err)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_WithAliasedColumn() {
+func TestInsertBuilder_WithAliasedColumn(t *testing.T) {
 	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("email AS contact").
 		Values("watson@example.com").
 		Build()
 
-	s.Error(err)
-	s.Empty(sql)
-	s.Nil(args)
+	if err == nil {
+		t.Errorf("expected error for aliased column")
+	}
+	if sql != "" {
+		t.Errorf("expected empty SQL, got %q", sql)
+	}
+	if args != nil {
+		t.Errorf("expected nil args, got %#v", args)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithoutDialectFails() {
+func TestInsertBuilder_ReturningWithoutDialectFails(t *testing.T) {
 	_, _, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id").
@@ -145,22 +142,31 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithoutDialect
 		Returning("id").
 		Build()
 
-	s.ErrorContains(err, "builder validation failed")
+	if err == nil || !strings.Contains(err.Error(), "builder validation failed") {
+		t.Errorf("expected validation error, got %v", err)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_WithDialectNoReturning() {
-	sql, args, err := builder.NewInsert(driver2.NewPostgresDialect()).
+func TestInsertBuilder_Build_WithDialectNoReturning(t *testing.T) {
+	sql, args, err := builder.NewInsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id").
 		Values(1).
 		Build()
 
-	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id") VALUES ($1)`, sql)
-	s.Equal([]any{1}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "users" ("id") VALUES ($1)`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 1 || args[0] != 1 {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithGenericDialectFails() {
+func TestInsertBuilder_ReturningWithGenericDialectFails(t *testing.T) {
 	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id").
@@ -168,28 +174,37 @@ func (s *InsertBuilderTestSuite) TestInsertBuilder_Build_ReturningWithGenericDia
 		Returning("id").
 		Build()
 
-	s.ErrorContains(err, "builder validation failed")
-	s.Empty(sql)
-	s.Nil(args)
+	if err == nil || !strings.Contains(err.Error(), "builder validation failed") {
+		t.Errorf("expected validation error, got %v", err)
+	}
+	if sql != "" {
+		t.Errorf("expected empty SQL, got %q", sql)
+	}
+	if args != nil {
+		t.Errorf("expected nil args, got %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 BuildInsertOnly()
-// ─────────────────────────────────────────────
-// BuildInsertOnly with valid input — ensures success case
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ValidInsert() {
+func TestInsertBuilder_BuildInsertOnly_ValidInsert(t *testing.T) {
 	b := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson")
 
 	sql, args, err := b.BuildInsertOnly()
-	s.NoError(err)
-	s.Equal(`INSERT INTO users (id, name) VALUES (?, ?)`, sql)
-	s.Equal([]any{1, "Watson"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO users (id, name) VALUES (?, ?)`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "Watson" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MultiRowSuccess() {
+func TestInsertBuilder_BuildInsertOnly_MultiRowSuccess(t *testing.T) {
 	sql, args, err := builder.NewInsert(nil).
 		Into("users").
 		Columns("id", "name").
@@ -197,85 +212,89 @@ func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MultiRowSuccess() {
 		Values(2, "Holmes").
 		BuildInsertOnly()
 
-	s.NoError(err)
-	s.Equal(`INSERT INTO users (id, name) VALUES (?, ?), (?, ?)`, sql)
-	s.Equal([]any{1, "Watson", 2, "Holmes"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO users (id, name) VALUES (?, ?), (?, ?)`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 4 || args[0] != 1 || args[1] != "Watson" || args[2] != 2 || args[3] != "Holmes" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_MissingTableFails() {
+func TestInsertBuilder_BuildInsertOnly_MissingTableFails(t *testing.T) {
 	_, _, err := builder.NewInsert(nil).
 		Columns("id").
 		Values(1).
 		BuildInsertOnly()
 
-	s.ErrorContains(err, "requires a target table")
+	if err == nil || !strings.Contains(err.Error(), "requires a target table") {
+		t.Errorf("expected missing table error, got %v", err)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_TableWithDialect() {
-	sql, args, err := builder.NewInsert(driver2.NewPostgresDialect()).
+func TestInsertBuilder_BuildInsertOnly_TableWithDialect(t *testing.T) {
+	sql, args, err := builder.NewInsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id").
 		Values(1).
 		BuildInsertOnly()
 
-	s.NoError(err)
-	s.Equal(`INSERT INTO "users" ("id") VALUES ($1)`, sql)
-	s.Equal([]any{1}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "users" ("id") VALUES ($1)`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 1 || args[0] != 1 {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestBuildInsertOnly_ColumnEscapingWithDialect() {
-	s.Run("Generic", func() {
-		sql, _, err := builder.NewInsert(driver2.NewGenericDialect()).
-			Into("users").
-			Columns("email").
-			Values("x@example.com").
-			BuildInsertOnly()
+func TestInsertBuilder_BuildInsertOnly_ColumnEscapingWithDialect(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		expected string
+	}{
+		{"Generic", driver.NewGenericDialect(), "email"},
+		{"MSSQL", driver.NewMSSQLDialect(), "[email]"},
+		{"MySQL", driver.NewMySQLDialect(), "`email`"},
+		{"PostgreSQL", driver.NewPostgresDialect(), `"email"`},
+	}
 
-		s.NoError(err)
-		s.Contains(sql, "email")
-	})
-	s.Run("MSSQL", func() {
-		sql, _, err := builder.NewInsert(driver2.NewMSSQLDialect()).
-			Into("users").
-			Columns("email").
-			Values("x@example.com").
-			BuildInsertOnly()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sql, _, err := builder.NewInsert(tt.dialect).
+				Into("users").
+				Columns("email").
+				Values("x@example.com").
+				BuildInsertOnly()
 
-		s.NoError(err)
-		s.Contains(sql, "[email]")
-	})
-	s.Run("MySQL", func() {
-		sql, _, err := builder.NewInsert(driver2.NewMySQLDialect()).
-			Into("users").
-			Columns("email").
-			Values("x@example.com").
-			BuildInsertOnly()
-
-		s.NoError(err)
-		s.Contains(sql, "`email`")
-	})
-	s.Run("PostgreSQL", func() {
-		sql, _, err := builder.NewInsert(driver2.NewPostgresDialect()).
-			Into("users").
-			Columns("email").
-			Values("x@example.com").
-			BuildInsertOnly()
-
-		s.NoError(err)
-		s.Contains(sql, `"email"`)
-	})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !strings.Contains(sql, tt.expected) {
+				t.Errorf("expected SQL to contain %q, got %q", tt.expected, sql)
+			}
+		})
+	}
 }
 
-func (s *InsertBuilderTestSuite) TestBuild_BuildValidations() {
-	c := token2.NewCondition(token2.ConditionSimple, "id = ?")
+func TestInsertBuilder_BuildValidations(t *testing.T) {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
 
-	s.Run("EmptyTable", func() {
-		b := builder.NewInsert(nil)
-		_, _, err := b.Build()
-		s.Error(err)
-		s.Contains(err.Error(), "requires a target table")
+	t.Run("EmptyTable", func(t *testing.T) {
+		_, _, err := builder.NewInsert(nil).Build()
+		if err == nil || !strings.Contains(err.Error(), "requires a target table") {
+			t.Errorf("expected missing table error, got %v", err)
+		}
 	})
-	s.Run("HasDialect", func() {
+
+	t.Run("HasDialect", func(t *testing.T) {
 		b := builder.NewInsert(nil).Into("users")
 		_, _, err := b.Build()
 
@@ -283,18 +302,19 @@ func (s *InsertBuilderTestSuite) TestBuild_BuildValidations() {
 			b.AddStageError("WHERE", fmt.Errorf("invalid clause"))
 		}
 
-		s.Error(err)
-		s.Equal("generic", b.GetDialect().GetName())
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+		if got := b.GetDialect().GetName(); got != "generic" {
+			t.Errorf("expected generic dialect, got %q", got)
+		}
 	})
-	s.Run("HasErrors", func() {
+
+	t.Run("HasErrors", func(t *testing.T) {
 		b := builder.NewInsert(nil).Into("users")
 		_, _, err := b.Into("").Build()
-		s.Error(err)
-		s.Contains(err.Error(), "builder validation failed")
+		if err == nil || !strings.Contains(err.Error(), "builder validation failed") {
+			t.Errorf("expected builder validation error, got %v", err)
+		}
 	})
-
-}
-
-func TestInsertBuilderTestSuite(t *testing.T) {
-	suite.Run(t, new(InsertBuilderTestSuite))
 }

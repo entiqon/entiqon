@@ -3,8 +3,8 @@
 Generic, type-safe collections for Go.  
 Part of the [`entiqon`](https://github.com/entiqon/entiqon) common/extension toolkit.
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/entiqon/entiqon/common/extension/collection.svg)](https://pkg.go.dev/github.com/entiqon/entiqon/common/extension/collection)
-[![Go Report Card](https://goreportcard.com/badge/github.com/entiqon/entiqon/common/extension/collection)](https://goreportcard.com/report/github.com/entiqon/entiqon/common/extension/collection)
+[![Go Reference](https://pkg.go.dev/badge/github.com/entiqon/common/extension/collection.svg)](https://pkg.go.dev/github.com/entiqon/common/extension/collection)
+[![Go Report Card](https://goreportcard.com/badge/github.com/entiqon/common/extension/collection)](https://goreportcard.com/report/github.com/entiqon/common/extension/collection)
 [![Tests](https://github.com/entiqon/entiqon/actions/workflows/test.yml/badge.svg)](https://github.com/entiqon/entiqon/actions)
 
 ---
@@ -21,24 +21,24 @@ Part of the [`entiqon`](https://github.com/entiqon/entiqon) common/extension too
 
 ## 📚 Quick Reference
 
-| Category      | Method / Function    | Description |
-|---------------|----------------------|-------------|
-| Constructors  | [`New`](#newt)       | Create a new empty collection |
-|               | [`FromSlice`](#fromslcet) | Initialize from an existing slice |
-| Mutators      | [`Add`](#addvalues-t) | Append values to the collection |
-|               | [`InsertAt`](#insertatidx-int-values-t) | Insert values at a specific index |
-|               | [`Remove`](#removevalue-t) | Remove all occurrences of a value |
-|               | [`RemoveAt`](#removeatidx-int) | Remove value at a specific index |
-|               | [`Clear`](#clear)    | Remove all elements |
-| Queries       | [`Contains`](#containsvalue-t) | Check if value exists |
-|               | [`IndexOf`](#indexofvalue-t) | Get index of first occurrence |
-|               | [`At`](#atidx-int-t-bool) | Safe access by index |
-|               | [`Length`](#length)  | Number of elements in collection |
-|               | [`Items`](#items-t)  | Copy of underlying slice |
-| Functional    | [`ForEach`](#foreachfn-funct) | Apply function to each element |
-|               | [`Filter`](#filterc-collectiont-fn-funct-bool-collectiont) | Create collection matching predicate |
-|               | [`Map`](#mapc-collectiont-fn-funct-r-collectionr) | Transform collection into new type |
-| Utilities     | [`Clone`](#clone)    | Create a deep copy of collection |
+| Category     | Method / Function                                          | Description                          |
+|--------------|------------------------------------------------------------|--------------------------------------|
+| Constructors | [`New`](#newt)                                             | Create a new empty collection        |
+|              | [`FromSlice`](#fromslcet)                                  | Initialize from an existing slice    |
+| Mutators     | [`Add`](#addvalues-t)                                      | Append values to the collection      |
+|              | [`InsertAt`](#insertatidx-int-values-t)                    | Insert values at a specific index    |
+|              | [`Remove`](#removevalue-t)                                 | Remove all occurrences of a value    |
+|              | [`RemoveAt`](#removeatidx-int)                             | Remove value at a specific index     |
+|              | [`Clear`](#clear)                                          | Remove all elements                  |
+| Queries      | [`Contains`](#containsvalue-t)                             | Check if value exists                |
+|              | [`IndexOf`](#indexofvalue-t)                               | Get index of first occurrence        |
+|              | [`At`](#atidx-int-t-bool)                                  | Safe access by index                 |
+|              | [`Length`](#length)                                        | Number of elements in collection     |
+|              | [`Items`](#items-t)                                        | Copy of underlying slice             |
+| Functional   | [`ForEach`](#foreachfn-funct)                              | Apply function to each element       |
+|              | [`Filter`](#filterc-collectiont-fn-funct-bool-collectiont) | Create collection matching predicate |
+|              | [`Map`](#mapc-collectiont-fn-funct-r-collectionr)          | Transform collection into new type   |
+| Utilities    | [`Clone`](#clone)                                          | Create a deep copy of collection     |
 
 ---
 
@@ -57,7 +57,7 @@ Part of the [`entiqon`](https://github.com/entiqon/entiqon) common/extension too
 ## 🔹 Import
 
 ```go
-import "github.com/entiqon/entiqon/common/extension/collection"
+import "github.com/entiqon/common/extension/collection"
 ```
 
 ---

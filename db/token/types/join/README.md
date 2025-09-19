@@ -42,7 +42,8 @@ package main
 
 import (
 	"fmt"
-	"entiqon/db/token/join"
+
+	"github.com/entiqon/db/token/types/join"
 )
 
 func main() {

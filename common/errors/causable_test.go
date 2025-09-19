@@ -5,7 +5,7 @@ package errors_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/common/errors"
+	"github.com/entiqon/common/errors"
 )
 
 type CausableErrorSuite struct {

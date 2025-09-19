@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/token/helpers"
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/helpers"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 // ExampleIsValidIdentifier demonstrates quick true/false checks.

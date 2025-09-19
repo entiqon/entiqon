@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	contract2 "github.com/entiqon/entiqon/db/internal/core/contract"
+	"github.com/entiqon/db/internal/core/contract"
 )
 
 // BaseToken provides a normalized representation of a raw SQL-like expression,
@@ -68,7 +68,7 @@ type BaseToken struct {
 	//   - TableKind
 	//   - ConditionKind
 	//   - UnknownKind (default)
-	kind contract2.Kind
+	kind contract.Kind
 }
 
 // NewBaseToken constructs a new BaseToken by parsing the input string and optional explicit alias.
@@ -263,9 +263,9 @@ func (b *BaseToken) GetInput() string {
 //
 //	b.SetKind(TableKind)
 //	fmt.Println(b.GetKind()) // → TableKind
-func (b *BaseToken) GetKind() contract2.Kind {
+func (b *BaseToken) GetKind() contract.Kind {
 	if b == nil {
-		return contract2.UnknownKind
+		return contract.UnknownKind
 	}
 	return b.kind
 }
@@ -407,7 +407,7 @@ func (b *BaseToken) Raw() string {
 //	b = NewBaseToken("")
 //	fmt.Println(b.RenderAlias(driver.NewPostgresDialect(), "u.id"))
 //	// → u.id
-func (b *BaseToken) RenderAlias(q contract2.Quoter, qualified string) string {
+func (b *BaseToken) RenderAlias(q contract.Quoter, qualified string) string {
 	if b == nil || qualified == "" {
 		return qualified
 	}
@@ -436,7 +436,7 @@ func (b *BaseToken) RenderAlias(q contract2.Quoter, qualified string) string {
 //
 //	b = NewBaseToken("id")
 //	fmt.Println(b.RenderName(nil)) // → "id"
-func (b *BaseToken) RenderName(q contract2.Quoter) string {
+func (b *BaseToken) RenderName(q contract.Quoter) string {
 	if b == nil || b.name == "" {
 		return ""
 	}
@@ -525,7 +525,7 @@ func (b *BaseToken) SetErrorWith(source string, err error) *BaseToken {
 //		b := NewBaseToken("id")
 //		b.SetKind(ColumnKind)
 //		fmt.Println(b.GetKind()) 	// → ColumnKind
-func (b *BaseToken) SetKind(k contract2.Kind) {
+func (b *BaseToken) SetKind(k contract.Kind) {
 	if b == nil {
 		return
 	}

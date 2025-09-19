@@ -1,6 +1,6 @@
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
-
 # Operator
+
+> Part of [Entiqon](../../../../) / [Database](../../../) / [Token](../../) / [Types](../)
 
 **Part of Entiqon / Database**
 

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/token"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 func TestNewCondition(t *testing.T) {

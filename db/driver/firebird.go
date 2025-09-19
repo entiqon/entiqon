@@ -5,7 +5,7 @@
 
 package driver
 
-import "github.com/entiqon/entiqon/db/driver/styling"
+import "github.com/entiqon/db/driver/styling"
 
 // NewFirebirdDialect implements the Dialect interface for Firebird SQL engines.
 //

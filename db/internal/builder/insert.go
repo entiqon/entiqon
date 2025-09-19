@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/builder/bind"
+	"github.com/entiqon/db/internal/core/errors"
+	"github.com/entiqon/db/internal/core/token"
 )
 
 // InsertBuilder builds a SQL INSERT statement.
@@ -19,9 +19,9 @@ import (
 type InsertBuilder struct {
 	BaseBuilder
 	table     string
-	columns   []token2.FieldToken
+	columns   []token.FieldToken
 	values    [][]any
-	returning []token2.FieldToken
+	returning []token.FieldToken
 }
 
 // NewInsert creates a new InsertBuilder using the given SQL dialect.
@@ -35,9 +35,9 @@ func NewInsert(dialect driver.Dialect) *InsertBuilder {
 
 	return &InsertBuilder{
 		BaseBuilder: base,
-		columns:     []token2.FieldToken{},
+		columns:     []token.FieldToken{},
 		values:      [][]any{},
-		returning:   []token2.FieldToken{},
+		returning:   []token.FieldToken{},
 	}
 }
 
@@ -68,9 +68,9 @@ func (b *InsertBuilder) Into(table string) *InsertBuilder {
 // Since: v1.4.0
 
 func (b *InsertBuilder) Columns(names ...string) *InsertBuilder {
-	b.columns = []token2.FieldToken{}
+	b.columns = []token.FieldToken{}
 	for _, name := range names {
-		f := token2.Field(name)
+		f := token.Field(name)
 		if f.Alias != "" {
 			b.AddStageError("COLUMNS", fmt.Errorf("column aliasing is not allowed: '%s AS %s'", f.Name, f.Alias))
 			continue
@@ -92,7 +92,7 @@ func (b *InsertBuilder) Values(row ...any) *InsertBuilder {
 // If called multiple times, it appends to the existing list.
 func (b *InsertBuilder) Returning(fields ...string) *InsertBuilder {
 	for _, f := range fields {
-		b.returning = append(b.returning, token2.FieldsFromExpr(f)...)
+		b.returning = append(b.returning, token.FieldsFromExpr(f)...)
 	}
 	return b
 }
@@ -132,17 +132,17 @@ func (b *InsertBuilder) BuildInsertOnly() (string, []any, error) {
 
 func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
 	if b.table == "" {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
+		b.Validator.AddStageError(errors.StageFrom, fmt.Errorf("requires a target table"))
 	}
 	if len(b.columns) == 0 {
-		b.Validator.AddStageError(core.StageInto, fmt.Errorf("at least one column is required"))
+		b.Validator.AddStageError(errors.StageInto, fmt.Errorf("at least one column is required"))
 	}
 	if len(b.values) == 0 {
-		b.Validator.AddStageError(core.StageValues, fmt.Errorf("at least one set of values is required"))
+		b.Validator.AddStageError(errors.StageValues, fmt.Errorf("at least one set of values is required"))
 	}
 
 	if withReturning && !b.Dialect.SupportsReturning() {
-		b.Validator.AddStageError(core.StageReturning, fmt.Errorf("at least one set of values is required"))
+		b.Validator.AddStageError(errors.StageReturning, fmt.Errorf("at least one set of values is required"))
 	}
 
 	colCount := len(b.columns)
@@ -158,7 +158,7 @@ func (b *InsertBuilder) buildQuery(withReturning bool) (string, []any, error) {
 	for i, row := range b.values {
 		if len(row) != colCount {
 			b.Validator.AddStageError(
-				core.StageReturning,
+				errors.StageReturning,
 				fmt.Errorf("row %d has %d values, expected %d", i+1, len(row), colCount),
 			)
 		}

@@ -1,6 +1,6 @@
 package table
 
-import "github.com/entiqon/entiqon/db/contract"
+import "github.com/entiqon/db/contract"
 
 // Token defines the contract implemented by all table tokens.
 // A table token represents a SQL source (table or subquery)

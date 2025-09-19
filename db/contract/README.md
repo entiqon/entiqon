@@ -1,6 +1,6 @@
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../)
-
 # Contract
+
+> Part of [Entiqon](../../) / [Database](../)
 
 ## 🧩 Overview
 

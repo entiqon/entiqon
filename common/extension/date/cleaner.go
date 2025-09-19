@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/date/internal"
+	"github.com/entiqon/common/extension/date/internal"
 )
 
 // CleanParseOptions controls CleanAndParse behavior.

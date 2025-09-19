@@ -10,7 +10,7 @@ Builders for inserts, updates, deletes, and merge (upsert) are planned.
 ## 🚀 Quick Start
 
 ```go
-import "github.com/entiqon/entiqon/db/builder/selects"
+import "github.com/entiqon/db/builder/selects"
 
 sb := selects.New(nil).
     Fields("id").

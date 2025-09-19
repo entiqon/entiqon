@@ -3,7 +3,7 @@ package join_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/token/types/join"
 )
 
 func TestType(t *testing.T) {

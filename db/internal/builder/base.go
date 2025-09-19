@@ -8,19 +8,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver"
-	error2 "github.com/entiqon/entiqon/db/internal/core/errors"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/errors"
 )
 
 // BaseBuilder provides shared dialect behavior and error handling for all query builders.
 type BaseBuilder struct {
 	Dialect   driver.Dialect
 	Name      string
-	Validator error2.StageErrorCollector
+	Validator errors.StageErrorCollector
 
 	dialect driver.Dialect
 	// Stage-tagged error collector
-	errors error2.StageErrorCollector
+	errors errors.StageErrorCollector
 }
 
 // NewBaseBuilder creates a properly initialized BaseBuilder with a specified name.
@@ -43,12 +43,12 @@ func NewBaseBuilder(name string, dialect driver.Dialect) BaseBuilder {
 	return BaseBuilder{
 		Name:      strings.ToLower(name),
 		Dialect:   dialect,
-		Validator: error2.StageErrorCollector{},
+		Validator: errors.StageErrorCollector{},
 	}
 }
 
 // AddStageError records an error tied to a specific logical stage (e.g. "FROM", "WHERE").
-func (b *BaseBuilder) AddStageError(stage error2.StageToken, err error) {
+func (b *BaseBuilder) AddStageError(stage errors.StageToken, err error) {
 	b.Validator.AddStageError(stage, err)
 }
 

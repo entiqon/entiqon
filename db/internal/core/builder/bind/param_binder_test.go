@@ -5,85 +5,110 @@ package bind_test
 import (
 	"testing"
 
-	driver2 "github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/builder/bind"
 )
 
-type ParamBinderTestSuite struct {
-	suite.Suite
-	binder *bind.ParamBinder
-}
+func TestParamBinder_Bind_Generic(t *testing.T) {
+	binder := bind.NewParamBinder(driver.NewGenericDialect())
+	placeholder := binder.Bind("admin")
 
-func (s *ParamBinderTestSuite) SetupTest() {
-	s.binder = bind.NewParamBinder(driver2.NewGenericDialect())
-}
-
-func (s *ParamBinderTestSuite) TestBind() {
-	placeholder := s.binder.Bind("admin")
-	s.Equal("?", placeholder)
-	s.Equal([]any{"admin"}, s.binder.Args())
-
-	s.Run("WithPostgres", func() {
-		binder := bind.NewParamBinder(driver2.NewPostgresDialect())
-		placeholder = binder.Bind("alpha")
-		if placeholder != "$1" {
-			s.T().Errorf("expected $1, got %s", placeholder)
-		}
-
-		args := binder.Args()
-		if len(args) != 1 || args[0] != "alpha" {
-			s.T().Errorf("expected args [alpha], got %#v", args)
-		}
-	})
-}
-
-func (s *ParamBinderTestSuite) TestBindMany() {
-	placeholders := s.binder.BindMany(42, true, "active")
-	s.Equal([]string{"?", "?", "?"}, placeholders)
-	s.Equal([]any{42, true, "active"}, s.binder.Args())
-
-	s.Run("WithPostgres", func() {
-		binder := bind.NewParamBinder(driver2.NewPostgresDialect())
-		placeholders := binder.BindMany(42, true, "active")
-		s.Equal([]string{"$1", "$2", "$3"}, placeholders)
-		s.Equal([]any{42, true, "active"}, binder.Args())
-	})
-}
-
-func (s *ParamBinderTestSuite) TestArgsReturnsBoundValues() {
-	s.binder.Bind("first")
-	s.binder.Bind("second")
-	s.Equal([]any{"first", "second"}, s.binder.Args())
-}
-
-func (s *ParamBinderTestSuite) TestParamBinderWithPosition() {
-	binder := bind.NewParamBinderWithPosition(driver2.NewGenericDialect(), 4)
-	placeholder := binder.Bind("next")
 	if placeholder != "?" {
-		s.T().Errorf("expected ?, got %s", placeholder)
+		t.Errorf("expected %q, got %q", "?", placeholder)
+	}
+	if args := binder.Args(); len(args) != 1 || args[0] != "admin" {
+		t.Errorf("expected args [admin], got %#v", args)
+	}
+}
+
+func TestParamBinder_Bind_Postgres(t *testing.T) {
+	binder := bind.NewParamBinder(driver.NewPostgresDialect())
+	placeholder := binder.Bind("alpha")
+
+	if placeholder != "$1" {
+		t.Errorf("expected %q, got %q", "$1", placeholder)
+	}
+	if args := binder.Args(); len(args) != 1 || args[0] != "alpha" {
+		t.Errorf("expected args [alpha], got %#v", args)
+	}
+}
+
+func TestParamBinder_BindMany_Generic(t *testing.T) {
+	binder := bind.NewParamBinder(driver.NewGenericDialect())
+	placeholders := binder.BindMany(42, true, "active")
+
+	expected := []string{"?", "?", "?"}
+	for i, p := range placeholders {
+		if p != expected[i] {
+			t.Errorf("expected %q at index %d, got %q", expected[i], i, p)
+		}
 	}
 
 	args := binder.Args()
-	if len(args) != 1 || args[0] != "next" {
-		s.T().Errorf("unexpected args: %#v", args)
+	expectedArgs := []any{42, true, "active"}
+	for i, v := range args {
+		if v != expectedArgs[i] {
+			t.Errorf("expected arg[%d]=%v, got %v", i, expectedArgs[i], v)
+		}
 	}
-
-	s.Run("WithPostgres", func() {
-		binder = bind.NewParamBinderWithPosition(driver2.NewPostgresDialect(), 4)
-
-		placeholder := binder.Bind("next")
-		if placeholder != "$4" {
-			s.T().Errorf("expected $4, got %s", placeholder)
-		}
-
-		args := binder.Args()
-		if len(args) != 1 || args[0] != "next" {
-			s.T().Errorf("unexpected args: %#v", args)
-		}
-	})
 }
 
-func TestParamBinderTestSuite(t *testing.T) {
-	suite.Run(t, new(ParamBinderTestSuite))
+func TestParamBinder_BindMany_Postgres(t *testing.T) {
+	binder := bind.NewParamBinder(driver.NewPostgresDialect())
+	placeholders := binder.BindMany(42, true, "active")
+
+	expected := []string{"$1", "$2", "$3"}
+	for i, p := range placeholders {
+		if p != expected[i] {
+			t.Errorf("expected %q at index %d, got %q", expected[i], i, p)
+		}
+	}
+
+	args := binder.Args()
+	expectedArgs := []any{42, true, "active"}
+	for i, v := range args {
+		if v != expectedArgs[i] {
+			t.Errorf("expected arg[%d]=%v, got %v", i, expectedArgs[i], v)
+		}
+	}
+}
+
+func TestParamBinder_ArgsReturnsBoundValues(t *testing.T) {
+	binder := bind.NewParamBinder(driver.NewGenericDialect())
+	binder.Bind("first")
+	binder.Bind("second")
+
+	args := binder.Args()
+	expected := []any{"first", "second"}
+	for i, v := range args {
+		if v != expected[i] {
+			t.Errorf("expected arg[%d]=%v, got %v", i, expected[i], v)
+		}
+	}
+}
+
+func TestParamBinder_WithPosition_Generic(t *testing.T) {
+	binder := bind.NewParamBinderWithPosition(driver.NewGenericDialect(), 4)
+	placeholder := binder.Bind("next")
+
+	if placeholder != "?" {
+		t.Errorf("expected %q, got %q", "?", placeholder)
+	}
+	args := binder.Args()
+	if len(args) != 1 || args[0] != "next" {
+		t.Errorf("expected args [next], got %#v", args)
+	}
+}
+
+func TestParamBinder_WithPosition_Postgres(t *testing.T) {
+	binder := bind.NewParamBinderWithPosition(driver.NewPostgresDialect(), 4)
+	placeholder := binder.Bind("next")
+
+	if placeholder != "$4" {
+		t.Errorf("expected %q, got %q", "$4", placeholder)
+	}
+	args := binder.Args()
+	if len(args) != 1 || args[0] != "next" {
+		t.Errorf("expected args [next], got %#v", args)
+	}
 }

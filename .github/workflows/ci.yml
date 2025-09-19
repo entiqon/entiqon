@@ -15,20 +15,20 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: stable
 
       - name: Run tests with coverage
         run: |
           chmod +x ./cli/gotestx
-          ./cli/gotestx -cq
+          ./cli/gotestx -qc ./db/... ./common/... ./cli/...
 
       - name: Show coverage %
         run: |

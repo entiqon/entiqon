@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/internal/core/builder/util"
+	"github.com/entiqon/db/internal/core/builder/util"
 )
 
 // NewCondition builds a Condition by parsing a condition expression and optional value(s).

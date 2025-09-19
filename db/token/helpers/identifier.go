@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/entiqon/entiqon/common/extension"
-	"github.com/entiqon/entiqon/db/contract"
-	"github.com/entiqon/entiqon/db/errors"
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/common/extension"
+	"github.com/entiqon/db/contract"
+	"github.com/entiqon/db/errors"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 // identifierPattern defines the allowed structure of SQL identifiers.

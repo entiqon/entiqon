@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	driver2 "github.com/entiqon/entiqon/db/driver"
+	"github.com/entiqon/db/driver"
 )
 
 // Assignment represents a column update assignment like col = expr.
@@ -37,7 +37,7 @@ type UpsertBuilder struct {
 // The builder name is automatically set to "upsert".
 //
 // Since: v1.4.0
-func NewUpsert(dialect driver2.Dialect) *UpsertBuilder {
+func NewUpsert(dialect driver.Dialect) *UpsertBuilder {
 	base := NewBaseBuilder("upsert", dialect)
 
 	return &UpsertBuilder{
@@ -91,7 +91,7 @@ func (b *UpsertBuilder) DoUpdateSet(assignments ...Assignment) *UpsertBuilder {
 // UseDialect resolves and applies the dialect_engine.md by name (e.g., "postgres").
 // It replaces any previously set dialect on the builder.
 func (b *UpsertBuilder) UseDialect(name string) *UpsertBuilder {
-	b.insert.dialect = driver2.ResolveDialect(name)
+	b.insert.dialect = driver.ResolveDialect(name)
 	b.dialect = b.insert.dialect
 	return b
 }

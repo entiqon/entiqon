@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/date"
-	"github.com/entiqon/entiqon/common/extension/date/internal"
+	"github.com/entiqon/common/extension/date"
+	"github.com/entiqon/common/extension/date/internal"
 )
 
 func TestDate(t *testing.T) {

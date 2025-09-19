@@ -3,9 +3,9 @@ package contract_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/contract"
-	"github.com/entiqon/entiqon/db/token/field"
-	"github.com/entiqon/entiqon/db/token/table"
+	"github.com/entiqon/db/contract"
+	"github.com/entiqon/db/token/field"
+	"github.com/entiqon/db/token/table"
 )
 
 type myKind int

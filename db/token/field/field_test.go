@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/field"
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/field"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 func TestField(t *testing.T) {

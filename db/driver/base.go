@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver/styling"
+	"github.com/entiqon/db/driver/styling"
 )
 
 // BaseDialect provides a foundational implementation of the Dialect interface.

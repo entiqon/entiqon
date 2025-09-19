@@ -1,84 +1,119 @@
-// File: db/internal/core/token/field_token.go
-
 package token_test
 
 import (
 	"testing"
 
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/internal/core/token"
 )
 
-type FieldTokenTestSuite struct {
-	suite.Suite
+func TestField_Basic(t *testing.T) {
+	col := token.Field("id")
+	if col.Name != "id" {
+		t.Errorf("expected Name=%q, got %q", "id", col.Name)
+	}
+	if col.IsRaw {
+		t.Errorf("expected IsRaw=false, got true")
+	}
+	if col.Alias != "" {
+		t.Errorf("expected empty Alias, got %q", col.Alias)
+	}
 }
 
-func (s *FieldTokenTestSuite) TestField_Basic() {
-	col := token2.Field("id")
-	s.Equal("id", col.Name)
-	s.False(col.IsRaw)
-	s.Empty(col.Alias)
+func TestFieldExpr_WithAlias(t *testing.T) {
+	expr := token.FieldExpr("COUNT(*)", "total")
+	if expr.Name != "COUNT(*)" {
+		t.Errorf("expected Name=%q, got %q", "COUNT(*)", expr.Name)
+	}
+	if expr.Alias != "total" {
+		t.Errorf("expected Alias=%q, got %q", "total", expr.Alias)
+	}
+	if !expr.IsRaw {
+		t.Errorf("expected IsRaw=true, got false")
+	}
 }
 
-func (s *FieldTokenTestSuite) TestFieldExpr_WithAlias() {
-	expr := token2.FieldExpr("COUNT(*)", "total")
-	s.Equal("COUNT(*)", expr.Name)
-	s.Equal("total", expr.Alias)
-	s.True(expr.IsRaw)
+func TestField_AsMethod(t *testing.T) {
+	aliased := token.Field("created_at").As("created")
+	if aliased.Name != "created_at" {
+		t.Errorf("expected Name=%q, got %q", "created_at", aliased.Name)
+	}
+	if aliased.Alias != "created" {
+		t.Errorf("expected Alias=%q, got %q", "created", aliased.Alias)
+	}
 }
 
-func (s *FieldTokenTestSuite) TestField_AsMethod() {
-	aliased := token2.Field("created_at").As("created")
-	s.Equal("created_at", aliased.Name)
-	s.Equal("created", aliased.Alias)
+func TestIsValid(t *testing.T) {
+	if !token.Field("status").IsValid() {
+		t.Errorf("expected Field(status) to be valid")
+	}
+	if token.Field("").IsValid() {
+		t.Errorf("expected Field(\"\") to be invalid")
+	}
 }
 
-func (s *FieldTokenTestSuite) TestIsValid() {
-	s.True(token2.Field("status").IsValid())
-	s.False(token2.Field("").IsValid())
+func TestField_WithAliasInline(t *testing.T) {
+	f := token.Field("first_name AS name")
+	if f.Name != "first_name" {
+		t.Errorf("expected Name=%q, got %q", "first_name", f.Name)
+	}
+	if f.Alias != "name" {
+		t.Errorf("expected Alias=%q, got %q", "name", f.Alias)
+	}
+	if !f.IsValid() {
+		t.Errorf("expected field to be valid")
+	}
 }
 
-func (s *FieldTokenTestSuite) TestField_WithAliasInline() {
-	f := token2.Field("first_name AS name")
-	s.Equal("first_name", f.Name)
-	s.Equal("name", f.Alias)
-	s.True(f.IsValid())
+func TestField_WithAliasParams(t *testing.T) {
+	f := token.Field("first_name", "name")
+	if f.Name != "first_name" {
+		t.Errorf("expected Name=%q, got %q", "first_name", f.Name)
+	}
+	if f.Alias != "name" {
+		t.Errorf("expected Alias=%q, got %q", "name", f.Alias)
+	}
+	if !f.IsValid() {
+		t.Errorf("expected field to be valid")
+	}
 }
 
-func (s *FieldTokenTestSuite) TestField_WithAliasParams() {
-	f := token2.Field("first_name", "name")
-	s.Equal("first_name", f.Name)
-	s.Equal("name", f.Alias)
-	s.True(f.IsValid())
+func TestFieldsFromExpr_CommaSeparated(t *testing.T) {
+	fields := token.FieldsFromExpr("id, first_name AS name, email AS contact")
+	if len(fields) != 3 {
+		t.Fatalf("expected 3 fields, got %d", len(fields))
+	}
+	if fields[0].Name != "id" {
+		t.Errorf("expected fields[0].Name=%q, got %q", "id", fields[0].Name)
+	}
+	if fields[1].Name != "first_name" || fields[1].Alias != "name" {
+		t.Errorf("expected fields[1] Name=%q Alias=%q, got Name=%q Alias=%q",
+			"first_name", "name", fields[1].Name, fields[1].Alias)
+	}
+	if fields[2].Name != "email" || fields[2].Alias != "contact" {
+		t.Errorf("expected fields[2] Name=%q Alias=%q, got Name=%q Alias=%q",
+			"email", "contact", fields[2].Name, fields[2].Alias)
+	}
 }
 
-func (s *FieldTokenTestSuite) TestFieldsFromExpr_CommaSeparated() {
-	fields := token2.FieldsFromExpr("id, first_name AS name, email AS contact")
-	s.Len(fields, 3)
-	s.Equal("id", fields[0].Name)
-	s.Equal("first_name", fields[1].Name)
-	s.Equal("name", fields[1].Alias)
-	s.Equal("email", fields[2].Name)
-	s.Equal("contact", fields[2].Alias)
+func TestField_CommaSeparatedPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic, got none")
+		} else if r != "Field: comma-separated values not allowed in a single call. Call Field(...) separately for each." {
+			t.Errorf("unexpected panic value: %v", r)
+		}
+	}()
+	_ = token.Field("id, name")
 }
 
-func (s *FieldTokenTestSuite) TestField_CommaSeparatedPanics() {
-	s.PanicsWithValue(
-		"Field: comma-separated values not allowed in a single call. Call Field(...) separately for each.",
-		func() {
-			_ = token2.Field("id, name")
-		},
-	)
-}
-
-func (s *FieldTokenTestSuite) TestFieldToken_WithValue() {
-	f := token2.Field("email")
+func TestFieldToken_WithValue(t *testing.T) {
+	f := token.Field("email")
 	fv := f.WithValue("x@entiqon.dev")
 
-	s.Equal("email", fv.Name)
-	s.Equal("x@entiqon.dev", fv.Value)
-}
-
-func TestFieldTokenTestSuite(t *testing.T) {
-	suite.Run(t, new(FieldTokenTestSuite))
+	if fv.Name != "email" {
+		t.Errorf("expected Name=%q, got %q", "email", fv.Name)
+	}
+	if fv.Value != "x@entiqon.dev" {
+		t.Errorf("expected Value=%q, got %q", "x@entiqon.dev", fv.Value)
+	}
 }

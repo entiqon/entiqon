@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# scanx - Scan a path and list all files inside
+
+usage() {
+  echo "Usage: scanx [OPTIONS] [PATH] [OUTPUT_FILE]"
+  echo
+  echo "Scans the given PATH recursively and lists all files."
+  echo
+  echo "Options:"
+  echo "  -f        Show full paths (default: only file names)."
+  echo "  -h        Show this help message."
+  echo
+  echo "Arguments:"
+  echo "  PATH         Path to scan (defaults to current directory)."
+  echo "               Supports '.' for current dir and '~' for home dir."
+  echo "  OUTPUT_FILE  If provided, results are written to this file instead of stdout."
+  echo
+  echo "Examples:"
+  echo "  scanx                # scan current directory, show file names"
+  echo "  scanx -f .           # scan current dir, show full paths"
+  echo "  scanx ~ out.txt      # scan home directory, save file names"
+  echo "  scanx -f ~ out.txt   # scan home directory, save full paths"
+  exit 0
+}
+
+# Defaults
+SHOW_FULL_PATH=false
+
+# Parse flags
+while getopts ":fh" opt; do
+  case ${opt} in
+    f ) SHOW_FULL_PATH=true ;;
+    h ) usage ;;
+    \? ) echo "Invalid option: -$OPTARG" >&2; usage ;;
+  esac
+done
+shift $((OPTIND -1))
+
+# Expand ~ and . without depending on realpath
+expand_path() {
+  local input_path="$1"
+  if [ -z "$input_path" ]; then
+    input_path="."
+  fi
+  eval echo "$input_path"
+}
+
+SCAN_PATH=$(expand_path "$1")
+OUTPUT_FILE="$2"
+
+# Check if path exists
+if [ ! -d "$SCAN_PATH" ]; then
+  echo "❌ Error: Path '$SCAN_PATH' does not exist or is not a directory."
+  exit 1
+fi
+
+echo "Scanning path: $SCAN_PATH"
+echo "--------------------------------"
+
+if $SHOW_FULL_PATH; then
+  FIND_CMD="find \"$SCAN_PATH\" -type f -print"
+else
+  FIND_CMD="find \"$SCAN_PATH\" -type f -exec basename {} \;"
+fi
+
+if [ -n "$OUTPUT_FILE" ]; then
+  eval $FIND_CMD > "$OUTPUT_FILE"
+  echo "File list written to: $OUTPUT_FILE"
+else
+  eval $FIND_CMD
+fi

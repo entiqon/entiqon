@@ -46,7 +46,7 @@ package main
 
 import (
     "fmt"
-    "github.com/entiqon/entiqon/common/extension/number"
+    "github.com/entiqon/common/extension/number"
 )
 
 func main() {

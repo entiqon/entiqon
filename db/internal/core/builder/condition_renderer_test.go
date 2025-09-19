@@ -3,120 +3,140 @@
 package builder_test
 
 import (
+	"strings"
 	"testing"
 
-	driver2 "github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/core/builder"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/builder"
+	"github.com/entiqon/db/internal/core/builder/bind"
+	"github.com/entiqon/db/internal/core/token"
 )
 
-type ConditionRendererTestSuite struct {
-	suite.Suite
-}
+func TestAppendCondition(t *testing.T) {
+	base := token.NewCondition(token.ConditionSimple, "status", "active")
+	and := token.NewCondition(token.ConditionAnd, "deleted", false)
+	or := token.NewCondition(token.ConditionOr, "archived", false)
 
-func (s *ConditionRendererTestSuite) TestAppendCondition() {
-	base := token2.NewCondition(token2.ConditionSimple, "status", "active")
-	and := token2.NewCondition(token2.ConditionAnd, "deleted", false)
-	or := token2.NewCondition(token2.ConditionOr, "archived", false)
-
-	result := builder.AppendCondition([]token2.Condition{base}, and)
-	s.Len(result, 2)
-	s.Equal(token2.ConditionAnd, result[1].Type)
-
-	result = builder.AppendCondition(result, or)
-	s.Len(result, 3)
-	s.Equal(token2.ConditionOr, result[2].Type)
-
-	s.Run("Invalid", func() {
-		valid := token2.NewCondition(token2.ConditionSimple, "status", "active")
-		invalid := token2.Condition{} // no field/operator/values → invalid
-
-		result := builder.AppendCondition([]token2.Condition{valid}, invalid)
-
-		s.Len(result, 1)
-		s.Equal("status", result[0].Key)
-	})
-}
-
-func (s *ConditionRendererTestSuite) TestRenderConditions_Generic() {
-	s.Run("Valid", func() {
-		conditions := []token2.Condition{
-			token2.NewCondition(token2.ConditionSimple, "active", true),
-		}
-
-		sql, args, err := builder.RenderConditions(driver2.NewGenericDialect(), conditions)
-		s.NoError(err)
-		s.Equal("active = ?", sql)
-		s.Equal([]any{true}, args)
-	})
-
-	s.Run("Empty", func() {
-		binder := bind.NewParamBinder(driver2.NewGenericDialect())
-		sql, args, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), nil, binder)
-
-		s.NoError(err)
-		s.Equal("", sql)
-		s.Nil(args)
-	})
-
-	s.Run("Unsupported", func() {
-		c := token2.NewCondition(token2.ConditionSimple, "status", "active")
-		c.Type = token2.ConditionType(rune(999)) // simulate unsupported condition type
-
-		binder := bind.NewParamBinder(driver2.NewGenericDialect())
-		_, _, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), []token2.Condition{c}, binder)
-
-		s.Error(err)
-		s.Contains(err.Error(), "unsupported condition type")
-	})
-
-	s.Run("Invalid", func() {
-		conditions := []token2.Condition{
-			{}, // invalid: missing Key and Error is nil
-		}
-
-		binder := bind.NewParamBinder(driver2.NewGenericDialect())
-		_, _, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), conditions, binder)
-
-		s.Error(err)
-		s.Contains(err.Error(), "invalid condition")
-	})
-
-	s.Run("WithAndCondition", func() {
-		conditions := []token2.Condition{
-			token2.NewCondition(token2.ConditionSimple, "status", "active"),
-			token2.NewCondition(token2.ConditionAnd, "deleted", false),
-		}
-
-		binder := bind.NewParamBinder(driver2.NewGenericDialect())
-		sql, args, err := builder.RenderConditionsWithBinder(driver2.NewGenericDialect(), conditions, binder)
-
-		s.NoError(err)
-		s.Equal("status = ? AND deleted = ?", sql)
-		s.Equal([]any{"active", false}, args)
-	})
-}
-
-func (s *ConditionRendererTestSuite) TestRenderConditionsWithBinder_Postgres() {
-	conditions := []token2.Condition{
-		token2.NewCondition(token2.ConditionSimple, "email_verified", true),
-		token2.NewCondition(token2.ConditionOr, "email_verified", false),
+	result := builder.AppendCondition([]token.Condition{base}, and)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 conditions, got %d", len(result))
+	}
+	if result[1].Type != token.ConditionAnd {
+		t.Errorf("expected type %v, got %v", token.ConditionAnd, result[1].Type)
 	}
 
-	binder := bind.NewParamBinderWithPosition(driver2.NewPostgresDialect(), 4)
-	sql, args, err := builder.RenderConditionsWithBinder(driver2.NewPostgresDialect(), conditions, binder)
+	result = builder.AppendCondition(result, or)
+	if len(result) != 3 {
+		t.Fatalf("expected 3 conditions, got %d", len(result))
+	}
+	if result[2].Type != token.ConditionOr {
+		t.Errorf("expected type %v, got %v", token.ConditionOr, result[2].Type)
+	}
 
-	s.NoError(err)
-	s.Equal("\"email_verified\" = $4 OR \"email_verified\" = $5", sql)
-	s.Equal([]any{true, false}, args)
+	t.Run("Invalid", func(t *testing.T) {
+		valid := token.NewCondition(token.ConditionSimple, "status", "active")
+		invalid := token.Condition{} // no key/operator
+
+		result := builder.AppendCondition([]token.Condition{valid}, invalid)
+		if len(result) != 1 {
+			t.Errorf("expected 1 condition, got %d", len(result))
+		}
+		if result[0].Key != "status" {
+			t.Errorf("expected key %q, got %q", "status", result[0].Key)
+		}
+	})
 }
 
-func (s *ConditionRendererTestSuite) TestRenderConditionsWithBinder_InvalidCondition() {
+func TestRenderConditions_Generic(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		conditions := []token.Condition{
+			token.NewCondition(token.ConditionSimple, "active", true),
+		}
+		sql, args, err := builder.RenderConditions(driver.NewGenericDialect(), conditions)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if sql != "active = ?" {
+			t.Errorf("expected %q, got %q", "active = ?", sql)
+		}
+		if len(args) != 1 || args[0] != true {
+			t.Errorf("expected args [true], got %#v", args)
+		}
+	})
 
+	t.Run("Empty", func(t *testing.T) {
+		binder := bind.NewParamBinder(driver.NewGenericDialect())
+		sql, args, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), nil, binder)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if sql != "" {
+			t.Errorf("expected empty sql, got %q", sql)
+		}
+		if args != nil {
+			t.Errorf("expected nil args, got %#v", args)
+		}
+	})
+
+	t.Run("Unsupported", func(t *testing.T) {
+		c := token.NewCondition(token.ConditionSimple, "status", "active")
+		c.Type = token.ConditionType(rune(999)) // simulate unsupported
+		binder := bind.NewParamBinder(driver.NewGenericDialect())
+		_, _, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), []token.Condition{c}, binder)
+		if err == nil || !contains(err.Error(), "unsupported condition type") {
+			t.Errorf("expected unsupported condition type error, got %v", err)
+		}
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		conditions := []token.Condition{{}} // invalid
+		binder := bind.NewParamBinder(driver.NewGenericDialect())
+		_, _, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), conditions, binder)
+		if err == nil || !contains(err.Error(), "invalid condition") {
+			t.Errorf("expected invalid condition error, got %v", err)
+		}
+	})
+
+	t.Run("WithAndCondition", func(t *testing.T) {
+		conditions := []token.Condition{
+			token.NewCondition(token.ConditionSimple, "status", "active"),
+			token.NewCondition(token.ConditionAnd, "deleted", false),
+		}
+		binder := bind.NewParamBinder(driver.NewGenericDialect())
+		sql, args, err := builder.RenderConditionsWithBinder(driver.NewGenericDialect(), conditions, binder)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		expected := "status = ? AND deleted = ?"
+		if sql != expected {
+			t.Errorf("expected %q, got %q", expected, sql)
+		}
+		if len(args) != 2 || args[0] != "active" || args[1] != false {
+			t.Errorf("expected args [active,false], got %#v", args)
+		}
+	})
 }
 
-func TestConditionRendererTestSuite(t *testing.T) {
-	suite.Run(t, new(ConditionRendererTestSuite))
+func TestRenderConditionsWithBinder_Postgres(t *testing.T) {
+	conditions := []token.Condition{
+		token.NewCondition(token.ConditionSimple, "email_verified", true),
+		token.NewCondition(token.ConditionOr, "email_verified", false),
+	}
+	binder := bind.NewParamBinderWithPosition(driver.NewPostgresDialect(), 4)
+	sql, args, err := builder.RenderConditionsWithBinder(driver.NewPostgresDialect(), conditions, binder)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `"email_verified" = $4 OR "email_verified" = $5`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != true || args[1] != false {
+		t.Errorf("expected args [true,false], got %#v", args)
+	}
+}
+
+// helper contains checks substring membership
+func contains(s, sub string) bool {
+	return strings.Contains(s, sub)
 }

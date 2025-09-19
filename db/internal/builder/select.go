@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver"
-	token3 "github.com/entiqon/entiqon/db/internal/build/token"
-	"github.com/entiqon/entiqon/db/internal/core/builder"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/driver"
+	bt "github.com/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/internal/core/builder"
+	"github.com/entiqon/db/internal/core/builder/bind"
+	"github.com/entiqon/db/internal/core/errors"
+	ct "github.com/entiqon/db/internal/core/token"
 )
 
 // SelectBuilder builds a SQL SELECT query using fluent method chaining.
@@ -19,9 +19,9 @@ import (
 // It supports basic querying with WHERE conditions, ordering, and pagination.
 type SelectBuilder struct {
 	BaseBuilder
-	columns    []*token3.Column
-	sources    []*token3.Table
-	conditions []token2.Condition
+	columns    []*bt.Column
+	sources    []*bt.Table
+	conditions []ct.Condition
 	sorting    []string
 	take       *int
 	skip       *int
@@ -41,9 +41,9 @@ func NewSelect(dialect driver.Dialect) *SelectBuilder {
 
 	return &SelectBuilder{
 		BaseBuilder: base,
-		columns:     make([]*token3.Column, 0),
-		sources:     make([]*token3.Table, 0),
-		conditions:  make([]token2.Condition, 0),
+		columns:     make([]*bt.Column, 0),
+		sources:     make([]*bt.Table, 0),
+		conditions:  make([]ct.Condition, 0),
 		sorting:     make([]string, 0),
 	}
 }
@@ -107,31 +107,31 @@ func (b *SelectBuilder) AddSelect(columns ...string) *SelectBuilder {
 // Since: v0.0.1
 // Updated: v1.5.0
 func (b *SelectBuilder) From(table string, alias ...string) *SelectBuilder {
-	source := token3.NewTable(table, alias...)
+	source := bt.NewTable(table, alias...)
 	if !source.IsValid() {
-		b.Validator.AddStageError(core.StageFrom,
+		b.Validator.AddStageError(errors.StageFrom,
 			fmt.Errorf("invalid column: %s — %v", source.String(), source.GetError()))
 	}
-	b.sources = append(b.sources, token3.NewTable(table, alias...))
+	b.sources = append(b.sources, bt.NewTable(table, alias...))
 	return b
 }
 
 // Where sets the base condition(s) for the WHERE clause.
 // It resets any previously added conditions.
 func (b *SelectBuilder) Where(condition string, values ...any) *SelectBuilder {
-	c := token2.NewCondition(token2.ConditionSimple, condition, values...)
+	c := ct.NewCondition(ct.ConditionSimple, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError(core.StageWhere, c.Error)
+		b.AddStageError(errors.StageWhere, c.Error)
 	}
-	b.conditions = []token2.Condition{c}
+	b.conditions = []ct.Condition{c}
 	return b
 }
 
 // AndWhere adds an AND condition to the WHERE clause.
 func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder {
-	c := token2.NewCondition(token2.ConditionAnd, condition, values...)
+	c := ct.NewCondition(ct.ConditionAnd, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError(core.StageWhere, c.Error)
+		b.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -139,9 +139,9 @@ func (b *SelectBuilder) AndWhere(condition string, values ...any) *SelectBuilder
 
 // OrWhere adds an OR condition to the WHERE clause.
 func (b *SelectBuilder) OrWhere(condition string, values ...any) *SelectBuilder {
-	c := token2.NewCondition(token2.ConditionOr, condition, values...)
+	c := ct.NewCondition(ct.ConditionOr, condition, values...)
 	if !c.IsValid() {
-		b.AddStageError(core.StageWhere, c.Error)
+		b.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -180,7 +180,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		b.Dialect = driver.NewGenericDialect()
 	}
 	if len(b.sources) == 0 {
-		return "", nil, fmt.Errorf("%s: missing source; expected at least one table source", core.StageFrom)
+		return "", nil, fmt.Errorf("%s: missing source; expected at least one table source", errors.StageFrom)
 	}
 
 	var tokens []string
@@ -212,7 +212,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 				if col.Table == nil {
 					return "", nil, fmt.Errorf(
 						"%s: column %q must have an owner table in multi-source SELECT",
-						core.StageSelect, col.GetName(),
+						errors.StageSelect, col.GetName(),
 					)
 				}
 				found := false
@@ -225,7 +225,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 				if !found {
 					return "", nil, fmt.Errorf(
 						"%s: column %q refers to table %q which is not in builder sources",
-						core.StageSelect, col.GetName(), col.Table.GetName(),
+						errors.StageSelect, col.GetName(), col.Table.GetName(),
 					)
 				}
 				parts = append(parts, fmt.Sprintf("%s.%s", col.Table.AliasOr(), rendered))
@@ -256,7 +256,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 		binder := bind.NewParamBinderWithPosition(b.Dialect, len(args)+1)
 		whereClause, clauseArgs, err := builder.RenderConditionsWithBinder(b.Dialect, b.conditions, binder)
 		if err != nil {
-			return "", nil, fmt.Errorf("%s: %w", core.StageWhere, err)
+			return "", nil, fmt.Errorf("%s: %w", errors.StageWhere, err)
 		}
 		tokens = append(tokens, "WHERE", whereClause)
 		args = append(args, clauseArgs...)
@@ -301,7 +301,7 @@ func (b *SelectBuilder) Build() (string, []any, error) {
 // This is used internally by Select(...) to ensure the SELECT clause
 // reflects only the explicitly provided columns.
 func (b *SelectBuilder) ClearSelect() *SelectBuilder {
-	b.columns = make([]*token3.Column, 0)
+	b.columns = make([]*bt.Column, 0)
 	return b
 }
 
@@ -313,11 +313,11 @@ func (b *SelectBuilder) ClearSelect() *SelectBuilder {
 // It delegates token creation to util.ParseColumns(...) and
 // passes any applicable source token for column qualification.
 func (b *SelectBuilder) addColumns(columns ...string) *SelectBuilder {
-	var table *token3.Table
+	var table *bt.Table
 	if len(b.sources) == 1 && b.sources[0].IsValid() {
 		table = b.sources[0]
 	}
-	b.appendColumns(token3.NewColumnsFrom(columns...), table)
+	b.appendColumns(bt.NewColumnsFrom(columns...), table)
 	return b
 }
 
@@ -340,11 +340,11 @@ func (b *SelectBuilder) addColumns(columns ...string) *SelectBuilder {
 //	b.appendColumns(cols, &users)
 //
 //	// Rendered: SELECT u.id, u.email FROM users AS u
-func (b *SelectBuilder) appendColumns(cols []*token3.Column,
-	table *token3.Table) {
+func (b *SelectBuilder) appendColumns(cols []*bt.Column,
+	table *bt.Table) {
 	for _, col := range cols {
 		if col.IsErrored() {
-			b.Validator.AddStageError(core.StageSelect, fmt.Errorf("invalid column: %s", col.String()))
+			b.Validator.AddStageError(errors.StageSelect, fmt.Errorf("invalid column: %s", col.String()))
 		}
 
 		// Assign table for qualification and rendering

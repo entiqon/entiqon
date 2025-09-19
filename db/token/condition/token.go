@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/token/helpers"
-	ct "github.com/entiqon/entiqon/db/token/types/condition"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/token/helpers"
+	ct "github.com/entiqon/db/token/types/condition"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 type token struct {

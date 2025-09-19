@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/join"
-	"github.com/entiqon/entiqon/db/token/table"
-	jt "github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/token/join"
+	"github.com/entiqon/db/token/table"
+	jt "github.com/entiqon/db/token/types/join"
 )
 
 func TestJoin(t *testing.T) {

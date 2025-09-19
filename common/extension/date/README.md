@@ -45,14 +45,14 @@ package main
 
 import (
     "fmt"
-    "github.com/entiqon/entiqon/common/extension/date"
+    "github.com/entiqon/common/extension/date"
 )
 
 func main() {
     t, _ := date.ParseFrom("2025-08-21")
     fmt.Println(t.Format("2006-01-02"))
 
-    out, _ := date.ParseAndFormat("21/08/2025", "2006-01-02")
+    out := date.ParseAndFormat("21/08/2025", "2006-01-02")
     fmt.Println(out)
 }
 ```

@@ -1,9 +1,9 @@
 package join
 
 import (
-	"github.com/entiqon/entiqon/db/contract"
-	"github.com/entiqon/entiqon/db/token/table"
-	"github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/contract"
+	"github.com/entiqon/db/token/table"
+	"github.com/entiqon/db/token/types/join"
 )
 
 // Token is the contract implemented by all Join tokens.

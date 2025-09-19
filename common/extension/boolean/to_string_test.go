@@ -1,19 +1,9 @@
-/**
- * @Author: Isidro Lopez isidro.lopezg@live.com
- * @Date: 2025-08-21 22:27:49
- * @LastEditors: Isidro Lopez isidro.lopezg@live.com
- * @LastEditTime: 2025-08-21 22:40:48
- * @FilePath: common/extension/boolean/to_string_test.go
- * @Description: 这是默认设置,可以在设置》工具》File Description中进行配置
- */
-// File: common/to_string_test.go
-
 package boolean_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/common/extension/boolean"
+	"github.com/entiqon/common/extension/boolean"
 )
 
 func TestBoolToString(t *testing.T) {
@@ -35,11 +25,5 @@ func TestBoolToString(t *testing.T) {
 			t.Errorf("BoolToString(%v, %q, %q) = %q; want %q",
 				tt.input, tt.trueStr, tt.falseStr, got, tt.want)
 		}
-	}
-}
-
-func TestBoolToStrDeprecated(t *testing.T) {
-	if boolean.BoolToStr(true, "yes", "no") != "yes" {
-		t.Errorf("BoolToStr did not return expected value")
 	}
 }

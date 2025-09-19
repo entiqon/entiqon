@@ -1,8 +1,6 @@
 package join
 
-import (
-	"strings"
-)
+import "strings"
 
 // Type enumerates the supported SQL JOIN types.
 //

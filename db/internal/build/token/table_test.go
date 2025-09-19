@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/token"
 )
 
 func TestTable(t *testing.T) {

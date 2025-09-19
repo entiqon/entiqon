@@ -5,28 +5,40 @@ package driver_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/stretchr/testify/assert"
+	"github.com/entiqon/db/driver"
 )
 
 func TestResolveDialect_MySQL(t *testing.T) {
 	mysql := driver.ResolveDialect("mysql")
-	assert.Equal(t, "mysql", mysql.GetName())
+	if got := mysql.GetName(); got != "mysql" {
+		t.Errorf("expected %q, got %q", "mysql", got)
+	}
 
 	mariadb := driver.ResolveDialect("mariadb")
-	assert.Equal(t, "mysql", mariadb.GetName())
+	if got := mariadb.GetName(); got != "mysql" {
+		t.Errorf("expected %q, got %q", "mysql", got)
+	}
 }
 
 func TestResolveDialect_MSSQL(t *testing.T) {
 	mssql := driver.ResolveDialect("mssql")
-	assert.Equal(t, "mssql", mssql.GetName())
+	if got := mssql.GetName(); got != "mssql" {
+		t.Errorf("expected %q, got %q", "mssql", got)
+	}
 
 	sqlserver := driver.ResolveDialect("sqlserver")
-	assert.Equal(t, "mssql", sqlserver.GetName())
+	if got := sqlserver.GetName(); got != "mssql" {
+		t.Errorf("expected %q, got %q", "mssql", got)
+	}
 }
 
 func TestResolveDialect_UnknownFallback(t *testing.T) {
 	d := driver.ResolveDialect("unknown_db")
-	assert.Equal(t, "generic", d.GetName())
-	assert.NoError(t, d.Validate())
+	if got := d.GetName(); got != "generic" {
+		t.Errorf("expected %q, got %q", "generic", got)
+	}
+
+	if err := d.Validate(); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
 }

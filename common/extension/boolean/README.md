@@ -38,7 +38,7 @@ package main
 
 import (
     "fmt"
-    "github.com/entiqon/entiqon/common/extension/boolean"
+    "github.com/entiqon/common/extension/boolean"
 )
 
 func main() {

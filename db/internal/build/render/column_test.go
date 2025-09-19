@@ -5,9 +5,9 @@ package render_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/render"
-	"github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/render"
+	"github.com/entiqon/db/internal/build/token"
 )
 
 func TestRenderColumn_ValidCases(t *testing.T) {

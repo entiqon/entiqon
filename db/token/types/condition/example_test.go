@@ -3,7 +3,7 @@ package condition_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/types/condition"
+	"github.com/entiqon/db/token/types/condition"
 )
 
 func ExampleType_isValid() {

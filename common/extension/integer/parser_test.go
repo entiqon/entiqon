@@ -3,7 +3,7 @@ package integer_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/common/extension/integer"
+	"github.com/entiqon/common/extension/integer"
 )
 
 func TestInteger(t *testing.T) {

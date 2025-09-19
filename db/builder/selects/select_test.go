@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/builder/selects"
-	"github.com/entiqon/entiqon/db/token/condition"
-	"github.com/entiqon/entiqon/db/token/field"
-	"github.com/entiqon/entiqon/db/token/table"
-	ct "github.com/entiqon/entiqon/db/token/types/condition"
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/builder/selects"
+	"github.com/entiqon/db/token/condition"
+	"github.com/entiqon/db/token/field"
+	"github.com/entiqon/db/token/table"
+	ct "github.com/entiqon/db/token/types/condition"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 func TestSelectBuilder(t *testing.T) {

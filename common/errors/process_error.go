@@ -5,7 +5,7 @@ package errors
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common"
+	"github.com/entiqon/common"
 )
 
 // ProcessStageError represents an error occurring at a specific process stage,

@@ -1,5 +1,7 @@
 # Token Helpers
 
+> Part of [Entiqon](../../../) / [Database](../../) / [Token](../)
+
 The `helpers` package provides small, reusable validation and resolution
 utilities for SQL tokens. These functions encapsulate common rules that are
 used across multiple token types (Field, Table, Join, Condition, etc.).

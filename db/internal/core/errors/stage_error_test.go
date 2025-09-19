@@ -1,60 +1,71 @@
-// File: db/internal/core/error/stage_error_test.go
+// File: db/internal/errors/error/stage_error_test.go
 // Since: v1.5.0
 
 package errors_test
 
 import (
-	"errors"
+	stdErrors "errors"
+	"strings"
 	"testing"
 
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/internal/core/errors"
 )
 
-type StageErrorSuite struct {
-	suite.Suite
-	collector *core.StageErrorCollector
+func TestStageErrorCollector_AddAndHasErrors(t *testing.T) {
+	c := &errors.StageErrorCollector{}
+	c.AddStageError("FROM", stdErrors.New("table missing"))
+	c.AddStageError("SELECT", stdErrors.New("no fields"))
+
+	if !c.HasErrors() {
+		t.Errorf("expected HasErrors=true")
+	}
+	if got := len(c.GetErrors()); got != 2 {
+		t.Errorf("expected 2 errors, got %d", got)
+	}
 }
 
-func (s *StageErrorSuite) SetupTest() {
-	s.collector = &core.StageErrorCollector{}
+func TestStageErrorCollector_ErrorsByStage(t *testing.T) {
+	c := &errors.StageErrorCollector{}
+	c.AddStageError("SELECT", stdErrors.New("missing column"))
+	c.AddStageError("SELECT", stdErrors.New("alias invalid"))
+	c.AddStageError("WHERE", stdErrors.New("bad condition"))
+
+	grouped := c.ErrorsByStage()
+	if got := len(grouped["SELECT"]); got != 2 {
+		t.Errorf("expected 2 SELECT errors, got %d", got)
+	}
+	if got := len(grouped["WHERE"]); got != 1 {
+		t.Errorf("expected 1 WHERE error, got %d", got)
+	}
 }
 
-func (s *StageErrorSuite) TestAddAndHasErrors() {
-	s.collector.AddStageError("FROM", errors.New("table missing"))
-	s.collector.AddStageError("SELECT", errors.New("no fields"))
-	assert.True(s.T(), s.collector.HasErrors())
-	assert.Len(s.T(), s.collector.GetErrors(), 2)
+func TestStageErrorCollector_CombineErrorsFormat(t *testing.T) {
+	c := &errors.StageErrorCollector{}
+	c.AddStageError("FROM", stdErrors.New("table empty"))
+	c.AddStageError("SELECT", stdErrors.New("missing fields"))
+	c.AddStageError("SELECT", stdErrors.New("bad alias"))
+
+	output := c.CombineErrors().Error()
+	if !strings.Contains(output, "[FROM] table empty") {
+		t.Errorf("expected output to contain %q, got %q", "[FROM] table empty", output)
+	}
+	if !strings.Contains(output, "[SELECT]") {
+		t.Errorf("expected output to contain [SELECT], got %q", output)
+	}
+	if !strings.Contains(output, "missing fields") {
+		t.Errorf("expected output to contain 'missing fields', got %q", output)
+	}
+	if !strings.Contains(output, "bad alias") {
+		t.Errorf("expected output to contain 'bad alias', got %q", output)
+	}
 }
 
-func (s *StageErrorSuite) TestErrorsByStage() {
-	s.collector.AddStageError("SELECT", errors.New("missing column"))
-	s.collector.AddStageError("SELECT", errors.New("alias invalid"))
-	s.collector.AddStageError("WHERE", errors.New("bad condition"))
+func TestStageErrorCollector_StringMethod(t *testing.T) {
+	c := &errors.StageErrorCollector{}
+	c.AddStageError("ORDER", stdErrors.New("invalid direction"))
 
-	grouped := s.collector.ErrorsByStage()
-	assert.Len(s.T(), grouped["SELECT"], 2)
-	assert.Len(s.T(), grouped["WHERE"], 1)
-}
-
-func (s *StageErrorSuite) TestCombineErrorsFormat() {
-	s.collector.AddStageError("FROM", errors.New("table empty"))
-	s.collector.AddStageError("SELECT", errors.New("missing fields"))
-	s.collector.AddStageError("SELECT", errors.New("bad alias"))
-
-	output := s.collector.CombineErrors()
-	assert.ErrorContains(s.T(), output, "[FROM] table empty")
-	assert.ErrorContains(s.T(), output, "[SELECT]")
-	assert.ErrorContains(s.T(), output, "missing fields")
-	assert.ErrorContains(s.T(), output, "bad alias")
-}
-
-func (s *StageErrorSuite) TestStringMethod() {
-	s.collector.AddStageError("ORDER", errors.New("invalid direction"))
-	assert.Equal(s.T(), s.collector.String(), s.collector.CombineErrors().Error())
-}
-
-func TestStageErrorSuite(t *testing.T) {
-	suite.Run(t, new(StageErrorSuite))
+	if got := c.String(); got != c.CombineErrors().Error() {
+		t.Errorf("expected String() and CombineErrors().Error() to match, got %q vs %q",
+			got, c.CombineErrors().Error())
+	}
 }

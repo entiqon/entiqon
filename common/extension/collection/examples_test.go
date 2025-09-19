@@ -3,7 +3,7 @@ package collection_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/collection"
+	"github.com/entiqon/common/extension/collection"
 )
 
 // ExampleNew demonstrates how to create a new collection and add items.

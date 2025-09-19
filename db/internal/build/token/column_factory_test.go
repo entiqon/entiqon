@@ -1,12 +1,9 @@
-// File: db/internal/build/token/column_factory_test.go
-
 package token_test
 
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/internal/build/token"
-	"github.com/stretchr/testify/assert"
+	"github.com/entiqon/db/internal/build/token"
 )
 
 func TestParseColumns(t *testing.T) {
@@ -17,34 +14,66 @@ func TestParseColumns(t *testing.T) {
 
 	t.Run("BasicUsage", func(t *testing.T) {
 		cols := token.NewColumnsFrom("id")
-		assert.Len(t, cols, 1)
-		assert.Equal(t, "id", cols[0].GetName())
-		assert.Nil(t, cols[0].GetError())
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		if cols[0].GetName() != "id" {
+			t.Errorf("expected name %q, got %q", "id", cols[0].GetName())
+		}
+		if err := cols[0].GetError(); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 	})
 
 	t.Run("CommaSeparatedInput", func(t *testing.T) {
 		cols := token.NewColumnsFrom("id, name")
-		assert.Len(t, cols, 2)
-		assert.Equal(t, "id", cols[0].GetName())
-		assert.Equal(t, "name", cols[1].GetName())
+		if len(cols) != 2 {
+			t.Fatalf("expected 2 columns, got %d", len(cols))
+		}
+		if cols[0].GetName() != "id" {
+			t.Errorf("expected first column %q, got %q", "id", cols[0].GetName())
+		}
+		if cols[1].GetName() != "name" {
+			t.Errorf("expected second column %q, got %q", "name", cols[1].GetName())
+		}
 	})
 
 	t.Run("InlineAlias", func(t *testing.T) {
 		cols := token.NewColumnsFrom("user_id AS uid")
-		assert.Len(t, cols, 1)
-		assert.Equal(t, "user_id", cols[0].GetName())
-		assert.Equal(t, "uid", cols[0].GetAlias())
-		assert.Nil(t, cols[0].GetError())
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		if cols[0].GetName() != "user_id" {
+			t.Errorf("expected name %q, got %q", "user_id", cols[0].GetName())
+		}
+		if cols[0].GetAlias() != "uid" {
+			t.Errorf("expected alias %q, got %q", "uid", cols[0].GetAlias())
+		}
+		if err := cols[0].GetError(); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 	})
 
 	t.Run("ExplicitAlias", func(t *testing.T) {
 		cols := token.NewColumnsFrom("email", "contact AS primary_email")
-		assert.Len(t, cols, 2)
-		assert.Equal(t, "email", cols[0].GetName())
-		assert.Nil(t, cols[0].GetError())
-		assert.Equal(t, "contact", cols[1].GetName())
-		assert.Equal(t, "primary_email", cols[1].GetAlias())
-		assert.Nil(t, cols[1].GetError())
+		if len(cols) != 2 {
+			t.Fatalf("expected 2 columns, got %d", len(cols))
+		}
+		if cols[0].GetName() != "email" {
+			t.Errorf("expected name %q, got %q", "email", cols[0].GetName())
+		}
+		if err := cols[0].GetError(); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if cols[1].GetName() != "contact" {
+			t.Errorf("expected name %q, got %q", "contact", cols[1].GetName())
+		}
+		if cols[1].GetAlias() != "primary_email" {
+			t.Errorf("expected alias %q, got %q", "primary_email", cols[1].GetAlias())
+		}
+		if err := cols[1].GetError(); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 	})
 
 	//--------------------------------------------------
@@ -53,25 +82,35 @@ func TestParseColumns(t *testing.T) {
 
 	t.Run("EmptyInput", func(t *testing.T) {
 		cols := token.NewColumnsFrom("")
-		assert.Len(t, cols, 1)
-		//assert.Error(t, cols[0].Error)
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		// error check depends on implementation
 	})
 
 	t.Run("OnlyWhitespace", func(t *testing.T) {
 		cols := token.NewColumnsFrom("   ")
-		assert.Len(t, cols, 1)
-		//assert.Error(t, cols[0].Error)
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		// error check depends on implementation
 	})
 
 	t.Run("OnlyAliasKeyword", func(t *testing.T) {
 		cols := token.NewColumnsFrom("AS alias")
-		assert.Len(t, cols, 1)
-		//assert.Error(t, cols[0].Error)
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		// error check depends on implementation
 	})
 
 	t.Run("AliasWithoutName", func(t *testing.T) {
 		cols := token.NewColumnsFrom(" AS email")
-		assert.Len(t, cols, 1)
-		assert.Error(t, cols[0].GetError())
+		if len(cols) != 1 {
+			t.Fatalf("expected 1 column, got %d", len(cols))
+		}
+		if err := cols[0].GetError(); err == nil {
+			t.Errorf("expected error, got nil")
+		}
 	})
 }

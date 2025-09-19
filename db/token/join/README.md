@@ -1,5 +1,7 @@
 # 🔗 Join
 
+> Part of [Entiqon](../../../) / [Database](../../) / [Token](../)
+
 ## 📜 User Guide
 
 `join.Token` represents a **SQL JOIN clause** between two tables or subqueries,

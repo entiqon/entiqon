@@ -5,7 +5,7 @@ package integer
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/common/extension/float"
+	"github.com/entiqon/common/extension/float"
 )
 
 // ParseFrom converts a variety of input types into an int,

@@ -6,8 +6,8 @@ import (
 	stdErrors "errors"
 	"testing"
 
-	"github.com/entiqon/entiqon/common"
-	"github.com/entiqon/entiqon/common/errors"
+	"github.com/entiqon/common"
+	"github.com/entiqon/common/errors"
 )
 
 func TestProcessStageError(t *testing.T) {

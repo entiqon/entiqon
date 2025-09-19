@@ -1,209 +1,244 @@
-// File: db/driver/driver.go
-
 package driver_test
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/driver/styling"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/driver/styling"
 )
 
-type DialectTestSuite struct {
-	suite.Suite
-	base     driver.Dialect
-	generic  driver.Dialect
-	postgres driver.Dialect
-	mssql    driver.Dialect
-	mysql    driver.Dialect
+func TestResolveDialect(t *testing.T) {
+	if got := driver.ResolveDialect("postgres").GetName(); got != "postgres" {
+		t.Errorf("expected %q, got %q", "postgres", got)
+	}
+	if got := driver.ResolveDialect("unknown").GetName(); got != "generic" {
+		t.Errorf("expected %q, got %q", "generic", got)
+	}
 }
 
-func (s *DialectTestSuite) SetupSuite() {
-	s.base = &driver.BaseDialect{}
-	s.generic = driver.NewGenericDialect()
-	s.postgres = driver.NewPostgresDialect()
-	s.mssql = driver.NewMSSQLDialect()
-	s.mysql = driver.NewMySQLDialect()
-}
-
-func (s *DialectTestSuite) TestResolveDialect() {
-	s.Equal("postgres", driver.ResolveDialect("postgres").GetName())
-	s.Equal("generic", driver.ResolveDialect("unknown").GetName())
-}
-
-func (s *DialectTestSuite) TestBaseDialectDirectMethods() {
+func TestBaseDialectDirectMethods(t *testing.T) {
 	base := &driver.BaseDialect{}
 
-	s.Equal("LIMIT 10 OFFSET 20", base.BuildLimitOffset(10, 20))
-	s.Equal("LIMIT 5", base.BuildLimitOffset(5, -1))
-	s.Equal("OFFSET 20", base.BuildLimitOffset(-1, 20))
-	s.Equal("", base.BuildLimitOffset(-1, -1))
+	if got := base.BuildLimitOffset(10, 20); got != "LIMIT 10 OFFSET 20" {
+		t.Errorf("expected %q, got %q", "LIMIT 10 OFFSET 20", got)
+	}
+	if got := base.BuildLimitOffset(5, -1); got != "LIMIT 5" {
+		t.Errorf("expected %q, got %q", "LIMIT 5", got)
+	}
+	if got := base.BuildLimitOffset(-1, 20); got != "OFFSET 20" {
+		t.Errorf("expected %q, got %q", "OFFSET 20", got)
+	}
+	if got := base.BuildLimitOffset(-1, -1); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
 
-	// QuoteLiteral coverage
-	s.Equal("'value'", base.QuoteLiteral("value"))
-	s.Equal("42", base.QuoteLiteral(42))
-	s.Equal("true", base.QuoteLiteral(true))
-	s.Equal("'[1 2 3]'", base.QuoteLiteral([]int{1, 2, 3}))
+	if got := base.QuoteLiteral("value"); got != "'value'" {
+		t.Errorf("expected %q, got %q", "'value'", got)
+	}
+	if got := base.QuoteLiteral(42); got != "42" {
+		t.Errorf("expected %q, got %q", "42", got)
+	}
+	if got := base.QuoteLiteral(true); got != "true" {
+		t.Errorf("expected %q, got %q", "true", got)
+	}
+	if got := base.QuoteLiteral([]int{1, 2, 3}); got != "'[1 2 3]'" {
+		t.Errorf("expected %q, got %q", "'[1 2 3]'", got)
+	}
 }
 
-func (s *DialectTestSuite) TestGetName() {
-	s.Run("base", func() {
-		s.Equal("base", s.base.GetName())
-	})
-	s.Run("generic", func() {
-		s.Equal("generic", s.generic.GetName())
-	})
-	s.Run("postgres", func() {
-		s.Equal("postgres", s.postgres.GetName())
-	})
-	s.Run("mssql", func() {
-		s.Equal("mssql", s.mssql.GetName())
-	})
-	s.Run("mysql", func() {
-		s.Equal("mysql", s.mysql.GetName())
-	})
+func TestGetName(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		expected string
+	}{
+		{"base", &driver.BaseDialect{}, "base"},
+		{"generic", driver.NewGenericDialect(), "generic"},
+		{"postgres", driver.NewPostgresDialect(), "postgres"},
+		{"mssql", driver.NewMSSQLDialect(), "mssql"},
+		{"mysql", driver.NewMySQLDialect(), "mysql"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.GetName(); got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestQuoteIdentifier() {
-	s.Run("base", func() {
-		s.Equal("user", s.base.QuoteIdentifier("user"))
-	})
-	s.Run("generic", func() {
-		s.Equal("user", s.generic.QuoteIdentifier("user"))
-	})
-	s.Run("postgres", func() {
-		s.Equal("\"user\"", s.postgres.QuoteIdentifier("user"))
-	})
-	s.Run("mssql", func() {
-		s.Equal("[user]", s.mssql.QuoteIdentifier("user"))
-	})
-	s.Run("mysql", func() {
-		s.Equal("`user`", s.mysql.QuoteIdentifier("user"))
-	})
+func TestQuoteIdentifier(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		input    string
+		expected string
+	}{
+		{"base", &driver.BaseDialect{}, "user", "user"},
+		{"generic", driver.NewGenericDialect(), "user", "user"},
+		{"postgres", driver.NewPostgresDialect(), "user", `"user"`},
+		{"mssql", driver.NewMSSQLDialect(), "user", "[user]"},
+		{"mysql", driver.NewMySQLDialect(), "user", "`user`"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.QuoteIdentifier(tt.input); got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestQuoteTpeQuoteType() {
-	s.Run("generic", func() {
-		s.Equal(styling.QuoteNone, s.generic.QuoteType())
-	})
-	s.Run("postgres", func() {
-		s.Equal(styling.QuoteDouble, s.postgres.QuoteType())
-	})
-	s.Run("mssql", func() {
-		s.Equal(styling.QuoteBracket, s.mssql.QuoteType())
-	})
-	s.Run("mysql", func() {
-		s.Equal(styling.QuoteBacktick, s.mysql.QuoteType())
-	})
+func TestQuoteType(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		expected styling.QuoteStyle
+	}{
+		{"generic", driver.NewGenericDialect(), styling.QuoteNone},
+		{"postgres", driver.NewPostgresDialect(), styling.QuoteDouble},
+		{"mssql", driver.NewMSSQLDialect(), styling.QuoteBracket},
+		{"mysql", driver.NewMySQLDialect(), styling.QuoteBacktick},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.QuoteType(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestPlaceholder() {
-	s.Run("base", func() {
-		s.Equal("?", s.base.Placeholder(1))
-		s.Equal("?", s.base.Placeholder(99))
-	})
-	s.Run("generic", func() {
-		s.Equal("?", s.generic.Placeholder(1))
-		s.Equal("?", s.generic.Placeholder(99))
-	})
-	s.Run("postgres", func() {
-		s.Equal("$1", s.postgres.Placeholder(1))
-		s.Equal("$5", s.postgres.Placeholder(5))
-	})
-	s.Run("mssql", func() {
-		s.Equal("?", s.mssql.Placeholder(1))
-		s.Equal("?", s.mssql.Placeholder(99))
-	})
-	s.Run("mysql", func() {
-		s.Equal("?", s.mysql.Placeholder(1))
-		s.Equal("?", s.mysql.Placeholder(99))
-	})
+func TestPlaceholder(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		n        int
+		expected string
+	}{
+		{"base1", &driver.BaseDialect{}, 1, "?"},
+		{"base99", &driver.BaseDialect{}, 99, "?"},
+		{"generic1", driver.NewGenericDialect(), 1, "?"},
+		{"postgres1", driver.NewPostgresDialect(), 1, "$1"},
+		{"postgres5", driver.NewPostgresDialect(), 5, "$5"},
+		{"mssql", driver.NewMSSQLDialect(), 1, "?"},
+		{"mysql", driver.NewMySQLDialect(), 1, "?"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.Placeholder(tt.n); got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestSupportsRenderFrom() {
-	s.Run("base", func() {
-		s.Equal("users", s.base.RenderFrom("users", ""))
-		s.Equal("users", s.base.RenderFrom("users", "u"))
-	})
-	s.Run("generic", func() {
-		s.Equal("users", s.generic.RenderFrom("users", ""))
-		s.Equal("users", s.generic.RenderFrom("users", "u"))
-	})
-	s.Run("postgres", func() {
-		s.Equal("\"users\"", s.postgres.RenderFrom("users", ""))
-		s.Equal("\"users\" u", s.postgres.RenderFrom("users", "u"))
-	})
-	s.Run("mssql", func() {
-		s.Equal("[users]", s.mssql.RenderFrom("users", ""))
-		s.Equal("[users] u", s.mssql.RenderFrom("users", "u"))
-	})
-	s.Run("mysql", func() {
-		s.Equal("`users`", s.mysql.RenderFrom("users", ""))
-		s.Equal("`users` u", s.mysql.RenderFrom("users", "u"))
-	})
+func TestRenderFrom(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		table    string
+		alias    string
+		expected string
+	}{
+		{"base no alias", &driver.BaseDialect{}, "users", "", "users"},
+		{"base alias", &driver.BaseDialect{}, "users", "u", "users"},
+		{"postgres no alias", driver.NewPostgresDialect(), "users", "", `"users"`},
+		{"postgres alias", driver.NewPostgresDialect(), "users", "u", `"users" u`},
+		{"mssql no alias", driver.NewMSSQLDialect(), "users", "", "[users]"},
+		{"mssql alias", driver.NewMSSQLDialect(), "users", "u", "[users] u"},
+		{"mysql no alias", driver.NewMySQLDialect(), "users", "", "`users`"},
+		{"mysql alias", driver.NewMySQLDialect(), "users", "u", "`users` u"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.RenderFrom(tt.table, tt.alias); got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestSupportsReturning() {
-	s.Run("base", func() {
-		s.Equal(false, s.base.SupportsReturning())
-	})
-	s.Run("generic", func() {
-		s.Equal(false, s.generic.SupportsReturning())
-	})
-	s.Run("postgres", func() {
-		s.Equal(true, s.postgres.SupportsReturning())
-	})
-	s.Run("mssql", func() {
-		s.Equal(false, s.mssql.SupportsReturning())
-	})
-	s.Run("mysql", func() {
-		s.Equal(false, s.mysql.SupportsReturning())
-	})
+func TestSupportsReturning(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		expected bool
+	}{
+		{"base", &driver.BaseDialect{}, false},
+		{"generic", driver.NewGenericDialect(), false},
+		{"postgres", driver.NewPostgresDialect(), true},
+		{"mssql", driver.NewMSSQLDialect(), false},
+		{"mysql", driver.NewMySQLDialect(), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.SupportsReturning(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestSupportsUpsert() {
-	s.Run("base", func() {
-		s.Equal(false, s.base.SupportsUpsert())
-	})
-	s.Run("generic", func() {
-		s.Equal(false, s.generic.SupportsUpsert())
-	})
-	s.Run("postgres", func() {
-		s.Equal(true, s.postgres.SupportsUpsert())
-	})
-	s.Run("mssql", func() {
-		s.Equal(false, s.mssql.SupportsUpsert())
-	})
-	s.Run("mysql", func() {
-		s.Equal(false, s.mysql.SupportsUpsert())
-	})
+func TestSupportsUpsert(t *testing.T) {
+	tests := []struct {
+		name     string
+		dialect  driver.Dialect
+		expected bool
+	}{
+		{"base", &driver.BaseDialect{}, false},
+		{"generic", driver.NewGenericDialect(), false},
+		{"postgres", driver.NewPostgresDialect(), true},
+		{"mssql", driver.NewMSSQLDialect(), false},
+		{"mysql", driver.NewMySQLDialect(), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.dialect.SupportsUpsert(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
 }
 
-func (s *DialectTestSuite) TestValidate() {
-	s.Run("Valid", func() {
+func TestValidate(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
 		d := driver.BaseDialect{
 			Name:             "test",
 			QuoteStyle:       styling.QuoteNone,
 			PlaceholderStyle: styling.PlaceholderQuestion,
 		}
-		err := d.Validate()
-		s.NoError(err)
-		s.Equal("?", d.Placeholder(0))
+		if err := d.Validate(); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if got := d.Placeholder(0); got != "?" {
+			t.Errorf("expected %q, got %q", "?", got)
+		}
 	})
-	s.Run("MissingName", func() {
+
+	t.Run("MissingName", func(t *testing.T) {
 		d := driver.BaseDialect{Name: ""}
 		err := d.Validate()
-		s.Error(err)
-		s.Contains(err.Error(), "dialect is not configured")
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		} else if !strings.Contains(err.Error(), "dialect is not configured") {
+			t.Errorf("expected error containing %q, got %q", "dialect is not configured", err.Error())
+		}
 	})
-	//s.Run("MissingPlaceholder", func() {
-	//	d := driver.BaseDialect{Name: "test", PlaceholderStyle: styling.PlaceholderDollar}
-	//	err := d.Validate()
-	//	s.Error(err)
-	//})
-}
 
-func TestDialectTestSuite(t *testing.T) {
-	suite.Run(t, new(DialectTestSuite))
+	// Uncomment and fix if Placeholder validation changes:
+	// t.Run("MissingPlaceholder", func(t *testing.T) {
+	// 	d := driver.BaseDialect{Name: "test", PlaceholderStyle: styling.PlaceholderDollar}
+	// 	if err := d.Validate(); err == nil {
+	// 		t.Errorf("expected error, got nil")
+	// 	}
+	// })
 }

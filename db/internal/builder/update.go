@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/core/builder"
-	"github.com/entiqon/entiqon/db/internal/core/builder/bind"
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/core/builder"
+	"github.com/entiqon/db/internal/core/builder/bind"
+	"github.com/entiqon/db/internal/core/errors"
+	"github.com/entiqon/db/internal/core/token"
 )
 
 // UpdateBuilder builds a SQL UPDATE query with fluent syntax and dialect_engine.md support.
 type UpdateBuilder struct {
 	BaseBuilder
 	table       string
-	assignments []token2.FieldToken
-	conditions  []token2.Condition
+	assignments []token.FieldToken
+	conditions  []token.Condition
 }
 
 // NewUpdate creates a new UpdateBuilder using the given SQL dialect.
@@ -32,8 +32,8 @@ func NewUpdate(dialect driver.Dialect) *UpdateBuilder {
 
 	return &UpdateBuilder{
 		BaseBuilder: base,
-		assignments: []token2.FieldToken{},
-		conditions:  []token2.Condition{},
+		assignments: []token.FieldToken{},
+		conditions:  []token.Condition{},
 	}
 }
 
@@ -51,7 +51,7 @@ func (b *UpdateBuilder) Table(name string) *UpdateBuilder {
 // The value will be stored and interpolated with placeholders.
 // NOTE: Alias use is disallowed and will raise an error during Build().
 func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
-	b.assignments = append(b.assignments, token2.Field(column).WithValue(value))
+	b.assignments = append(b.assignments, token.Field(column).WithValue(value))
 	return b
 }
 
@@ -59,20 +59,20 @@ func (b *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
 // Where sets the base WHERE clause as a simple condition.
 // This replaces any existing conditions.
 func (b *UpdateBuilder) Where(condition string, values ...any) *UpdateBuilder {
-	c := token2.NewCondition(token2.ConditionSimple, condition, values)
+	c := token.NewCondition(token.ConditionSimple, condition, values)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.errors.AddStageError(errors.StageWhere, c.Error)
 	}
-	b.conditions = append([]token2.Condition{}, c)
+	b.conditions = append([]token.Condition{}, c)
 	return b
 }
 
 // AndWhere adds an AND clause.
 // AndWhere appends a condition with an AND operator to the current WHERE clause.
 func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder {
-	c := token2.NewCondition(token2.ConditionAnd, condition, values)
+	c := token.NewCondition(token.ConditionAnd, condition, values)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.errors.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -81,9 +81,9 @@ func (b *UpdateBuilder) AndWhere(condition string, values ...any) *UpdateBuilder
 // OrWhere adds an OR clause.
 // OrWhere appends a condition with an OR operator to the current WHERE clause.
 func (b *UpdateBuilder) OrWhere(condition string, values ...any) *UpdateBuilder {
-	c := token2.NewCondition(token2.ConditionOr, condition, values)
+	c := token.NewCondition(token.ConditionOr, condition, values)
 	if !c.IsValid() {
-		b.errors.AddStageError(core.StageWhere, c.Error)
+		b.errors.AddStageError(errors.StageWhere, c.Error)
 	}
 	b.conditions = append(b.conditions, c)
 	return b
@@ -99,10 +99,10 @@ func (b *UpdateBuilder) UseDialect(name string) *UpdateBuilder {
 // Build renders the UPDATE SQL query and returns the query + args.
 func (b *UpdateBuilder) Build() (string, []any, error) {
 	if b.table == "" {
-		b.Validator.AddStageError(core.StageFrom, fmt.Errorf("requires a target table"))
+		b.Validator.AddStageError(errors.StageFrom, fmt.Errorf("requires a target table"))
 	}
 	if len(b.assignments) == 0 {
-		b.Validator.AddStageError(core.StageSet, fmt.Errorf("must define at least one column assignment"))
+		b.Validator.AddStageError(errors.StageSet, fmt.Errorf("must define at least one column assignment"))
 	}
 
 	dialect := b.GetDialect()
@@ -113,7 +113,7 @@ func (b *UpdateBuilder) Build() (string, []any, error) {
 	for _, f := range b.assignments {
 		if f.Alias != "" {
 			b.Validator.AddStageError(
-				core.StageSet,
+				errors.StageSet,
 				fmt.Errorf("column aliasing is not supported: '%s AS %s'", f.Name, f.Alias),
 			)
 			continue

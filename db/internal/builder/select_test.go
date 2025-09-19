@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/builder"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/builder"
 )
 
 func TestSelectBuilder(t *testing.T) {

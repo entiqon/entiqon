@@ -3,7 +3,7 @@ package join_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/types/join"
+	"github.com/entiqon/db/token/types/join"
 )
 
 func ExampleType_String() {

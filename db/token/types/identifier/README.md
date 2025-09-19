@@ -43,7 +43,7 @@ package main
 import (
 	"fmt"
 
-	"entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 func main() {

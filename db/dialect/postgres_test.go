@@ -5,7 +5,7 @@ package dialect_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/dialect"
+	"github.com/entiqon/db/dialect"
 )
 
 func TestPostgresDialect(t *testing.T) {

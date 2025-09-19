@@ -5,8 +5,8 @@ package render
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/build/token"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/build/token"
 )
 
 // Column renders a dialect-safe SQL column expression for use in SELECT, INSERT, or UPDATE clauses.

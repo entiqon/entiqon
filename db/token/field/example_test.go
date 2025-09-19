@@ -3,7 +3,7 @@ package field_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/field"
+	"github.com/entiqon/db/token/field"
 )
 
 // ExampleField_Input shows that Input() preserves the original input string.

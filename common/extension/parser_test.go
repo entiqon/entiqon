@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension"
+	"github.com/entiqon/common/extension"
 )
 
 func TestParser(t *testing.T) {

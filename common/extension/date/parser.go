@@ -45,7 +45,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/entiqon/entiqon/common/extension/date/internal"
+	"github.com/entiqon/common/extension/date/internal"
 )
 
 // ParseFrom attempts to parse value into a time.Time.

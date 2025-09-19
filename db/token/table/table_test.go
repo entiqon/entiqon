@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/token/table"
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/table"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 func TestTable(t *testing.T) {

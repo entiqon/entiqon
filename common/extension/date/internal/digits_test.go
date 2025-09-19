@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/entiqon/entiqon/common/extension/date/internal"
+	"github.com/entiqon/common/extension/date/internal"
 )
 
 func TestDigits(t *testing.T) {

@@ -3,7 +3,7 @@ package operator_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/types/operator"
+	"github.com/entiqon/db/token/types/operator"
 )
 
 func ExampleType_Alias() {

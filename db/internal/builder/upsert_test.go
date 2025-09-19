@@ -1,64 +1,55 @@
-// File: db/builder/upsert_test.go
-
 package builder
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
 )
 
-type UpsertBuilderTestSuite struct {
-	suite.Suite
-}
-
-func TestUpsertBuilderTestSuite(t *testing.T) {
-	suite.Run(t, new(UpsertBuilderTestSuite))
-}
-
-// ─────────────────────────────────────────────
-// 🧪 WithDialect
-// ─────────────────────────────────────────────
-func (s *UpsertBuilderTestSuite) TestWithDialect_EscapesIdentifiers() {
+func TestUpsertBuilder_WithDialect_EscapesIdentifiers(t *testing.T) {
 	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
 		OnConflict("user id").
-		DoUpdateSet(
-			Assignment{Column: "email", Expr: "EXCLUDED.email"},
-		)
+		DoUpdateSet(Assignment{Column: "email", Expr: "EXCLUDED.email"})
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		`INSERT INTO "user profile" ("user id", "email") VALUES ($1, $2) ON CONFLICT ("user id") DO UPDATE SET "email" = EXCLUDED.email`,
-		sql,
-	)
-	s.Equal([]any{99, "hello@test.dev"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "user profile" ("user id", "email") VALUES ($1, $2) ON CONFLICT ("user id") DO UPDATE SET "email" = EXCLUDED.email`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 99 || args[1] != "hello@test.dev" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *UpsertBuilderTestSuite) TestWithoutDialect() {
+func TestUpsertBuilder_WithoutDialect(t *testing.T) {
 	q := NewUpsert(nil).
 		Into("user profile").
 		Columns("user id", "email").
 		Values(99, "hello@test.dev").
 		OnConflict("user id").
-		DoUpdateSet(
-			Assignment{Column: "email", Expr: "EXCLUDED.email"},
-		)
+		DoUpdateSet(Assignment{Column: "email", Expr: "EXCLUDED.email"})
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		`INSERT INTO user profile (user id, email) VALUES (?, ?) ON CONFLICT (user id) DO UPDATE SET email = EXCLUDED.email`,
-		sql,
-	)
-	s.Equal([]any{99, "hello@test.dev"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO user profile (user id, email) VALUES (?, ?) ON CONFLICT (user id) DO UPDATE SET email = EXCLUDED.email`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 99 || args[1] != "hello@test.dev" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
+func TestUpsertBuilder_Returning_WithoutDialectRawNames(t *testing.T) {
 	q := NewUpsert(nil).
 		Into("emails").
 		Columns("id", "value").
@@ -67,38 +58,40 @@ func (s *UpsertBuilderTestSuite) TestReturning_WithoutDialectRawNames() {
 		Returning("id", "value")
 
 	sql, args, err := q.Build()
-	s.Require().Error(err)
-	s.Empty(sql)
-	s.Nil(args)
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if sql != "" {
+		t.Errorf("expected empty SQL, got %q", sql)
+	}
+	if args != nil {
+		t.Errorf("expected nil args, got %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Returning
-// ─────────────────────────────────────────────
-func (s *UpsertBuilderTestSuite) TestReturning_AppendsReturningClause() {
+func TestUpsertBuilder_Returning_AppendsReturningClause(t *testing.T) {
 	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("users").
 		Columns("id", "email").
 		Values(1, "dev@entiqon.dev").
 		OnConflict("id").
-		DoUpdateSet(
-			Assignment{Column: "email", Expr: "EXCLUDED.email"},
-		).
+		DoUpdateSet(Assignment{Column: "email", Expr: "EXCLUDED.email"}).
 		Returning("id", "email")
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		"INSERT INTO \"users\" (\"id\", \"email\") VALUES ($1, $2) ON CONFLICT (\"id\") DO UPDATE SET \"email\" = EXCLUDED.email RETURNING \"id\", \"email\"",
-		sql,
-	)
-	s.Equal([]any{1, "dev@entiqon.dev"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "users" ("id", "email") VALUES ($1, $2) ON CONFLICT ("id") DO UPDATE SET "email" = EXCLUDED.email RETURNING "id", "email"`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "dev@entiqon.dev" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 DoUpdateSet
-// ─────────────────────────────────────────────
-func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
+func TestUpsertBuilder_DoUpdateSet_AppendsAssignments(t *testing.T) {
 	q := NewUpsert(nil).
 		DoUpdateSet(
 			Assignment{Column: "name", Expr: "EXCLUDED.name"},
@@ -106,18 +99,18 @@ func (s *UpsertBuilderTestSuite) TestDoUpdateSet_AppendsAssignments() {
 		)
 
 	sql, args, _ := q.Build()
-	s.Empty(sql)
-	s.Len(args, 0) // ensure no values are injected yet
-	s.Equal([]Assignment{
-		{Column: "name", Expr: "EXCLUDED.name"},
-		{Column: "email", Expr: "EXCLUDED.email"},
-	}, q.DoUpdateSet().updateSet)
+	if sql != "" {
+		t.Errorf("expected empty SQL, got %q", sql)
+	}
+	if len(args) != 0 {
+		t.Errorf("expected empty args, got %#v", args)
+	}
+	if got := q.DoUpdateSet().updateSet; len(got) != 2 {
+		t.Errorf("expected 2 assignments, got %#v", got)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 OnConflict
-// ─────────────────────────────────────────────
-func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
+func TestUpsertBuilder_OnConflict_AppendsConflictColumns(t *testing.T) {
 	q := NewUpsert(driver.NewPostgresDialect()).
 		Into("people").
 		Columns("id", "email").
@@ -125,37 +118,40 @@ func (s *UpsertBuilderTestSuite) TestOnConflict_AppendsConflictColumns() {
 		OnConflict("id", "email")
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		`INSERT INTO "people" ("id", "email") VALUES ($1, $2) ON CONFLICT ("id", "email") DO NOTHING`,
-		sql,
-	)
-	s.Equal([]any{1, "someone@dev.com"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO "people" ("id", "email") VALUES ($1, $2) ON CONFLICT ("id", "email") DO NOTHING`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "someone@dev.com" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Build
-// ─────────────────────────────────────────────
-func (s *UpsertBuilderTestSuite) TestBuild_DoUpdate() {
+func TestUpsertBuilder_Build_DoUpdate(t *testing.T) {
 	q := NewUpsert(nil).
 		Into("users").
 		Columns("id", "name").
 		Values(1, "Watson").
 		OnConflict("id").
-		DoUpdateSet(
-			Assignment{Column: "name", Expr: "EXCLUDED.name"},
-		)
+		DoUpdateSet(Assignment{Column: "name", Expr: "EXCLUDED.name"})
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		"INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name",
-		sql,
-	)
-	s.Equal([]any{1, "Watson"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "Watson" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
+func TestUpsertBuilder_Build_DoNothing(t *testing.T) {
 	q := NewUpsert(nil).
 		Into("users").
 		Columns("id", "name").
@@ -163,48 +159,54 @@ func (s *UpsertBuilderTestSuite) TestBuild_DoNothing() {
 		OnConflict("id")
 
 	sql, args, err := q.Build()
-	s.Require().NoError(err)
-	s.Equal(
-		"INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO NOTHING",
-		sql,
-	)
-	s.Equal([]any{1, "Watson"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := `INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO NOTHING`
+	if sql != expected {
+		t.Errorf("expected %q, got %q", expected, sql)
+	}
+	if len(args) != 2 || args[0] != 1 || args[1] != "Watson" {
+		t.Errorf("unexpected args: %#v", args)
+	}
 }
 
-func (s *UpsertBuilderTestSuite) TestBuild_BuildValidations() {
-	b := UpsertBuilder{}
-	s.Run("EmptyTable", func() {
+func TestUpsertBuilder_BuildValidations(t *testing.T) {
+	t.Run("EmptyTable", func(t *testing.T) {
 		_, _, err := NewUpsert(nil).Build()
-		s.Error(err)
-		s.Contains(err.Error(), "requires a target table")
+		if err == nil || !strings.Contains(err.Error(), "requires a target table") {
+			t.Errorf("expected table error, got %v", err)
+		}
 	})
-	s.Run("HasDialect", func() {
+	t.Run("HasDialect", func(t *testing.T) {
 		_, _, err := NewUpsert(nil).Into("users").Columns("id").Build()
-		s.Error(err)
-		s.Equal("generic", b.GetDialect().GetName())
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+		b := UpsertBuilder{}
+		if got := b.GetDialect().GetName(); got != "generic" {
+			t.Errorf("expected generic dialect, got %q", got)
+		}
 	})
-	s.Run("HasErrors", func() {
+	t.Run("HasErrors", func(t *testing.T) {
 		_, _, err := NewUpsert(nil).Into("users").Columns("").Build()
-		s.Error(err)
-		s.Contains(err.Error(), "at least one set of values is required")
+		if err == nil || !strings.Contains(err.Error(), "at least one set of values is required") {
+			t.Errorf("expected values error, got %v", err)
+		}
 	})
-	s.Run("Returning", func() {
+	t.Run("Returning", func(t *testing.T) {
 		_, _, err := NewUpsert(nil).Into("users").Columns("id").Values(1).Returning("id").Build()
-		s.Error(err)
-		s.Contains(err.Error(), "RETURNING not supported in dialect")
+		if err == nil || !strings.Contains(err.Error(), "RETURNING not supported in dialect") {
+			t.Errorf("expected returning error, got %v", err)
+		}
 	})
-	s.Run("ColumnWithAlias", func() {
+	t.Run("ColumnWithAlias", func(t *testing.T) {
 		_, _, err := NewUpsert(nil).Into("users").
 			Columns("id AS IDENTIFIER").
 			Values(1).
 			Build()
-		s.Error(err)
-		s.Contains(err.Error(), "row 1 has 1 values")
+		if err == nil || !strings.Contains(err.Error(), "row 1 has 1 values") {
+			t.Errorf("expected alias/value mismatch, got %v", err)
+		}
 	})
-}
-
-// helper to normalize sql sources incomplete statements for inspection
-func (s *UpsertBuilderTestSuite) normalizeSQL(q *UpsertBuilder) string {
-	sql, _, _ := q.Build()
-	return sql
 }

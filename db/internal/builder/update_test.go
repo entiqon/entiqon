@@ -1,166 +1,154 @@
-// File: db/builder/update_test.go
-
 package builder
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
-	core "github.com/entiqon/entiqon/db/internal/core/errors"
-	token2 "github.com/entiqon/entiqon/db/internal/core/token"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/internal/core/errors"
+	"github.com/entiqon/db/internal/core/token"
 )
 
-type UpdateBuilderTestSuite struct {
-	suite.Suite
-	qb *UpdateBuilder
-}
-
-func (s *UpdateBuilderTestSuite) SetupTest() {
-	s.qb = NewUpdate(nil)
-}
-
-// ─────────────────────────────────────────────
-// 🧪 Table
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestTable_SetsTableName() {
-	sql, _, err := s.qb.
+func TestUpdateBuilder_Table(t *testing.T) {
+	sql, _, err := NewUpdate(nil).
 		Table("users").
 		Set("status", "active").
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "UPDATE users")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "UPDATE users") {
+		t.Errorf("expected SQL to contain %q, got %q", "UPDATE users", sql)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Set
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestSet_AppendsAssignment() {
-	sql, args, err := s.qb.
+func TestUpdateBuilder_Set(t *testing.T) {
+	sql, args, err := NewUpdate(nil).
 		Table("users").
 		Set("status", "active").
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "SET status = ?")
-	s.Equal([]any{"active"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "SET status = ?") {
+		t.Errorf("expected SQL to contain %q, got %q", "SET status = ?", sql)
+	}
+	if len(args) != 1 || args[0] != "active" {
+		t.Errorf("expected args [active], got %#v", args)
+	}
 }
 
-// 🧪 Set (Multiple)
-func (s *UpdateBuilderTestSuite) TestSet_MultipleAssignments() {
-	sql, args, err := s.qb.
+func TestUpdateBuilder_SetMultiple(t *testing.T) {
+	sql, args, err := NewUpdate(nil).
 		Table("users").
 		Set("name", "Alice").
 		Set("status", "verified").
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "SET name = ?")
-	s.Contains(sql, "status = ?")
-	s.Equal([]any{"Alice", "verified"}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "SET name = ?") || !strings.Contains(sql, "status = ?") {
+		t.Errorf("expected SQL to contain assignments, got %q", sql)
+	}
+	if len(args) != 2 || args[0] != "Alice" || args[1] != "verified" {
+		t.Errorf("expected args [Alice verified], got %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Where
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestWhere_SetsInitialCondition() {
-	sql, args, err := s.qb.
+func TestUpdateBuilder_Where(t *testing.T) {
+	sql, args, err := NewUpdate(nil).
 		Table("users").
 		Set("name", "Watson").
 		Where("id = 42").
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "WHERE id = ?")
-	s.Equal([]any{"Watson", 42}, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "WHERE id = ?") {
+		t.Errorf("expected SQL to contain WHERE clause, got %q", sql)
+	}
+	if len(args) != 2 || args[0] != "Watson" || args[1] != 42 {
+		t.Errorf("expected args [Watson 42], got %#v", args)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 AndWhere
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestAndWhere_AppendsAndCondition() {
-	sql, _, err := s.qb.
+func TestUpdateBuilder_AndWhere(t *testing.T) {
+	sql, _, err := NewUpdate(nil).
 		Table("users").
 		Set("status", "inactive").
 		Where("deleted", false).
 		AndWhere("role", "admin").
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "WHERE deleted = ? AND role = ?")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "WHERE deleted = ? AND role = ?") {
+		t.Errorf("expected SQL to contain combined WHERE, got %q", sql)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 OrWhere
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestOrWhere_AppendsOrCondition() {
-	sql, _, err := s.qb.
+func TestUpdateBuilder_OrWhere(t *testing.T) {
+	sql, _, err := NewUpdate(nil).
 		Table("users").
 		Set("active", true).
 		Where("email_verified = true").
 		OrWhere("status = ?", false).
 		Build()
 
-	s.NoError(err)
-	s.Contains(sql, "WHERE email_verified = ? OR status = ?")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "WHERE email_verified = ? OR status = ?") {
+		t.Errorf("expected OR condition, got %q", sql)
+	}
 }
 
-// ─────────────────────────────────────────────
-// 🧪 Build
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestBuild_WithAliasedColumn() {
-	sql, args, err := s.qb.
+func TestUpdateBuilder_BuildErrors(t *testing.T) {
+	// Aliased column
+	sql, args, err := NewUpdate(nil).
 		Table("users").
 		Set("email AS contact", "watson@example.com").
 		Where("id", 1).
 		Build()
+	if err == nil {
+		t.Errorf("expected error for aliased column")
+	}
+	if sql != "" || args != nil {
+		t.Errorf("expected empty results on error, got sql=%q args=%#v", sql, args)
+	}
 
-	s.Error(err)
-	s.Equal(sql, "")
-	s.Nil(args)
-}
-
-func (s *UpdateBuilderTestSuite) TestBuild_MissingTableReturnsError() {
-	_, _, err := s.qb.
+	// Missing table
+	_, _, err = NewUpdate(nil).
 		Set("name", "Watson").
 		Build()
+	if err == nil || !strings.Contains(err.Error(), "requires a target table") {
+		t.Errorf("expected table missing error, got %v", err)
+	}
 
-	s.Error(err)
-	s.Contains(err.Error(), "requires a target table")
-}
-
-func (s *UpdateBuilderTestSuite) TestBuild_MissingAssignmentsReturnsError() {
-	_, _, err := s.qb.
+	// Missing assignments
+	_, _, err = NewUpdate(nil).
 		Table("users").
 		Build()
+	if err == nil || !strings.Contains(err.Error(), "must define at least one column assignment") {
+		t.Errorf("expected assignment error, got %v", err)
+	}
 
-	s.Error(err)
-	s.Contains(err.Error(), "must define at least one column assignment")
+	// Invalid condition type
+	q := NewUpdate(nil).Table("users").Set("name", "Watson")
+	q.conditions = append(q.conditions, token.Condition{Type: "💣", Key: "broken = true"})
+	_, _, err = q.Build()
+	if err == nil || !strings.Contains(err.Error(), "unsupported condition type") {
+		t.Errorf("expected unsupported condition type error, got %v", err)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestBuild_InvalidConditionType_ReturnsError() {
-	q := NewUpdate(nil).
-		Table("users").
-		Set("name", "Watson")
-
-	// Inject invalid condition
-	q.Set("x", "y") // keep Set valid
-	q.Table("users")
-	q.conditions = append(q.conditions, token2.Condition{
-		Type: "💣", Key: "broken = true",
-	})
-
-	_, _, err := q.Build()
-	s.Error(err)
-	s.Contains(err.Error(), "UPDATE: unsupported condition type")
-}
-
-// ─────────────────────────────────────────────
-// 🧪 UseDialect
-// ─────────────────────────────────────────────
-func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
-	sql, args, err := s.qb.
+func TestUpdateBuilder_UseDialect_Postgres(t *testing.T) {
+	sql, args, err := NewUpdate(nil).
 		Set("active", true).
 		Table("users").
 		Where("email_verified", true).
@@ -168,92 +156,128 @@ func (s *UpdateBuilderTestSuite) TestUpdateBuilder_UseDialect_Postgres() {
 		UseDialect("postgres").
 		Build()
 
-	s.NoError(err)
-	s.Equal([]any{true, true, false}, args)
-	s.Contains(sql, "WHERE \"email_verified\" = $2 OR \"email_verified\" = $3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(args) != 3 {
+		t.Errorf("expected 3 args, got %#v", args)
+	}
+	if !strings.Contains(sql, "WHERE \"email_verified\" = $2 OR \"email_verified\" = $3") {
+		t.Errorf("expected Postgres quoting, got %q", sql)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestAddStageError_AppendsToExistingToken() {
+func TestUpdateBuilder_AddStageError(t *testing.T) {
 	qb := NewUpdate(nil)
-	qb.AddStageError(core.StageWhere, fmt.Errorf("first"))
-	qb.AddStageError(core.StageWhere, fmt.Errorf("second"))
+	qb.AddStageError(errors.StageWhere, fmt.Errorf("first"))
+	qb.AddStageError(errors.StageWhere, fmt.Errorf("second"))
 
 	errs := qb.Validator.GetErrors()
-	s.Len(errs, 2)
-	s.ErrorContains(errs[0].Error, "first")
-	s.ErrorContains(errs[1].Error, "second")
+	if len(errs) != 2 {
+		t.Fatalf("expected 2 errors, got %d", len(errs))
+	}
+	if !strings.Contains(errs[0].Error.Error(), "first") ||
+		!strings.Contains(errs[1].Error.Error(), "second") {
+		t.Errorf("expected errors to contain first and second, got %#v", errs)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestAddStageError_CreatesNewTokenGroup() {
-	initialLen := len(s.qb.Validator.GetErrors())
-	s.qb.AddStageError("OR", fmt.Errorf("or error"))
+func TestUpdateBuilder_AddStageError_NewGroup(t *testing.T) {
+	qb := NewUpdate(nil)
+	initialLen := len(qb.Validator.GetErrors())
+	qb.AddStageError("OR", fmt.Errorf("or error"))
 
-	s.Len(s.qb.Validator.GetErrors(), initialLen+1)
-	s.Equal(core.StageToken("OR"), s.qb.Validator.GetErrors()[len(s.qb.Validator.GetErrors())-1].Stage)
-	s.ErrorContains(s.qb.Validator.GetErrors()[len(s.qb.Validator.GetErrors())-1].Error, "or error")
+	errs := qb.Validator.GetErrors()
+	if len(errs) != initialLen+1 {
+		t.Errorf("expected %d errors, got %d", initialLen+1, len(errs))
+	}
+	last := errs[len(errs)-1]
+	if last.Stage != "OR" {
+		t.Errorf("expected Stage OR, got %v", last.Stage)
+	}
+	if !strings.Contains(last.Error.Error(), "or error") {
+		t.Errorf("expected error message, got %v", last.Error)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestGetDialect_DefaultsToGeneric() {
-	s.qb.BaseBuilder = BaseBuilder{}
+func TestUpdateBuilder_GetDialect_DefaultsToGeneric(t *testing.T) {
+	u := NewUpdate(nil)
+	u.BaseBuilder = BaseBuilder{} // reset
 
-	d := s.qb.GetDialect()
-
-	s.NotNil(d)
-	s.Equal("generic", d.GetName())
+	d := u.GetDialect()
+	if d == nil {
+		t.Fatalf("expected non-nil dialect")
+	}
+	if got := d.GetName(); got != "generic" {
+		t.Errorf("expected generic dialect, got %q", got)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestGetErrors_ReturnsCollectedErrors() {
-	s.qb.AddStageError("WHERE", fmt.Errorf("invalid field"))
-	errs := s.qb.Validator.GetErrors()
+func TestUpdateBuilder_GetErrors(t *testing.T) {
+	u := NewUpdate(nil)
+	u.AddStageError("WHERE", fmt.Errorf("invalid field"))
 
-	s.Len(errs, 1)
-	s.Equal(core.StageWhere, errs[0].Stage)
-	s.ErrorContains(errs[0].Error, "invalid field")
+	errs := u.Validator.GetErrors()
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d", len(errs))
+	}
+	if errs[0].Stage != errors.StageWhere {
+		t.Errorf("expected stage WHERE, got %v", errs[0].Stage)
+	}
+	if !strings.Contains(errs[0].Error.Error(), "invalid field") {
+		t.Errorf("expected error message, got %v", errs[0].Error)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestUseDialect_ShortCircuitsOnEmptyOrSameName() {
-	s.qb.UseDialect("generic")
+func TestUpdateBuilder_UseDialectShortCircuit(t *testing.T) {
+	u := NewUpdate(nil).UseDialect("generic")
+	ptr1 := u.UseDialect("generic")
+	if ptr1.Dialect.GetName() != u.Dialect.GetName() {
+		t.Errorf("expected same dialect, got %q vs %q", ptr1.Dialect.GetName(), u.Dialect.GetName())
+	}
 
-	ptr1 := s.qb.UseDialect("generic")
-	s.Equal(ptr1.Dialect.GetName(), s.qb.Dialect.GetName())
-
-	ptr2 := s.qb.UseDialect("")
-	s.Equal(ptr2.Dialect.GetName(), s.qb.Dialect.GetName())
+	ptr2 := u.UseDialect("")
+	if ptr2.Dialect.GetName() != u.Dialect.GetName() {
+		t.Errorf("expected unchanged dialect on empty name")
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestUseDialect_ResolvesNamedDialect() {
-	s.qb.UseDialect("postgres")
-
-	d := s.qb.GetDialect()
-	s.Equal("postgres", d.GetName())
+func TestUpdateBuilder_UseDialect_ResolvesNamed(t *testing.T) {
+	u := NewUpdate(nil).UseDialect("postgres")
+	if got := u.GetDialect().GetName(); got != "postgres" {
+		t.Errorf("expected postgres dialect, got %q", got)
+	}
 }
 
-func (s *UpdateBuilderTestSuite) TestBuild_BuildValidations() {
-	c := token2.NewCondition(token2.ConditionSimple, "id = ?")
+func TestUpdateBuilder_BuildValidations(t *testing.T) {
+	c := token.NewCondition(token.ConditionSimple, "id = ?")
 
 	b := UpdateBuilder{}
 	if !c.IsValid() {
 		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
 	}
 	b.Table("users").Set("name", "Watson")
-	s.Run("HasDialect", func() {
+
+	t.Run("HasDialect", func(t *testing.T) {
 		b := NewUpdate(nil)
 		b.AddStageError("WHERE clause", fmt.Errorf("invalid clause"))
-		b.conditions = []token2.Condition{c}
+		b.conditions = []token.Condition{c}
 		_, _, err := b.Build()
-		s.Error(err)
-		s.Equal(true, b.HasDialect())
-		s.Equal("generic", b.Dialect.GetName())
+		if err == nil {
+			t.Errorf("expected error")
+		}
+		if !b.HasDialect() {
+			t.Errorf("expected HasDialect=true")
+		}
+		if b.Dialect.GetName() != "generic" {
+			t.Errorf("expected dialect=generic, got %q", b.Dialect.GetName())
+		}
 	})
-	s.Run("HasErrors", func() {
+
+	t.Run("HasErrors", func(t *testing.T) {
 		_, _, err := NewUpdate(nil).Build()
-
-		s.Error(err)
-		s.Contains(err.Error(), "must define at least one column assignment")
+		if err == nil || !strings.Contains(err.Error(), "must define at least one column assignment") {
+			t.Errorf("expected assignment error, got %v", err)
+		}
 	})
-
-}
-
-func TestUpdateBuilderTestSuite(t *testing.T) {
-	suite.Run(t, new(UpdateBuilderTestSuite))
 }

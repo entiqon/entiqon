@@ -3,7 +3,7 @@ package identifier_test
 import (
 	"fmt"
 
-	"github.com/entiqon/entiqon/db/token/types/identifier"
+	"github.com/entiqon/db/token/types/identifier"
 )
 
 // ExampleType demonstrates how to use the identifier.Type enum.

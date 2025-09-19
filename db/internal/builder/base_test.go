@@ -5,32 +5,27 @@ package builder_test
 import (
 	"testing"
 
-	"github.com/entiqon/entiqon/db/driver"
-	"github.com/entiqon/entiqon/db/internal/builder"
-	"github.com/stretchr/testify/suite"
+	"github.com/entiqon/db/driver"
+	"github.com/entiqon/db/internal/builder"
 )
 
-type BaseBuilderTestSuite struct {
-	suite.Suite
-	qb *builder.BaseBuilder
-}
-
-func (s *BaseBuilderTestSuite) SetupTest() {
-	s.qb = &builder.BaseBuilder{}
-}
-
-func (s *BaseBuilderTestSuite) TestHasDialect() {
-	s.Run("Valid", func() {
+func TestBaseBuilder_HasDialect(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
 		dialect := driver.BaseDialect{}
+		if got := dialect.GetName(); got != "base" {
+			t.Errorf("expected %q, got %q", "base", got)
+		}
 
-		s.Equal("base", dialect.GetName())
-		s.False(s.qb.HasDialect())
+		qb := &builder.BaseBuilder{}
+		if qb.HasDialect() {
+			t.Errorf("expected HasDialect=false, got true")
+		}
 	})
-	s.Run("Invalid", func() {
-		s.False(s.qb.HasDialect())
-	})
-}
 
-func TestBaseBuilderTestSuite(t *testing.T) {
-	suite.Run(t, new(BaseBuilderTestSuite))
+	t.Run("Invalid", func(t *testing.T) {
+		qb := &builder.BaseBuilder{}
+		if qb.HasDialect() {
+			t.Errorf("expected HasDialect=false, got true")
+		}
+	})
 }

@@ -1,6 +1,6 @@
 # Condition Types
 
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../../) / [Token](../../) / [Types](../)
+> Part of [Entiqon](../../../../) / [Database](../../../) / [Token](../../) / [Types](../)
 
 The `condition` package classifies SQL conditional expressions
 (`WHERE`, `HAVING`, `ON`) into canonical types.
@@ -40,8 +40,8 @@ package main
 
 import (
     "fmt"
-	
-    "github.com/entiqon/entiqon/db/token/condition"
+
+	"github.com/entiqon/db/token/types/condition"
 )
 
 func main() {

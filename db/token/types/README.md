@@ -1,6 +1,6 @@
 # Token Types
 
-> Part of [Entiqon](https://github.com/entiqon/entiqon) / [Database](../../) / [Token](../)
+> Part of [Entiqon](../../../) / [Database](../../) / [Token](../)
 
 The `types` package groups enum classifications that represent
 SQL structures in a consistent, dependency-free way.  
@@ -40,10 +40,10 @@ package main
 import (
     "fmt"
 
-    "github.com/entiqon/entiqon/db/token/types/condition"
-    "github.com/entiqon/entiqon/db/token/types/join"
-    "github.com/entiqon/entiqon/db/token/types/identifier"
-    "github.com/entiqon/entiqon/db/token/types/operator"
+    "github.com/entiqon/db/token/types/condition"
+    "github.com/entiqon/db/token/types/join"
+    "github.com/entiqon/db/token/types/identifier"
+    "github.com/entiqon/db/token/types/operator"
 )
 
 func main() {

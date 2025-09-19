@@ -1,5 +1,7 @@
 # Table Token
 
+> Part of [Entiqon](../../../) / [Database](../../) / [Token](../)
+
 ## 🌱 Overview
 
 The `token.Table` type represents a SQL table (or subquery) token with optional alias.  
