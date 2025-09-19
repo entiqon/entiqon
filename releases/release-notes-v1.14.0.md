@@ -2,10 +2,11 @@
 
 ## Highlights
 
-This release refines the database token system with a focus on **JOIN handling**, **expression resolution**, and *
-*operator classification**. It introduces a type registry for operators, restructures type enums, and expands
+This release refines the database token system with a focus on **JOIN handling**, **expression resolution**, and
+**operator classification**. It introduces a type registry for operators, restructures type enums, and expands
 documentation and tests.  
-It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`).
+It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`),
+and moves it into its own subpackage with a simplified constructor.
 
 ---
 
@@ -41,6 +42,7 @@ It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER 
     - Enforces operator/value validation (`IN`, `NOT IN`, `BETWEEN` rules).
     - Implements all shared contracts (Kindable, Identifiable, Errorable, Debuggable, Rawable, Renderable, Stringable,
       Validable).
+    - **Render** updated: clarified docs, added example, prepared for dialect-aware rendering.
     - Full unit tests and examples with 100% coverage.
 
 - **Join token (`join.Token`)**:
@@ -60,6 +62,8 @@ It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER 
 ## Builder
 
 - **SelectBuilder**:
+    - Relocated into new subpackage `db/builder/selects`.
+    - Constructor simplified from `NewSelect` → `New` (⚠️ breaking change).
     - Added full join support: `InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`, `CrossJoin`, `NaturalJoin`.
     - Supports `WHERE` conditions, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`) in one consistent API.
     - Default fallback to `SELECT *` when no fields are provided.
@@ -94,6 +98,7 @@ It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER 
 ## Documentation & Tests
 
 - Updated all `doc.go` and `README.md` across tokens and builder.
+- Added dedicated `builder/selects/README.md` merging strict field rules with modern usage.
 - Expanded `example_test.go` with joins, subqueries, identifiers, aliases, wildcards, and classification.
 - Examples now show `WHERE`, `ORDER BY`, and pagination (`LIMIT`, `OFFSET`) together with joins.
 - 100% coverage for new tokens, helpers, and builder flows.
@@ -106,6 +111,8 @@ It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER 
 - Renamed struct `join` → `token`.
 - Deleted `kind.go`.
 - Contracts updated in `contract.go` and `token.go`.
+- **SelectBuilder** moved from `db/builder` → `db/builder/selects`.
+- Constructor renamed `NewSelect` → `New`.
 
 ---
 
@@ -113,5 +120,5 @@ It also extends the **SelectBuilder** with richer join support, `WHERE`, `ORDER 
 
 This release consolidates **type safety** with dedicated enums, introduces a robust **operator registry**, and improves
 **validation and documentation** across tokens.  
-It also extends **SelectBuilder** with complete join support, conditions, ordering, and pagination — making it
+It also extends and relocates **SelectBuilder** with complete join support, conditions, ordering, and pagination — making it
 production-ready for complex SQL queries.

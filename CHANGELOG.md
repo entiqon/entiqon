@@ -5,53 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## v1.14.0 - Upcoming
+## [v1.14.0](https://github.com/entiqon/entiqon/releases/tag/v1.14.0) - 2025-09-18
 
 ### Contracts
-
-- Added **Kindable**: generic contract for enum-style classification (`Kind()`, `SetKind(T)`).
-- Added **Identifiable**: alias-free identity (`Input()`, `Expr()`).
-- Added **Aliasable**: alias surface (`Alias()`, `IsAliased()`).
-- **BaseToken** now composes Identifiable and Aliasable internally to avoid duplication.
-- Documentation updated (`doc.go`, `README.md`, examples) to reflect new contracts and relevance order.
+- Added **Kindable**, **Identifiable**, and **Aliasable** contracts; refactored BaseToken.
 
 ### Types
-
-- **Join.Type**: new `join.Type` enum (`Inner`, `Left`, `Right`, `Full`, `Cross`, `Natural`); legacy `join.Kind`
-  removed.
-- **Condition.Type**: new `condition.Type` enum (`Invalid`, `Single`, `And`, `Or`).
-- **Identifier.Type**: introduced `identifier.Type` enum (`Identifier`, `Subquery`, `Literal`, `Aggregate`, `Function`,
-  `Computed`).
-- **ExpressionKind**: added `Invalid` classification; extended rules for aggregates, computed expressions, functions.
-- **Operator.Type**: refactored to a typed registry with deterministic order, reverse-indexed parsing, and full
-  documentation/tests.
+- Introduced enums for Join, Condition, Identifier, ExpressionKind, and Operator.
 
 ### Tokens
-
-- **Condition**: introduced `Token` interface and implementation with constructors (`New`, `NewAnd`, `NewOr`) and
-  operator/value validation.
-- **Field/Table**: constructors delegate to `resolver.ValidateType`; stricter validation & clearer errors.
-- **Join**: added support for CROSS and NATURAL joins, with consistent token modeling (anchor `left`, hosted `right`).
+- Condition: new Token interface and constructors; **Render** docs clarified, ready for dialect-aware output.
+- Field/Table: stricter validation via resolver.
+- Join: added CROSS and NATURAL join support.
 
 ### Builder
-
-- **SelectBuilder** extended:
-    - Full join support: `InnerJoin`, `LeftJoin`, `RightJoin`, `FullJoin`, `CrossJoin`, `NaturalJoin`.
-    - Added chaining for `Where`, `OrderBy`, `Limit`, `Offset` in examples and documentation.
-    - Improved `Build()` aggregation to include joins and ordering consistently.
+- **SelectBuilder** moved to `builder/selects`; constructor renamed `NewSelect` → `New` (⚠️ breaking).
+- Extended with full join support and chaining for conditions, ordering, and pagination.
 
 ### Helpers
-
-- Simplified `ResolveExpression` default branch (unified invalid error).
-- Extended `ResolveCondition`: bare identifiers default to `=`, invalid expressions return clear errors.
-- Added `IsValidSlice` to enforce operator/value rules (`IN`/`NOT IN` non-empty, `BETWEEN` exactly two).
-- Documented and tested low-level utilities (`parseBetween`, `parseList`, `coerceScalar`, `ToParamKey`, etc.).
+- Simplified `ResolveExpression`; extended `ResolveCondition`; new `IsValidSlice` for operator/value rules.
 
 ### Docs & Tests
-
-- Updated all `doc.go` and `README.md` files for new/changed tokens and builder features.
-- Expanded `example_test.go` with join examples, subqueries, identifiers, aliases, wildcards, and classification.
-- Achieved 100% coverage for new contracts, helpers, and builder flows.
+- Added `builder/selects/README.md` with strict field rules and modern usage.
+- Expanded examples, improved diagnostics.
+- 100% coverage for new/changed tokens and builder flows.
 
 ## [v1.13.0](https://github.com/entiqon/entiqon/releases/tag/v1.13.0) - 2025-08-26
 

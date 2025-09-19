@@ -59,7 +59,7 @@ nav:
 
   - 📦 Releases:
       - Overview: releases/index.md
-      - Lastest: releases/release-notes-v1.13.0.md
+      - Lastest: releases/release-notes-v1.14.0.md
       - Full Changelog: CHANGELOG.md
 
 markdown_extensions:
