@@ -102,7 +102,7 @@ func New(input ...any) Token {
 	f := &field{
 		kind:  identifier.Invalid,
 		owner: nil,
-		input: "",
+		input: strings.Join(helpers.Stringify(input), " "), // keep audit trail
 	}
 
 	if len(input) == 0 {
@@ -122,8 +122,6 @@ func New(input ...any) Token {
 		}
 		return f.SetError(fmt.Errorf("expr has %w", err))
 	}
-
-	f.input = strings.Join(helpers.Stringify(input), " ") // keep audit trail
 
 	// always resolve the first part
 	kind, expr, alias, err := helpers.ResolveExpression(fmt.Sprint(input[0]), true)
@@ -281,9 +279,9 @@ func (f *field) String() string {
 	}
 
 	if f.err != nil {
-		return fmt.Sprintf("⛔ field(%q): %v", base, f.err)
+		return fmt.Sprintf("Field(%q): %v", base, f.err)
 	}
-	return fmt.Sprintf("✅ field(%q)", base)
+	return fmt.Sprintf("Field(%q)", base)
 }
 
 // IsValid reports whether the field is valid (no errors).

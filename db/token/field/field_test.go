@@ -266,19 +266,19 @@ func TestField(t *testing.T) {
 
 		t.Run("Stringable", func(t *testing.T) {
 			f := field.New("field")
-			if got := f.String(); got != "✅ field(\"field\")" {
+			if got := f.String(); got != "Field(\"field\")" {
 				t.Errorf("expected String() 'field', got %q", got)
 			}
 
 			// Computed expression with alias
 			f = field.New("field", "alias")
-			if got := f.String(); got != "✅ field(\"field AS alias\")" {
+			if got := f.String(); got != "Field(\"field AS alias\")" {
 				t.Errorf("expected String() 'field AS alias', got %q", got)
 			}
 
 			// With table owner
 			f = field.NewWithTable("users", "id")
-			if got := f.String(); got != "✅ field(\"users.id\")" {
+			if got := f.String(); got != "Field(\"users.id\")" {
 				t.Errorf("expected String() 'users.id', got %q", got)
 			}
 

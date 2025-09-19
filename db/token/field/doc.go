@@ -71,7 +71,7 @@
 //
 //	sb := builder.NewSelect(nil).
 //	    Fields("id", "name").
-//	    Source("users")
+//	    From("users")
 //
 //	sql, _ := sb.Build()
 //	// SELECT id, name FROM users
@@ -80,7 +80,7 @@
 //
 //	sb := builder.NewSelect(nil).
 //	    Fields("id user_id", "COUNT(*) total").
-//	    Source("users")
+//	    From("users")
 //
 //	sql, _ := sb.Build()
 //	// SELECT id AS user_id, COUNT(*) AS total FROM users

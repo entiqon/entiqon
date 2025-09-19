@@ -198,8 +198,8 @@ func ExampleToken_new() {
 	// Output:
 	// Invalid    false empty input is not allowed
 	// Invalid field alias extra   false invalid identifier: field alias extra
-	// Invalid    false unsupported type; if you want to create a copy, use Clone() instead
-	// Invalid    false expr has invalid format (type int)
+	// Invalid Field("field")   false unsupported type; if you want to create a copy, use Clone() instead
+	// Invalid 123456   false expr has invalid format (type int)
 	// Invalid    false empty identifier is not allowed: ""
 	// Identifier * *  false <nil>
 	// Identifier field field  false <nil>
