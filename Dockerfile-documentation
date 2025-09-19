@@ -27,6 +27,7 @@ COPY db/builder/selects/README.md          docs/packages/db/builder/select.md
 COPY db/contract/README.md                 docs/packages/db/contract/overview.md
 COPY db/dialect/README.md                  docs/packages/db/dialect/overview.md
 COPY db/dialect/generic/README.md          docs/packages/db/dialect/generic.md
+COPY db/errors/README.md                   docs/packages/db/errors/overview.md
 COPY db/token/README.md                    docs/packages/db/token/overview.md
 COPY db/token/condition/README.md          docs/packages/db/token/condition.md
 COPY db/token/field/README.md              docs/packages/db/token/field.md

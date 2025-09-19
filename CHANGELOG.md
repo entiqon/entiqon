@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.15.0] - Upcoming
+
+### Added
+- Documentation for **db/errors**:
+    - `doc.go` overview file.
+    - `README.md` with usage examples.
+    - Example tests demonstrating sentinel error usage with `errors.Is`.
+
+### Changed
+- Improved GoDoc comments for `UnsupportedTypeError` and `InvalidIdentifierError`.
+
+### Fixed
+- Example tests now verify correct wrapping and detection of sentinel errors.
+
 ## [v1.14.0](https://github.com/entiqon/entiqon/releases/tag/v1.14.0) - 2025-09-18
 
 ### Contracts

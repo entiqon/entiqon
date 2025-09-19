@@ -44,6 +44,8 @@ nav:
           - Dialects:
               - Overview: packages/db/dialect/overview.md
               - Generic: packages/db/dialect/generic.md
+          - Errors:
+              - Overview: packages/db/errors/overview.md
           - Tokens:
               - Overview: packages/db/token/overview.md
               - Types: packages/db/token/types/identifier.md
