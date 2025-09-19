@@ -41,6 +41,8 @@ nav:
           - Builders:
               - Select: packages/db/builder/overview.md
           - Contracts: packages/db/contract/overview.md
+          - Dialects:
+              - Overview: packages/db/dialect/overview.md
           - Tokens:
               - Overview: packages/db/token/overview.md
               - Types: packages/db/token/types/identifier.md

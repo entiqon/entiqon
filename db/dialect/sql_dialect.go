@@ -1,10 +1,3 @@
-// File: db/dialect/base.go
-
-// Package dialect provides interfaces and implementations
-// for SQL dialects to generate database-specific SQL syntax.
-//
-// BaseDialect offers a generic SQL dialect with common behaviors
-// suitable for many relational databases.
 package dialect
 
 import (
@@ -14,11 +7,13 @@ import (
 	"time"
 )
 
-// Dialect defines the behavior required to generate SQL syntax
+// SQLDialect defines the behavior required to generate SQL syntax
 // tailored to a specific database dialect.
-type Dialect interface {
+type SQLDialect interface {
 	// Name returns the name of the dialect, e.g., "postgres", "mysql".
 	Name() string
+
+	Options() Options
 
 	// QuoteIdentifier quotes an SQL identifier such as table or column names,
 	// ensuring it is escaped according to dialect rules.
@@ -35,10 +30,6 @@ type Dialect interface {
 	// Placeholder returns the parameter placeholder string for
 	// the given parameter index (e.g., "?" or "$1").
 	Placeholder(index int) string
-
-	// SupportsReturning indicates if the dialect supports
-	// a RETURNING clause on INSERT/UPDATE/DELETE statements.
-	SupportsReturning() bool
 }
 
 // BaseDialect is a generic SQL dialect implementation providing
