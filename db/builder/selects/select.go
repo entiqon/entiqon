@@ -18,7 +18,7 @@ import (
 
 // SelectBuilder builds simple SELECT queries.
 type selectBuilder struct {
-	dialect    dialect.Dialect
+	dialect    dialect.SQLDialect
 	fields     *collection.Collection[field.Token]
 	table      table.Token
 	joins      *collection.Collection[join.Token]
@@ -32,10 +32,10 @@ type selectBuilder struct {
 
 // New creates a new SelectBuilder with the provided dialect.
 // If nil is passed, BaseDialect is used by default.
-func New(d dialect.Dialect) SelectBuilder {
-	if d == nil {
-		d = &dialect.BaseDialect{}
-	}
+func New(d dialect.SQLDialect) SelectBuilder {
+	//if d == nil {
+	//	d = generic.New()
+	//}
 	return &selectBuilder{dialect: d}
 }
 
