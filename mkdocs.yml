@@ -43,6 +43,7 @@ nav:
           - Contracts: packages/db/contract/overview.md
           - Dialects:
               - Overview: packages/db/dialect/overview.md
+              - Generic: packages/db/dialect/generic.md
           - Tokens:
               - Overview: packages/db/token/overview.md
               - Types: packages/db/token/types/identifier.md
