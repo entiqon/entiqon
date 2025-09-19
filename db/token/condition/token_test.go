@@ -2,6 +2,7 @@ package condition_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/entiqon/entiqon/db/token/condition"
@@ -199,6 +200,11 @@ func TestCondition(t *testing.T) {
 				c := condition.New(ct.Single, "id", operator.GreaterThan, 10)
 				if c.Render() != c.Expr() {
 					t.Error("expected 'id > 10', got ", c.Render())
+				}
+
+				c = condition.New(ct.And, "id", operator.GreaterThan, 10)
+				if !strings.Contains(c.Render(), "AND") {
+					t.Error("expected contains 'AND', got ", c.Render())
 				}
 			})
 
