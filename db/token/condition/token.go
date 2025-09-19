@@ -322,7 +322,10 @@ func (t *token) Raw() string {
 //	cond := condition.New(ct.Single, "age > ?", 18)
 //	fmt.Println(cond.Render()) // Output: "age > ?"
 func (t *token) Render() string {
-	return t.expr
+	if t.kind == ct.Single {
+		return t.expr
+	}
+	return fmt.Sprintf("%s %s", t.kind.String(), t.expr)
 }
 
 // String returns a concise, human-readable representation of the
