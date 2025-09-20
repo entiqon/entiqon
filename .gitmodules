@@ -1,3 +1,6 @@
 [submodule "common"]
 	path = common
 	url = git@github.com:entiqon/common.git
+[submodule "db"]
+	path = db
+	url = git@github.com:entiqon/db.git
