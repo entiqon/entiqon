@@ -2,10 +2,10 @@ module github.com/entiqon/entiqon
 
 go 1.24
 
-require github.com/stretchr/testify v1.10.0
-
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+    github.com/entiqon/common v1.0.0 // indirect until you bump
+    github.com/entiqon/db v1.0.0     // indirect until you bump
 )
+
+replace github.com/entiqon/common => ./common
+replace github.com/entiqon/db => ./db
