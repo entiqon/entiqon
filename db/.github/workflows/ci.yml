@@ -1,4 +1,4 @@
-name: CI Common
+name: CI Database
 
 on:
   push:
