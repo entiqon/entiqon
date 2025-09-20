@@ -1,0 +1,43 @@
+name: CI Common
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Run tests with coverage
+        run: |
+          go test ./... -covermode=atomic -coverprofile=coverage.out
+
+      - name: Show coverage %
+        run: |
+          echo "Total coverage:"
+          go tool cover -func=coverage.out | grep total
+
+      - name: Enforce minimum 80% coverage
+        run: |
+          pct=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Coverage: $pct%"
+          awk -v p="$pct" 'BEGIN {exit !(p >= 80)}'
+
+      - name: Upload coverage report
+        if: success()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.out
+          flags: common
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
