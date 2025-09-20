@@ -1,59 +1,40 @@
-name: Test & Coverage
+name: CI
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  release:
-    types: [ published ]
 
 jobs:
   test:
-    name: Run tests with coverage and enforce threshold
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-          fetch-tags: true
+          submodules: recursive   # fetch common and db too
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: stable
 
-      - name: Run tests with coverage
+      - name: Run tests with gotestx
         run: |
           chmod +x ./cli/gotestx
-          ./cli/gotestx -qc ./db/... ./common/... ./cli/...
+          ./cli/gotestx -cq ./common/... ./db/... ./cli/...
 
-      - name: Show coverage %
+      - name: Enforce minimum coverage (80%)
         run: |
-          echo "Total coverage:"
-          go tool cover -func=coverage.out | grep total
+          total=$(go tool cover -func=coverage.out | grep total: | awk '{print substr($3, 1, length($3)-1)}')
+          echo "✅ Total coverage: $total%"
+          threshold=80.0
+          awk -v total=$total -v threshold=$threshold 'BEGIN {if (total < threshold) {exit 1}}'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          slug: entiqon/entiqon
-          files: coverage.out
-          flags: unittests
-          verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Enforce minimum 80% coverage
-        run: |
-          pct=$(go tool cover -func=coverage.out \
-            | grep total \
-            | awk '{print substr($3, 1, length($3)-1)}')
-          echo "Coverage: $pct%"
-          awk -v p="$pct" 'BEGIN {exit !(p >= 80)}'
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage.out
+          files: ./coverage.out
+          flags: all
+          fail_ci_if_error: true
