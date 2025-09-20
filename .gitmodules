@@ -4,3 +4,6 @@
 [submodule "db"]
 	path = db
 	url = git@github.com:entiqon/db.git
+[submodule "cli"]
+	path = cli
+	url = git@github.com:entiqon/cli.git
