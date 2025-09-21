@@ -7,3 +7,6 @@
 [submodule "cli"]
 	path = cli
 	url = git@github.com:entiqon/cli.git
+[submodule "gotestx"]
+	path = gotestx
+	url = git@github.com:entiqon/gotestx.git
