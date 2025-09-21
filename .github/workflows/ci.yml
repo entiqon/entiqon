@@ -20,10 +20,12 @@ jobs:
         with:
           go-version: stable
 
-      - name: Run tests with gotestx
+      - name: Install GoTestX
+        run: go install github.com/entiqon/gotest@v1.0.0
+
+      - name: Run tests with coverage (excluding cmd/)
         run: |
-          chmod +x ./cli/gotestx
-          ./cli/gotestx -cq ./common/... ./db/... ./cli/...
+          gotestx -cq ./common/... ./db/... ./cli/internal ./gotestx/internal
 
       - name: Enforce minimum coverage (80%)
         run: |
